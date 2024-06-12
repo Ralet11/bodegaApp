@@ -20,6 +20,10 @@ import MapViewComponent from './views/Map';
 import OrderScreen from './views/OrdersView';
 import CategoryShops from './views/CategoryShops';
 import Signup from './views/SignUp';
+import AccountSettings from './views/AccountSettings';
+import Toast from 'react-native-toast-message';
+import MyCoupons from './views/Discounts';
+import Contact from './views/Contact';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -103,29 +107,44 @@ export default function App() {
               component={CartScreen}
               options={{ headerShown: false }} 
             />
-              <Stack.Screen 
+            <Stack.Screen 
               name="AcceptedOrder" 
               component={AcceptedOrder}
               options={{ headerShown: false }} 
             />
-              <Stack.Screen 
+            <Stack.Screen 
               name="SetAddressScreen" 
               component={SetAddressScreen}
               options={{ headerShown: false }} 
             />
-              <Stack.Screen 
+            <Stack.Screen 
               name="CategoryShops" 
               component={CategoryShops}
               options={{ headerShown: false }} 
             />
-              <Stack.Screen 
+            <Stack.Screen 
               name="Signup" 
               component={Signup}
               options={{ headerShown: false }} 
             />
-            
+            <Stack.Screen 
+              name="AccountSettings" 
+              component={AccountSettings}
+              options={{ headerShown: false }} 
+            />
+            <Stack.Screen 
+              name="MyCoupons" 
+              component={MyCoupons}
+              options={{ headerShown: false }} 
+            />
+            <Stack.Screen 
+              name="Contact" 
+              component={Contact}
+              options={{ headerShown: false }} 
+            />
           </Stack.Navigator>
         </NavigationContainer>
+        <Toast />
       </StripeProvider>
     </Provider>
   );

@@ -10,7 +10,7 @@ const GOOGLE_API_KEY = 'AIzaSyB8fCVwRXbMe9FAxsrC5CsyfjzpHxowQmE';
 
 const MapViewComponent = () => {
   const dispatch = useDispatch();
-  const address = useSelector((state) => state?.user?.address) || '';
+  const address = useSelector((state) => state?.user?.address.formatted_address) || '';
   const shopsByCategory = useSelector((state) => state?.setUp?.shops) || {};
   const [region, setRegion] = useState(null);
   const [marker, setMarker] = useState(null);

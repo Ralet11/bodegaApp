@@ -11,18 +11,21 @@ import { setShops } from '../redux/slices/setUp.slice';
 import HorizontalScroll from '../components/HorizontalScroll';
 import PromoSlider from '../components/PromotionSlider';
 import AccountDrawer from '../components/AccountDrawer';
+import { addAddress, setAddress, setAddresses } from '../redux/slices/user.slice';
+
 
 const Dashboard = () => {
   const scheme = useColorScheme();
-  const [address, setAddress] = useState('');
   const [shopsByCategory, setShopsByCategory] = useState({});
   const [loading, setLoading] = useState(true);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const categories = useSelector((state) => state?.setUp?.categories) || [];
-  const address1 = useSelector((state) => state?.user?.address) || [];
+  const address = useSelector((state) => state?.user?.address)
+  const addresses = useSelector((state) => state?.user?.addresses)
   const navigation = useNavigation();
   const dispatch = useDispatch();
-  const user = useSelector((state) => state?.user.userInfo.data.client)
+  const user = useSelector((state) => state?.user?.userInfo?.data?.client);
+  const token = useSelector((state) => state?.user?.userInfo.data.token); // Asumiendo que el token está en el estado auth
 
   const categoryTitles = {
     1: 'Best smoke shops',
@@ -45,13 +48,42 @@ const Dashboard = () => {
     };
 
     fetchShops();
-  }, []);
+  }, [dispatch]);
 
-  console.log(user, "user")
+  useEffect(() => {
+    const fetchAddress = async () => {
+      if (!token) {
+        console.warn('Token not available');
+        return;
+      }
+
+      try {
+        const response = await Axios.get(`${API_URL}/api/addresses/getById`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+      
+        if (response.status === 200) {
+          console.log(response.data);
+          dispatch(setAddresses(response.data))
+          dispatch(setAddress(response.data[0]))
+        }
+      } catch (error) {
+        console.error('Error fetching address:', error);
+      }
+    };
+
+    fetchAddress();
+  }, [token]);
 
   const changeAddress = () => {
     navigation.navigate('SetAddressScreen');
   };
+
+  console.log(address, "direcioon")
+  console.log(addresses, "adresses")
 
   const handleShopPress = (shop) => {
     navigation.navigate('Shop', { shop });

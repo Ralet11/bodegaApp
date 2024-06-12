@@ -15,8 +15,8 @@ export default function Login() {
   const navigation = useNavigation();
   const dispatch = useDispatch();
   const [clientData, setClientData] = useState({
-    email: "",
-    password: ""
+    email: "ramiro@gmail.com",
+    password: "123456"
   });
 
   const [errors, setErrors] = useState({

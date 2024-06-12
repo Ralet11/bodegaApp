@@ -1,9 +1,44 @@
-import React from 'react';
-import { View, Text, ScrollView, Image, TouchableOpacity, StyleSheet, Animated } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, ScrollView, Image, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
+import { useSelector } from 'react-redux';
+import Axios from 'react-native-axios';
 
-const HorizontalScroll = ({ title, items, scheme, animationValues, handleItemPress }) => {
+const GOOGLE_MAPS_API_KEY = 'AIzaSyB8fCVwRXbMe9FAxsrC5CsyfjzpHxowQmE';
+
+const HorizontalScroll = ({ title, items, scheme, handleItemPress }) => {
+  const [distances, setDistances] = useState({});
+  const [isLoading, setIsLoading] = useState(true);
+  const address = useSelector((state) => state?.user?.address?.formatted_address) || '';
   const styles = scheme === 'dark' ? darkTheme : lightTheme;
+
+  useEffect(() => {
+    const fetchDistances = async () => {
+      const newDistances = {};
+      for (const item of items) {
+        if (item.address) {
+          try {
+            const response = await Axios.get(
+              `https://maps.googleapis.com/maps/api/distancematrix/json?units=metric&origins=${encodeURIComponent(address)}&destinations=${encodeURIComponent(item.address)}&key=${GOOGLE_MAPS_API_KEY}`
+            );
+            const distanceText = response.data.rows[0].elements[0].distance.text;
+            const distanceValue = response.data.rows[0].elements[0].distance.value / 1000; // Convert to kilometers
+            if (distanceValue <= 20) {
+              newDistances[item.address] = distanceText;
+            }
+          } catch (error) {
+            console.error('Error fetching distance:', error);
+          }
+        }
+      }
+      setDistances(newDistances);
+      setIsLoading(false);
+    };
+
+    if (address) {
+      fetchDistances();
+    }
+  }, [address, items]);
 
   return (
     <View style={styles.container}>
@@ -13,26 +48,35 @@ const HorizontalScroll = ({ title, items, scheme, animationValues, handleItemPre
           <Text style={styles.viewMore}>See more</Text>
         </TouchableOpacity>
       </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scrollView}>
-        {items.map((item, index) => (
-          <TouchableOpacity key={index} style={styles.itemContainer} onPress={() => handleItemPress(item)}>
-            <View style={[styles.card]}>
-              <Image source={{ uri: item.image || item.img }} style={styles.itemImage} />
-              <View style={styles.overlay}>
-                <Text style={styles.discountText}>20% OFF</Text>
-                <Text style={styles.distanceText}>83.4 KM</Text>
-              </View>
-              <View style={styles.itemContent}>
-                <Text style={styles.itemName} numberOfLines={1}>{item.name || item.product}</Text>
-                <View style={styles.addressContainer}>
-                  <FontAwesome name="map-marker" size={14} color={scheme === 'dark' ? '#FFD700' : '#ff6347'} />
-                  <Text style={styles.itemAddress} numberOfLines={1}>{item.address || "Av. Lope de Vega 1599"}</Text>
+      {isLoading ? (
+        <ActivityIndicator size="large" color={scheme === 'dark' ? '#fff' : '#000'} />
+      ) : (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scrollView}>
+          {items.map((item, index) => {
+            if (!distances[item.address]) {
+              return null;
+            }
+            return (
+              <TouchableOpacity key={index} style={styles.itemContainer} onPress={() => handleItemPress(item)}>
+                <View style={styles.card}>
+                  <Image source={{ uri: item.image || item.img }} style={styles.itemImage} />
+                  <View style={styles.overlay}>
+                    <Text style={styles.discountText}>20% OFF</Text>
+                    <Text style={styles.distanceText}>{distances[item.address]}</Text>
+                  </View>
+                  <View style={styles.itemContent}>
+                    <Text style={styles.itemName} numberOfLines={1}>{item.name || item.product}</Text>
+                    <View style={styles.addressContainer}>
+                      <FontAwesome name="map-marker" size={14} color={scheme === 'dark' ? '#FFD700' : '#ff6347'} />
+                      <Text style={styles.itemAddress} numberOfLines={1}>{item.address || "Av. Lope de Vega 1599"}</Text>
+                    </View>
+                  </View>
                 </View>
-              </View>
-            </View>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      )}
     </View>
   );
 };

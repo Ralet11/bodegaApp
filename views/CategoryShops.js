@@ -52,6 +52,10 @@ const CategoryShops = () => {
     navigation.navigate('CategoryShops', { categoryId: newCategoryId, categoryName: newCategoryName });
   };
 
+  const handleShopPress = (shop) => {
+    navigation.navigate('Shop', { shop });
+  };
+
   return (
     <SafeAreaView style={scheme === 'dark' ? darkTheme.safeArea : lightTheme.safeArea}>
       <View style={scheme === 'dark' ? darkTheme.header : lightTheme.header}>
@@ -79,13 +83,15 @@ const CategoryShops = () => {
       <ScrollView contentContainerStyle={scheme === 'dark' ? darkTheme.contentContainer : lightTheme.contentContainer}>
         {filteredShops.length > 0 ? (
           filteredShops.map((shop) => (
-            <View key={shop.id} style={scheme === 'dark' ? darkTheme.card : lightTheme.card}>
-              <Image source={{ uri: shop.img }} style={scheme === 'dark' ? darkTheme.cardImage : lightTheme.cardImage} />
-              <View style={scheme === 'dark' ? darkTheme.cardContent : lightTheme.cardContent}>
-                <Text style={scheme === 'dark' ? darkTheme.cardTitle : lightTheme.cardTitle}>{shop.name}</Text>
-                <Text style={scheme === 'dark' ? darkTheme.cardSubtitle : lightTheme.cardSubtitle}>{shop.address}</Text>
+            <TouchableOpacity key={shop.id} onPress={() => handleShopPress(shop)}>
+              <View style={scheme === 'dark' ? darkTheme.card : lightTheme.card}>
+                <Image source={{ uri: shop.img }} style={scheme === 'dark' ? darkTheme.cardImage : lightTheme.cardImage} />
+                <View style={scheme === 'dark' ? darkTheme.cardContent : lightTheme.cardContent}>
+                  <Text style={scheme === 'dark' ? darkTheme.cardTitle : lightTheme.cardTitle}>{shop.name}</Text>
+                  <Text style={scheme === 'dark' ? darkTheme.cardSubtitle : lightTheme.cardSubtitle}>{shop.address}</Text>
+                </View>
               </View>
-            </View>
+            </TouchableOpacity>
           ))
         ) : (
           <Text style={scheme === 'dark' ? darkTheme.noShopsText : lightTheme.noShopsText}>No shops available in this category</Text>

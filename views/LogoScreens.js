@@ -1,18 +1,28 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Animated, StyleSheet, Dimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useDispatch, useSelector } from 'react-redux'; 
+import { clearUser } from '../redux/slices/user.slice';
 
 const LogoScreen = () => {
   const navigation = useNavigation();
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  const isAuthenticated = useSelector(state => state.user.isAuthenticated); 
+  const dispatch = useDispatch()
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      navigation.replace('Login'); // Navega a la pantalla de login después de 3 segundos
+    const redirectTimeout = setTimeout(() => {
+      // Si el usuario está autenticado, redirige a la pantalla principal de la aplicación
+      if (isAuthenticated) {
+        navigation.navigate('Main');
+      } else {
+        navigation.navigate('Login');
+        dispatch(clearUser());
+      }
     }, 3000);
 
-    return () => clearTimeout(timer); // Limpia el temporizador cuando el componente se desmonta
-  }, [navigation]);
+    return () => clearTimeout(redirectTimeout);
+  }, [isAuthenticated, navigation]);
 
   useEffect(() => {
     Animated.loop(

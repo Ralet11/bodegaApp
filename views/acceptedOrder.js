@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, useColorScheme } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, useColorScheme, ActivityIndicator } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
@@ -16,16 +16,30 @@ const AcceptedOrder = () => {
   const [routeCoordinates, setRouteCoordinates] = useState([]);
   const [distance, setDistance] = useState('');
   const [duration, setDuration] = useState('');
-
-  const origin = { latitude: -27.4695, longitude: -58.8306 }; // Corrientes, Argentina
-  const destination = { latitude: -27.4748, longitude: -58.8203 }; // Example destination in Corrientes
+  const [isLoading, setIsLoading] = useState(true);
+  const address = useSelector((state) => state?.user?.address?.formatted_address) || '';
   const user = useSelector((state) => state.user.userInfo.data);
   const navigation = useNavigation();
+  const shops = useSelector((state) => state?.setUp?.shops);
+  const currentShop = useSelector((state) => state.currentShop.currentShop);
+
+  const findCurrentShop = () => {
+    for (const categoryId in shops) {
+      const shop = shops[categoryId].find(shop => shop.id === currentShop);
+      if (shop) {
+        return shop;
+      }
+    }
+    return null;
+  };
+
+  const currentShopDetails = findCurrentShop();
+  const destination = currentShopDetails ? currentShopDetails.address : null;
 
   useEffect(() => {
     const fetchRoute = async () => {
       try {
-        const response = await Axios.get(`https://maps.googleapis.com/maps/api/directions/json?origin=${origin.latitude},${origin.longitude}&destination=${destination.latitude},${destination.longitude}&key=${GOOGLE_MAPS_API_KEY}`);
+        const response = await Axios.get(`https://maps.googleapis.com/maps/api/directions/json?origin=${encodeURIComponent(address)}&destination=${encodeURIComponent(destination)}&key=${GOOGLE_MAPS_API_KEY}`);
         
         if (response.data.routes.length) {
           const points = decode(response.data.routes[0].overview_polyline.points);
@@ -38,13 +52,17 @@ const AcceptedOrder = () => {
           const { distance, duration } = response.data.routes[0].legs[0];
           setDistance(distance.text);
           setDuration(duration.text);
+          setIsLoading(false);
         }
       } catch (error) {
         console.error(error);
+        setIsLoading(false);
       }
     };
-    fetchRoute();
-  }, []);
+    if (address && destination) {
+      fetchRoute();
+    }
+  }, [address, destination]);
 
   const decode = (t, e) => {
     let points = [];
@@ -78,21 +96,29 @@ const AcceptedOrder = () => {
 
   return (
     <SafeAreaView style={[styles.container, colorScheme === 'dark' ? styles.darkContainer : styles.lightContainer]}>
-      <MapView
-        style={styles.map}
-        initialRegion={{
-          latitude: origin.latitude,
-          longitude: origin.longitude,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        }}
-      >
-        <Marker coordinate={origin} />
-        <Marker coordinate={destination} />
-        {routeCoordinates.length > 0 && (
-          <Polyline coordinates={routeCoordinates} strokeColor="#000" strokeWidth={3} />
-        )}
-      </MapView>
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#007bff" />
+        </View>
+      ) : (
+        <MapView
+          style={styles.map}
+          initialRegion={{
+            latitude: routeCoordinates.length > 0 ? routeCoordinates[0].latitude : -27.4695,
+            longitude: routeCoordinates.length > 0 ? routeCoordinates[0].longitude : -58.8306,
+            latitudeDelta: 0.05,
+            longitudeDelta: 0.05,
+          }}
+        >
+          {routeCoordinates.length > 0 && (
+            <>
+              <Marker coordinate={routeCoordinates[0]} title="User Location" />
+              <Marker coordinate={routeCoordinates[routeCoordinates.length - 1]} title="Shop Location" />
+              <Polyline coordinates={routeCoordinates} strokeColor="#000" strokeWidth={3} />
+            </>
+          )}
+        </MapView>
+      )}
       <View style={[styles.infoContainer, colorScheme === 'dark' ? styles.darkInfoContainer : styles.lightInfoContainer]}>
         <View style={styles.orderInfo}>
           <Text style={[styles.orderNumber, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>Order #1001</Text>
@@ -109,10 +135,10 @@ const AcceptedOrder = () => {
             <FontAwesome name="clock-o" size={16} color="#007BFF" />
             <Text style={[styles.orderDetailText, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>{duration}</Text>
           </View>
-          <View style={styles.orderDetail}>
+          {/* <View style={styles.orderDetail}>
             <FontAwesome name="money" size={16} color="#007BFF" />
             <Text style={[styles.orderDetailText, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>5,500</Text>
-          </View>
+          </View> */}
         </View>
         <View style={styles.buttonContainer}>
           <TouchableOpacity style={styles.cancelButton}>
@@ -136,6 +162,11 @@ const styles = StyleSheet.create({
   },
   darkContainer: {
     backgroundColor: '#121212',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   map: {
     flex: 1,

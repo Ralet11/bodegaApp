@@ -4,8 +4,6 @@ import { FontAwesome } from '@expo/vector-icons';
 import { useSelector } from 'react-redux';
 
 const AccountDrawer = ({ user, visible, onClose, onNavigate, scheme }) => {
-
-
   return (
     <Modal
       animationType="slide"
@@ -26,9 +24,6 @@ const AccountDrawer = ({ user, visible, onClose, onNavigate, scheme }) => {
           <View style={styles.userInfo}>
             <Text style={[styles.drawerText, scheme === 'dark' ? styles.darkText : styles.lightText]}>
               {user.email}
-            </Text>
-            <Text style={[styles.drawerText, scheme === 'dark' ? styles.darkText : styles.lightText]}>
-            {user.address}
             </Text>
           </View>
           <TouchableOpacity onPress={() => onNavigate('AccountSettings')} style={styles.drawerButton}>

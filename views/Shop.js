@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image, ScrollView, useColorScheme, FlatList, Animated } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Image, FlatList, Animated, ScrollView, SafeAreaView, useColorScheme } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import Axios from 'react-native-axios';
@@ -10,16 +10,17 @@ import { addToCart } from '../redux/slices/cart.slice';
 import { setCurrentShop } from '../redux/slices/currentShop.slice';
 
 const ShopScreen = () => {
-  const scheme = useColorScheme();
   const route = useRoute();
   const navigation = useNavigation();
   const dispatch = useDispatch();
   const cart = useSelector(state => state.cart.items);
+  const colorScheme = useColorScheme();
 
   const [categories, setCategories] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
-  const [scrollY] = useState(new Animated.Value(0));
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const scrollViewRef = useRef();
 
   const { shop } = route.params;
 
@@ -61,7 +62,10 @@ const ShopScreen = () => {
 
   const totalItems = cart.reduce((total, item) => total + item.quantity, 0);
 
-  const styles = scheme === 'dark' ? stylesDark : stylesLight;
+  const scrollToCategory = (index) => {
+    const yPosition = index * 250; // Ajusta esto según el tamaño de cada sección
+    scrollViewRef.current.scrollTo({ y: yPosition, animated: true });
+  };
 
   const renderCategory = ({ item: category }) => (
     <View key={category.id} style={styles.categoryContainer}>
@@ -89,27 +93,54 @@ const ShopScreen = () => {
 
   const headerHeight = scrollY.interpolate({
     inputRange: [0, 250],
-    outputRange: [250, 70],
+    outputRange: [250, 0], // Reduce height to 0
     extrapolate: 'clamp',
   });
 
+  const headerOpacity = scrollY.interpolate({
+    inputRange: [0, 250],
+    outputRange: [1, 0], // Fade out completely
+    extrapolate: 'clamp',
+  });
+
+  const categoryListTranslateY = scrollY.interpolate({
+    inputRange: [0, 250],
+    outputRange: [0, -70], // Ajusta esto para que la lista se desplace hacia arriba
+    extrapolate: 'clamp',
+  });
+
+  const styles = colorScheme === 'dark' ? stylesDark : stylesLight;
+
   return (
-    <View style={{ flex: 1, backgroundColor: scheme === 'dark' ? '#1c1c1c' : '#fff' }}>
+    <SafeAreaView style={styles.safeArea}>
       <Animated.View style={[styles.headerContainer, { height: headerHeight }]}>
-        <Image source={{ uri: shop.img }} style={styles.headerImage} />
+        <Animated.Image source={{ uri: shop.img }} style={[styles.headerImage, { opacity: headerOpacity }]} />
         <View style={styles.overlay} />
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <FontAwesome name="arrow-left" size={24} color="#fff" />
         </TouchableOpacity>
-        <View style={styles.headerTextContainer}>
+        <Animated.View style={[styles.headerTextContainer, { opacity: headerOpacity }]}>
           <Text style={styles.headerTitle}>{shop.name}</Text>
           <Text style={styles.headerSubtitle}>{shop.address}</Text>
           <View style={styles.ratingContainer}>
             <FontAwesome name="star" size={14} color="#FFD700" />
             <Text style={styles.shopRating}>4.9</Text>
           </View>
-        </View>
+        </Animated.View>
       </Animated.View>
+      <View style={styles.categoryListContainer}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoryScrollContainer}
+        >
+          {categories.map((category, index) => (
+            <TouchableOpacity key={category.id} onPress={() => scrollToCategory(index)} style={styles.categoryButton}>
+              <Text style={styles.categoryButtonText}>{category.name}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
       <Animated.FlatList
         data={categories}
         keyExtractor={(category) => category.id.toString()}
@@ -119,7 +150,7 @@ const ShopScreen = () => {
           { useNativeDriver: false }
         )}
         contentContainerStyle={styles.contentContainer}
-        ListHeaderComponent={<Text style={styles.sectionTitle}>Promociones</Text>}
+        ref={scrollViewRef}
       />
       <ModalProduct
         visible={modalVisible}
@@ -128,30 +159,30 @@ const ShopScreen = () => {
         addToCart={handleAddToCart}
       />
       {cart.length > 0 && (
-        <>
-          <View style={styles.cartContainer}>
-            <Text style={styles.cartText}>{totalItems} producto{totalItems > 1 ? 's' : ''}</Text>
-            <Text style={styles.cartText}>$ {totalAmount}</Text>
-            <TouchableOpacity
-              style={styles.cartButton}
-              onPress={() => navigation.navigate('CartScreen')}
-            >
-              <Text style={styles.cartButtonText}>Ver pedido</Text>
-            </TouchableOpacity>
-          </View>
-          <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate('CartScreen')}>
-            <FontAwesome name="shopping-cart" size={24} color="#fff" />
+        <View style={styles.cartContainer}>
+          <Text style={styles.cartText}>{totalItems} producto{totalItems > 1 ? 's' : ''}</Text>
+          <Text style={styles.cartText}>$ {totalAmount}</Text>
+          <TouchableOpacity
+            style={styles.cartButton}
+            onPress={() => navigation.navigate('CartScreen')}
+          >
+            <Text style={styles.cartButtonText}>Ver pedido</Text>
           </TouchableOpacity>
-        </>
+        </View>
       )}
-    </View>
+    </SafeAreaView>
   );
 };
 
 const commonStyles = {
+  safeArea: {
+    flex: 1,
+    marginTop: 30,
+  },
   container: {
     flex: 1,
     padding: 16,
+    marginTop:30
   },
   backButton: {
     padding: 10,
@@ -163,7 +194,6 @@ const commonStyles = {
   },
   headerContainer: {
     position: 'relative',
-    marginBottom: 20,
   },
   headerImage: {
     width: '100%',
@@ -318,6 +348,27 @@ const commonStyles = {
     shadowRadius: 4,
     elevation: 5,
   },
+  categoryScrollContainer: {
+    paddingVertical: 10,
+    paddingLeft: 16,
+  },
+  categoryButton: {
+    padding: 10,
+    backgroundColor: '#FFC107',
+    borderRadius: 10,
+    marginRight: 10,
+  },
+  categoryButtonText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#fff',
+    fontFamily: 'sans-serif-medium',
+  },
+  categoryListContainer: {
+    backgroundColor: '#fff',
+    paddingVertical: 10,
+    zIndex: 10,
+  },
 };
 
 const stylesDark = StyleSheet.create({
@@ -366,6 +417,11 @@ const stylesDark = StyleSheet.create({
   fab: {
     ...commonStyles.fab,
     backgroundColor: '#FFC107',
+  },
+  categoryListContainer: {
+    backgroundColor: '#1c1c1c',
+    paddingVertical: 10,
+    zIndex: 10,
   },
 });
 
@@ -416,6 +472,12 @@ const stylesLight = StyleSheet.create({
     ...commonStyles.fab,
     backgroundColor: '#FFC107',
   },
+  categoryListContainer: {
+    backgroundColor: '#fff',
+    paddingVertical: 10,
+    zIndex: 10,
+  },
 });
+
 
 export default ShopScreen;
