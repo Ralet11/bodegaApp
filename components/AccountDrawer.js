@@ -1,9 +1,19 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Modal, StyleSheet } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
-import { useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
+import { useNavigation } from '@react-navigation/native';
+import { clearUser } from '../redux/slices/user.slice'; // Ajusta la ruta según la ubicación de tu archivo userSlice
 
 const AccountDrawer = ({ user, visible, onClose, onNavigate, scheme }) => {
+  const dispatch = useDispatch();
+  const navigation = useNavigation();
+
+  const handleLogout = () => {
+    dispatch(clearUser());
+    navigation.navigate('Login');
+  };
+
   return (
     <Modal
       animationType="slide"
@@ -46,6 +56,20 @@ const AccountDrawer = ({ user, visible, onClose, onNavigate, scheme }) => {
               Contact
             </Text>
             <FontAwesome name="chevron-right" size={20} color={scheme === 'dark' ? '#FFD700' : '#333'} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => onNavigate('BodegaPro')} style={styles.drawerButton}>
+            <FontAwesome name="star" size={20} color={scheme === 'dark' ? '#FFD700' : '#333'} />
+            <Text style={[styles.drawerButtonText, scheme === 'dark' ? styles.darkButtonText : styles.lightButtonText]}>
+              Bodega+ Pro
+            </Text>
+            <FontAwesome name="chevron-right" size={20} color={scheme === 'dark' ? '#FFD700' : '#333'} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleLogout} style={styles.drawerButton}>
+            <FontAwesome name="sign-out" size={20} color={scheme === 'dark' ? '#FFD700' : '#333'} />
+            <Text style={[styles.drawerButtonText, scheme === 'dark' ? styles.darkButtonText : styles.lightButtonText]}>
+              Logout
+            </Text>
+           
           </TouchableOpacity>
         </View>
       </View>

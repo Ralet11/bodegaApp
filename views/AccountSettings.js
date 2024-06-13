@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView, ActivityIndicator } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
@@ -7,7 +7,6 @@ import Axios from 'react-native-axios/lib/axios';
 import { setUser } from '../redux/slices/user.slice';
 import { API_URL } from '@env';
 import Toast from 'react-native-toast-message';
-import Loader from '../components/Loader';
 import AddressModal from '../components/modals/AddressModal'; // Asegúrate de ajustar la ruta según la ubicación del archivo
 
 const AccountSettings = ({ theme = 'light' }) => {
@@ -16,9 +15,10 @@ const AccountSettings = ({ theme = 'light' }) => {
   const token = useSelector((state) => state?.user?.userInfo?.data?.token);
   const dispatch = useDispatch();
   const [loading, setLoading] = useState(false);
-  const address = useSelector((state) => state?.user?.address?.formatted_address);
+  const [isLoadingData, setIsLoadingData] = useState(true); // Estado para controlar el loader
+  const address = useSelector((state) => state?.user?.address);
   const addresses = useSelector((state) => state?.user?.addresses);
-  
+
   const inputRefs = useRef({
     name: null,
     email: null,
@@ -31,7 +31,7 @@ const AccountSettings = ({ theme = 'light' }) => {
     name: user.name,
     email: user.email,
     phone: user.phone,
-    address: address || '',
+    address: address,
     password: ''
   });
 
@@ -39,6 +39,11 @@ const AccountSettings = ({ theme = 'light' }) => {
   const [modalVisible, setModalVisible] = useState(false);
 
   useEffect(() => {
+    // Simular la carga de datos
+    setTimeout(() => {
+      setIsLoadingData(false); // Datos cargados
+    }, 2000);
+
     setHasChanges(
       formData.name !== user.name ||
       formData.email !== user.email ||
@@ -110,80 +115,81 @@ const AccountSettings = ({ theme = 'light' }) => {
           </TouchableOpacity>
           <Text style={[styles.headerTitle]}>Account Settings</Text>
         </View>
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <View style={[styles.inputContainer]}>
-            <FontAwesome name="user" size={20} color={theme === 'dark' ? "#fff" : "#333"} />
-            <TextInput
-              ref={(ref) => inputRefs.current.name = ref}
-              style={[styles.input]}
-              placeholder="Name"
-              placeholderTextColor={theme === 'dark' ? "#999" : "#666"}
-              value={formData.name}
-              onChangeText={(value) => handleInputChange('name', value)}
-            />
+        {isLoadingData ? (
+          <View style={styles.loaderContainer}>
+            <ActivityIndicator size="large" color="#FFD700" />
           </View>
-          <View style={[styles.inputContainer]}>
-            <FontAwesome name="envelope" size={20} color={theme === 'dark' ? "#fff" : "#333"} />
-            <TextInput
-              ref={(ref) => inputRefs.current.email = ref}
-              style={[styles.input]}
-              placeholder="Email"
-              placeholderTextColor={theme === 'dark' ? "#999" : "#666"}
-              value={formData.email}
-              onChangeText={(value) => handleInputChange('email', value)}
-            />
-          </View>
-          <View style={[styles.inputContainer]}>
-            <FontAwesome name="phone" size={20} color={theme === 'dark' ? "#fff" : "#333"} />
-            <TextInput
-              ref={(ref) => inputRefs.current.phone = ref}
-              style={[styles.input]}
-              placeholder="Phone"
-              placeholderTextColor={theme === 'dark' ? "#999" : "#666"}
-              value={formData.phone}
-              onChangeText={(value) => handleInputChange('phone', value)}
-            />
-          </View>
-          <View style={[styles.inputContainer]}>
-            <FontAwesome name="home" size={20} color={theme === 'dark' ? "#fff" : "#333"} />
-            <TextInput
-              ref={(ref) => inputRefs.current.address = ref}
-              style={[styles.input, styles.addressInput]}
-              placeholder="Address"
-              placeholderTextColor={theme === 'dark' ? "#999" : "#666"}
-              value={formData.address}
-              onFocus={() => setModalVisible(true)}
-              multiline
-              numberOfLines={2}
-            />
-          </View>
-          <View style={[styles.inputContainer]}>
-            <FontAwesome name="lock" size={20} color={theme === 'dark' ? "#fff" : "#333"} />
-            <TextInput
-              ref={(ref) => inputRefs.current.password = ref}
-              style={[styles.input]}
-              placeholder="Password"
-              placeholderTextColor={theme === 'dark' ? "#999" : "#666"}
-              secureTextEntry={true}
-              value={formData.password}
-              onChangeText={(value) => handleInputChange('password', value)}
-            />
-          </View>
-          <TouchableOpacity
-            onPress={hasChanges ? handleSave : null}
-            style={[
-              styles.saveButton,
-              { backgroundColor: hasChanges ? '#FFD700' : '#ccc' }
-            ]}
-            disabled={!hasChanges}
-          >
-            {loading ? (
-              <Loader />
-            ) : (
-              <Text style={styles.saveButtonText}>Save Changes</Text>
-            )}
-          </TouchableOpacity>
-        </ScrollView>
+        ) : (
+          <ScrollView contentContainerStyle={styles.scrollContent}>
+            <View style={[styles.inputContainer]}>
+              <FontAwesome name="user" size={20} color={theme === 'dark' ? "#fff" : "#333"} />
+              <TextInput
+                ref={(ref) => inputRefs.current.name = ref}
+                style={[styles.input]}
+                placeholder="Name"
+                placeholderTextColor={theme === 'dark' ? "#999" : "#666"}
+                value={formData.name}
+                onChangeText={(value) => handleInputChange('name', value)}
+              />
+            </View>
+            <View style={[styles.inputContainer]}>
+              <FontAwesome name="envelope" size={20} color={theme === 'dark' ? "#fff" : "#333"} />
+              <TextInput
+                ref={(ref) => inputRefs.current.email = ref}
+                style={[styles.input]}
+                placeholder="Email"
+                placeholderTextColor={theme === 'dark' ? "#999" : "#666"}
+                value={formData.email}
+                onChangeText={(value) => handleInputChange('email', value)}
+              />
+            </View>
+            <View style={[styles.inputContainer]}>
+              <FontAwesome name="phone" size={20} color={theme === 'dark' ? "#fff" : "#333"} />
+              <TextInput
+                ref={(ref) => inputRefs.current.phone = ref}
+                style={[styles.input]}
+                placeholder="Phone"
+                placeholderTextColor={theme === 'dark' ? "#999" : "#666"}
+                value={formData.phone}
+                onChangeText={(value) => handleInputChange('phone', value)}
+              />
+            </View>
+            <View style={[styles.inputContainer]}>
+              <FontAwesome name="home" size={20} color={theme === 'dark' ? "#fff" : "#333"} />
+              <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.addressContainer}>
+                <Text style={[styles.addressText, { color: theme === 'dark' ? '#fff' : '#333' }]}>
+                  {formData.address}
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <View style={[styles.inputContainer]}>
+              <FontAwesome name="lock" size={20} color={theme === 'dark' ? "#fff" : "#333"} />
+              <TextInput
+                ref={(ref) => inputRefs.current.password = ref}
+                style={[styles.input]}
+                placeholder="Password"
+                placeholderTextColor={theme === 'dark' ? "#999" : "#666"}
+                secureTextEntry={true}
+                value={formData.password}
+                onChangeText={(value) => handleInputChange('password', value)}
+              />
+            </View>
+            <TouchableOpacity
+              onPress={hasChanges ? handleSave : null}
+              style={[
+                styles.saveButton,
+                { backgroundColor: hasChanges ? '#FFD700' : '#ccc' }
+              ]}
+              disabled={!hasChanges}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color="#000" />
+              ) : (
+                <Text style={styles.saveButtonText}>Save Changes</Text>
+              )}
+            </TouchableOpacity>
+          </ScrollView>
+        )}
         <AddressModal
           visible={modalVisible}
           addresses={addresses}
@@ -235,9 +241,17 @@ const commonStyles = {
     marginLeft: 10,
     fontSize: 16,
   },
-  addressInput: {
-    minHeight: 60, // increased height for address input
-    textAlignVertical: 'top',
+  addressContainer: {
+    flex: 1,
+    marginLeft: 10,
+    fontSize: 16,
+    paddingVertical: 10,
+    justifyContent: 'center',
+    height: 70, // Tamaño consistente con otros campos
+  },
+  addressText: {
+    fontSize: 16,
+    textAlignVertical: 'center',
   },
   saveButton: {
     marginTop: 20,
@@ -248,6 +262,11 @@ const commonStyles = {
   saveButtonText: {
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  loaderContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 };
 

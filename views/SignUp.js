@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, TextInput, Animated, StyleSheet, Dimensions, Image } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, Animated, StyleSheet, Dimensions, Image, Keyboard, TouchableWithoutFeedback } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Axios from 'react-native-axios';
 import { useDispatch } from 'react-redux';
@@ -150,133 +150,135 @@ export default function Signup() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        <Animated.View style={[styles.formContainer, { opacity: formAnim }]}>
-          <View style={styles.logoContainer}>
-            <Image
-              source={{ uri: "https://res.cloudinary.com/doqyrz0sg/image/upload/v1717527579/WhatsApp_Image_2024-05-25_at_17.24.54_lpri1m.jpg" }}
-              style={styles.logo}
-            />
-            <Text style={styles.title}>Create Account</Text>
-          </View>
-          <View style={styles.inputContainer}>
-            <FontAwesome name="user" size={20} color="#888" style={styles.icon} />
-            <TextInput
-              onChangeText={(value) => handleChange('name', value)}
-              style={[styles.input, { borderColor: errors.name ? 'red' : '#ccc' }]}
-              value={clientData.name}
-              placeholder='Name'
-              placeholderTextColor='#888'
-              onFocus={() => Animated.timing(nameLabelAnim, {
-                toValue: 1,
-                duration: 200,
-                useNativeDriver: true,
-              }).start()}
-              onBlur={() => !clientData.name && Animated.timing(nameLabelAnim, {
-                toValue: 0,
-                duration: 200,
-                useNativeDriver: true,
-              }).start()}
-            />
-          </View>
-          <View style={styles.inputContainer}>
-            <FontAwesome name="envelope" size={20} color="#888" style={styles.icon} />
-            <TextInput
-              onChangeText={(value) => handleChange('email', value)}
-              style={[styles.input, { borderColor: errors.email ? 'red' : '#ccc' }]}
-              value={clientData.email}
-              placeholder='Email Address'
-              placeholderTextColor='#888'
-              onFocus={() => Animated.timing(emailLabelAnim, {
-                toValue: 1,
-                duration: 200,
-                useNativeDriver: true,
-              }).start()}
-              onBlur={() => !clientData.email && Animated.timing(emailLabelAnim, {
-                toValue: 0,
-                duration: 200,
-                useNativeDriver: true,
-              }).start()}
-            />
-          </View>
-          <View style={styles.inputContainer}>
-            <FontAwesome name="lock" size={20} color="#888" style={styles.icon} />
-            <TextInput
-              onChangeText={(value) => handleChange('password', value)}
-              style={[styles.input, { borderColor: errors.password ? 'red' : '#ccc' }]}
-              secureTextEntry={!showPassword}
-              value={clientData.password}
-              placeholder='Password'
-              placeholderTextColor='#888'
-              onFocus={() => Animated.timing(passwordLabelAnim, {
-                toValue: 1,
-                duration: 200,
-                useNativeDriver: true,
-              }).start()}
-              onBlur={() => !clientData.password && Animated.timing(passwordLabelAnim, {
-                toValue: 0,
-                duration: 200,
-                useNativeDriver: true,
-              }).start()}
-            />
-            <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.showPasswordButton}>
-              <FontAwesome name={showPassword ? "eye-slash" : "eye"} size={20} color="#888" />
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.container}>
+          <Animated.View style={[styles.formContainer, { opacity: formAnim }]}>
+            <View style={styles.logoContainer}>
+              <Image
+                source={{ uri: "https://res.cloudinary.com/doqyrz0sg/image/upload/v1717527579/WhatsApp_Image_2024-05-25_at_17.24.54_lpri1m.jpg" }}
+                style={styles.logo}
+              />
+              <Text style={styles.title}>Create Account</Text>
+            </View>
+            <View style={styles.inputContainer}>
+              <FontAwesome name="user" size={20} color="#888" style={styles.icon} />
+              <TextInput
+                onChangeText={(value) => handleChange('name', value)}
+                style={[styles.input, { borderColor: errors.name ? 'red' : '#ccc' }]}
+                value={clientData.name}
+                placeholder='Name'
+                placeholderTextColor='#888'
+                onFocus={() => Animated.timing(nameLabelAnim, {
+                  toValue: 1,
+                  duration: 200,
+                  useNativeDriver: true,
+                }).start()}
+                onBlur={() => !clientData.name && Animated.timing(nameLabelAnim, {
+                  toValue: 0,
+                  duration: 200,
+                  useNativeDriver: true,
+                }).start()}
+              />
+            </View>
+            <View style={styles.inputContainer}>
+              <FontAwesome name="envelope" size={20} color="#888" style={styles.icon} />
+              <TextInput
+                onChangeText={(value) => handleChange('email', value)}
+                style={[styles.input, { borderColor: errors.email ? 'red' : '#ccc' }]}
+                value={clientData.email}
+                placeholder='Email Address'
+                placeholderTextColor='#888'
+                onFocus={() => Animated.timing(emailLabelAnim, {
+                  toValue: 1,
+                  duration: 200,
+                  useNativeDriver: true,
+                }).start()}
+                onBlur={() => !clientData.email && Animated.timing(emailLabelAnim, {
+                  toValue: 0,
+                  duration: 200,
+                  useNativeDriver: true,
+                }).start()}
+              />
+            </View>
+            <View style={styles.inputContainer}>
+              <FontAwesome name="lock" size={20} color="#888" style={styles.icon} />
+              <TextInput
+                onChangeText={(value) => handleChange('password', value)}
+                style={[styles.input, { borderColor: errors.password ? 'red' : '#ccc' }]}
+                secureTextEntry={!showPassword}
+                value={clientData.password}
+                placeholder='Password'
+                placeholderTextColor='#888'
+                onFocus={() => Animated.timing(passwordLabelAnim, {
+                  toValue: 1,
+                  duration: 200,
+                  useNativeDriver: true,
+                }).start()}
+                onBlur={() => !clientData.password && Animated.timing(passwordLabelAnim, {
+                  toValue: 0,
+                  duration: 200,
+                  useNativeDriver: true,
+                }).start()}
+              />
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.showPasswordButton}>
+                <FontAwesome name={showPassword ? "eye-slash" : "eye"} size={20} color="#888" />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.inputContainer}>
+              <FontAwesome name="lock" size={20} color="#888" style={styles.icon} />
+              <TextInput
+                onChangeText={(value) => handleChange('confirmPassword', value)}
+                style={[styles.input, { borderColor: errors.confirmPassword ? 'red' : '#ccc' }]}
+                secureTextEntry={!showConfirmPassword}
+                value={clientData.confirmPassword}
+                placeholder='Confirm Password'
+                placeholderTextColor='#888'
+                onFocus={() => Animated.timing(confirmPasswordLabelAnim, {
+                  toValue: 1,
+                  duration: 200,
+                  useNativeDriver: true,
+                }).start()}
+                onBlur={() => !clientData.confirmPassword && Animated.timing(confirmPasswordLabelAnim, {
+                  toValue: 0,
+                  duration: 200,
+                  useNativeDriver: true,
+                }).start()}
+              />
+              <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={styles.showPasswordButton}>
+                <FontAwesome name={showConfirmPassword ? "eye-slash" : "eye"} size={20} color="#888" />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.inputContainer}>
+              <FontAwesome name="phone" size={20} color="#888" style={styles.icon} />
+              <TextInput
+                onChangeText={(value) => handleChange('phone', value)}
+                style={[styles.input, { borderColor: errors.phone ? 'red' : '#ccc' }]}
+                value={clientData.phone}
+                placeholder='Phone Number'
+                placeholderTextColor='#888'
+                onFocus={() => Animated.timing(phoneLabelAnim, {
+                  toValue: 1,
+                  duration: 200,
+                  useNativeDriver: true,
+                }).start()}
+                onBlur={() => !clientData.phone && Animated.timing(phoneLabelAnim, {
+                  toValue: 0,
+                  duration: 200,
+                  useNativeDriver: true,
+                }).start()}
+              />
+            </View>
+            <TouchableOpacity onPress={handleSignup} style={styles.button}>
+              <Animated.Text style={[styles.buttonText, { transform: [{ scale: buttonAnim }] }]}>Sign Up</Animated.Text>
             </TouchableOpacity>
-          </View>
-          <View style={styles.inputContainer}>
-            <FontAwesome name="lock" size={20} color="#888" style={styles.icon} />
-            <TextInput
-              onChangeText={(value) => handleChange('confirmPassword', value)}
-              style={[styles.input, { borderColor: errors.confirmPassword ? 'red' : '#ccc' }]}
-              secureTextEntry={!showConfirmPassword}
-              value={clientData.confirmPassword}
-              placeholder='Confirm Password'
-              placeholderTextColor='#888'
-              onFocus={() => Animated.timing(confirmPasswordLabelAnim, {
-                toValue: 1,
-                duration: 200,
-                useNativeDriver: true,
-              }).start()}
-              onBlur={() => !clientData.confirmPassword && Animated.timing(confirmPasswordLabelAnim, {
-                toValue: 0,
-                duration: 200,
-                useNativeDriver: true,
-              }).start()}
-            />
-            <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={styles.showPasswordButton}>
-              <FontAwesome name={showConfirmPassword ? "eye-slash" : "eye"} size={20} color="#888" />
+            <TouchableOpacity onPress={() => navigation.navigate('Login')} style={styles.footerLink}>
+              <Text style={styles.footerText}>Already have an account? Log in</Text>
             </TouchableOpacity>
-          </View>
-          <View style={styles.inputContainer}>
-            <FontAwesome name="phone" size={20} color="#888" style={styles.icon} />
-            <TextInput
-              onChangeText={(value) => handleChange('phone', value)}
-              style={[styles.input, { borderColor: errors.phone ? 'red' : '#ccc' }]}
-              value={clientData.phone}
-              placeholder='Phone Number'
-              placeholderTextColor='#888'
-              onFocus={() => Animated.timing(phoneLabelAnim, {
-                toValue: 1,
-                duration: 200,
-                useNativeDriver: true,
-              }).start()}
-              onBlur={() => !clientData.phone && Animated.timing(phoneLabelAnim, {
-                toValue: 0,
-                duration: 200,
-                useNativeDriver: true,
-              }).start()}
-            />
-          </View>
-          <TouchableOpacity onPress={handleSignup} style={styles.button}>
-            <Animated.Text style={[styles.buttonText, { transform: [{ scale: buttonAnim }] }]}>Sign Up</Animated.Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate('Login')} style={styles.footerLink}>
-            <Text style={styles.footerText}>Already have an account? Log in</Text>
-          </TouchableOpacity>
-        </Animated.View>
-      </View>
-    </SafeAreaView>
+          </Animated.View>
+        </View>
+      </SafeAreaView>
+    </TouchableWithoutFeedback>
   );
 }
 

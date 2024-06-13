@@ -4,16 +4,17 @@ import { FontAwesome } from '@expo/vector-icons';
 import { useSelector } from 'react-redux';
 import Axios from 'react-native-axios';
 
-const GOOGLE_MAPS_API_KEY = 'AIzaSyB8fCVwRXbMe9FAxsrC5CsyfjzpHxowQmE';
-
 const HorizontalScroll = ({ title, items, scheme, handleItemPress }) => {
   const [distances, setDistances] = useState({});
   const [isLoading, setIsLoading] = useState(true);
-  const address = useSelector((state) => state?.user?.address?.formatted_address) || '';
+  const address = useSelector((state) => state?.user?.address);
   const styles = scheme === 'dark' ? darkTheme : lightTheme;
+
+  const GOOGLE_MAPS_API_KEY = 'AIzaSyB8fCVwRXbMe9FAxsrC5CsyfjzpHxowQmE'
 
   useEffect(() => {
     const fetchDistances = async () => {
+      setIsLoading(true); // Start loading
       const newDistances = {};
       for (const item of items) {
         if (item.address) {
@@ -32,13 +33,15 @@ const HorizontalScroll = ({ title, items, scheme, handleItemPress }) => {
         }
       }
       setDistances(newDistances);
-      setIsLoading(false);
+      setIsLoading(false); // End loading
     };
 
     if (address) {
       fetchDistances();
     }
   }, [address, items]);
+
+  console.log(address)
 
   return (
     <View style={styles.container}>

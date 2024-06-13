@@ -1,31 +1,31 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Image, useColorScheme, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Image, useColorScheme, ActivityIndicator, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { lightTheme, darkTheme } from '../components/themes';
 import Axios from 'react-native-axios';
 import { API_URL } from '@env';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { setShops } from '../redux/slices/setUp.slice';
 import HorizontalScroll from '../components/HorizontalScroll';
 import PromoSlider from '../components/PromotionSlider';
 import AccountDrawer from '../components/AccountDrawer';
 import { addAddress, setAddress, setAddresses } from '../redux/slices/user.slice';
 
-
 const Dashboard = () => {
   const scheme = useColorScheme();
   const [shopsByCategory, setShopsByCategory] = useState({});
   const [loading, setLoading] = useState(true);
   const [drawerVisible, setDrawerVisible] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false); // State to handle modal visibility
   const categories = useSelector((state) => state?.setUp?.categories) || [];
-  const address = useSelector((state) => state?.user?.address)
-  const addresses = useSelector((state) => state?.user?.addresses)
+  const address = useSelector((state) => state?.user?.address);
+  const addresses = useSelector((state) => state?.user?.addresses);
   const navigation = useNavigation();
   const dispatch = useDispatch();
   const user = useSelector((state) => state?.user?.userInfo?.data?.client);
-  const token = useSelector((state) => state?.user?.userInfo.data.token); // Asumiendo que el token está en el estado auth
+  const token = useSelector((state) => state?.user?.userInfo.data.token); // Assuming token is in auth state
 
   const categoryTitles = {
     1: 'Best smoke shops',
@@ -34,74 +34,70 @@ const Dashboard = () => {
     4: 'Markets',
   };
 
-  useEffect(() => {
-    const fetchShops = async () => {
-      try {
-        const response = await Axios.get(`${API_URL}/api/local/getShopsOrderByCat`);
-        setShopsByCategory(response.data);
-        setLoading(false);
-        dispatch(setShops(response.data));
-      } catch (error) {
-        console.error('Error fetching shops:', error);
-        setLoading(false);
-      }
-    };
+  const fetchShops = async () => {
+    try {
+      const response = await Axios.get(`${API_URL}/api/local/getShopsOrderByCat`);
+      setShopsByCategory(response.data);
+      setLoading(false);
+      dispatch(setShops(response.data));
+    } catch (error) {
+      console.error('Error fetching shops:', error);
+      setLoading(false);
+    }
+  };
 
-    fetchShops();
-  }, [dispatch]);
+  const fetchAddress = async () => {
+    if (!token) {
+      console.warn('Token not available');
+      return;
+    }
 
-  useEffect(() => {
-    const fetchAddress = async () => {
-      if (!token) {
-        console.warn('Token not available');
-        return;
-      }
+    try {
+      const response = await Axios.get(`${API_URL}/api/addresses/getById`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-      try {
-        const response = await Axios.get(`${API_URL}/api/addresses/getById`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-      
-        if (response.status === 200) {
-          console.log(response.data);
-          dispatch(setAddresses(response.data))
-          dispatch(setAddress(response.data[0]))
+      if (response.status === 200) {
+        dispatch(setAddresses(response.data));
+        if (!response.data || response.data.length === 0) {
+          setModalVisible(true);
+        } else {
+          dispatch(setAddress(response.data[0].formatted_address));
+          setModalVisible(false);
         }
-      } catch (error) {
-        console.error('Error fetching address:', error);
       }
-    };
+    } catch (error) {
+      console.error('Error fetching address:', error);
+    }
+  };
 
+  useEffect(() => {
+    fetchShops();
     fetchAddress();
-  }, [token]);
+  }, [dispatch, token]);
+
+  useFocusEffect(
+    useCallback(() => {
+      let timer;
+      if (!address) {
+        timer = setTimeout(() => {
+          setModalVisible(true);
+        }, 2000);
+      } else {
+        setModalVisible(false);
+      }
+      return () => clearTimeout(timer);
+    }, [address])
+  );
 
   const changeAddress = () => {
     navigation.navigate('SetAddressScreen');
   };
 
-  console.log(address, "direcioon")
-  console.log(addresses, "adresses")
-
   const handleShopPress = (shop) => {
     navigation.navigate('Shop', { shop });
-  };
-
-  const renderStars = (rating) => {
-    const stars = [];
-    for (let i = 1; i <= 5; i++) {
-      stars.push(
-        <FontAwesome
-          key={i}
-          name={i <= rating ? 'star' : 'star-o'}
-          size={14}
-          color="#FFD700"
-        />
-      );
-    }
-    return stars;
   };
 
   const handleCategoryPress = (category) => {
@@ -115,7 +111,12 @@ const Dashboard = () => {
   const handleNavigate = (screen) => {
     setDrawerVisible(false);
     navigation.navigate(screen);
+
+
+
   };
+
+
 
   if (loading) {
     return (
@@ -127,6 +128,8 @@ const Dashboard = () => {
     );
   }
 
+
+
   return (
     <SafeAreaView style={scheme === 'dark' ? darkTheme.safeArea : lightTheme.safeArea}>
       <View style={scheme === 'dark' ? darkTheme.header : lightTheme.header}>
@@ -135,12 +138,12 @@ const Dashboard = () => {
         </TouchableOpacity>
         <TextInput
           style={scheme === 'dark' ? darkTheme.searchInput : lightTheme.searchInput}
-          placeholder="Busca lugares, comidas..."
+          placeholder="Search places, foods..."
           placeholderTextColor="#aaa"
-          value={address}
+          value={address?.formatted_address || ''}
         />
         <TouchableOpacity onPress={changeAddress} style={scheme === 'dark' ? darkTheme.iconButton : lightTheme.iconButton}>
-          <FontAwesome name="map-marker" size={24} color={scheme === 'dark' ? 'white' : '#333'} />
+          <FontAwesome name="map-marker" size={24} color={scheme === 'dark' ? 'white' : 'black'} />
         </TouchableOpacity>
       </View>
       <ScrollView contentContainerStyle={scheme === 'dark' ? darkTheme.contentContainer : lightTheme.contentContainer}>
@@ -179,6 +182,33 @@ const Dashboard = () => {
         scheme={scheme}
         user={user}
       />
+      {/* Modal for no addresses */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => {
+          setModalVisible(!modalVisible);
+        }}
+      >
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <View style={{ width: 300, padding: 20, backgroundColor: scheme === 'dark' ? '#333' : '#fff', borderRadius: 10, alignItems: 'center' }}>
+            <FontAwesome name="map-marker" size={50} color="yellow" />
+            <Text style={{ marginTop: 15, fontSize: 18, textAlign: 'center', color: scheme === 'dark' ? '#fff' : '#333' }}>
+              You need to select an address to continue
+            </Text>
+            <TouchableOpacity
+              style={{ marginTop: 20, paddingVertical: 10, paddingHorizontal: 20, backgroundColor: 'black', borderRadius: 5 }}
+              onPress={() => {
+                setModalVisible(false);
+                navigation.navigate('SetAddressScreen');
+              }}
+            >
+              <Text style={{ color: 'yellow' }}>Select Address</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image, FlatList, Animated, ScrollView, SafeAreaView, useColorScheme } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image, Animated, ScrollView, SafeAreaView, useColorScheme, FlatList } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import Axios from 'react-native-axios';
@@ -63,11 +63,11 @@ const ShopScreen = () => {
   const totalItems = cart.reduce((total, item) => total + item.quantity, 0);
 
   const scrollToCategory = (index) => {
-    const yPosition = index * 250; // Ajusta esto según el tamaño de cada sección
+    const yPosition = index * 250; // Adjust according to the size of each section
     scrollViewRef.current.scrollTo({ y: yPosition, animated: true });
   };
 
-  const renderCategory = ({ item: category }) => (
+  const renderCategory = (category) => (
     <View key={category.id} style={styles.categoryContainer}>
       <Text style={styles.categoryTitle}>{category.name}</Text>
       <FlatList
@@ -105,7 +105,7 @@ const ShopScreen = () => {
 
   const categoryListTranslateY = scrollY.interpolate({
     inputRange: [0, 250],
-    outputRange: [0, -70], // Ajusta esto para que la lista se desplace hacia arriba
+    outputRange: [0, -70], // Adjust this to make the list move up
     extrapolate: 'clamp',
   });
 
@@ -123,7 +123,7 @@ const ShopScreen = () => {
           <Text style={styles.headerTitle}>{shop.name}</Text>
           <Text style={styles.headerSubtitle}>{shop.address}</Text>
           <View style={styles.ratingContainer}>
-            <FontAwesome name="star" size={14} color="#FFD700" />
+            <FontAwesome name="star" size={14} color="#ff9900" />
             <Text style={styles.shopRating}>4.9</Text>
           </View>
         </Animated.View>
@@ -141,17 +141,16 @@ const ShopScreen = () => {
           ))}
         </ScrollView>
       </View>
-      <Animated.FlatList
-        data={categories}
-        keyExtractor={(category) => category.id.toString()}
-        renderItem={renderCategory}
+      <Animated.ScrollView
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
           { useNativeDriver: false }
         )}
         contentContainerStyle={styles.contentContainer}
         ref={scrollViewRef}
-      />
+      >
+        {categories.map(renderCategory)}
+      </Animated.ScrollView>
       <ModalProduct
         visible={modalVisible}
         onClose={closeModal}
@@ -182,7 +181,7 @@ const commonStyles = {
   container: {
     flex: 1,
     padding: 16,
-    marginTop:30
+    marginTop: 30,
   },
   backButton: {
     padding: 10,
@@ -233,7 +232,7 @@ const commonStyles = {
   shopRating: {
     marginLeft: 4,
     fontSize: 16,
-    color: '#FFD700',
+    color: '#ff9900',
     fontFamily: 'sans-serif',
   },
   sectionTitle: {
@@ -290,6 +289,7 @@ const commonStyles = {
     fontSize: 14,
     marginTop: 4,
     fontFamily: 'sans-serif',
+    color: "#000"
   },
   addButton: {
     backgroundColor: '#FFC107',
@@ -361,7 +361,7 @@ const commonStyles = {
   categoryButtonText: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#000',
     fontFamily: 'sans-serif-medium',
   },
   categoryListContainer: {
@@ -449,7 +449,7 @@ const stylesLight = StyleSheet.create({
   },
   productName: {
     ...commonStyles.productName,
-    color: '#333',
+    color: '#000',
   },
   cartContainer: {
     ...commonStyles.cartContainer,
@@ -478,6 +478,5 @@ const stylesLight = StyleSheet.create({
     zIndex: 10,
   },
 });
-
 
 export default ShopScreen;

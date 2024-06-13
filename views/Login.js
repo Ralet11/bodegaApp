@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, TextInput, Animated, StyleSheet, Dimensions, Image } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, Animated, StyleSheet, Dimensions, Image, Keyboard, TouchableWithoutFeedback } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Axios from 'react-native-axios';
 import { useDispatch } from 'react-redux';
@@ -115,68 +115,70 @@ export default function Login() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        <Animated.View style={[styles.formContainer, { opacity: formAnim }]}>
-          <View style={styles.logoContainer}>
-            <Image
-              source={{ uri: "https://res.cloudinary.com/doqyrz0sg/image/upload/v1717527579/WhatsApp_Image_2024-05-25_at_17.24.54_lpri1m.jpg" }}
-              style={styles.logo}
-            />
-          </View>
-          <View style={styles.inputContainer}>
-            <FontAwesome name="envelope" size={20} color="#888" style={styles.icon} />
-            <TextInput
-              onChangeText={(value) => handleChange('email', value)}
-              style={[styles.input, { borderColor: errors.email ? 'red' : '#ccc' }]}
-              value={clientData.email}
-              placeholder='Email Address'
-              placeholderTextColor='#888'
-              onFocus={() => Animated.timing(emailLabelAnim, {
-                toValue: 1,
-                duration: 200,
-                useNativeDriver: true,
-              }).start()}
-              onBlur={() => !clientData.email && Animated.timing(emailLabelAnim, {
-                toValue: 0,
-                duration: 200,
-                useNativeDriver: true,
-              }).start()}
-            />
-          </View>
-          <View style={styles.inputContainer}>
-            <FontAwesome name="lock" size={20} color="#888" style={styles.icon} />
-            <TextInput
-              onChangeText={(value) => handleChange('password', value)}
-              style={[styles.input, { borderColor: errors.password ? 'red' : '#ccc' }]}
-              secureTextEntry={!showPassword}
-              value={clientData.password}
-              placeholder='Password'
-              placeholderTextColor='#888'
-              onFocus={() => Animated.timing(passwordLabelAnim, {
-                toValue: 1,
-                duration: 200,
-                useNativeDriver: true,
-              }).start()}
-              onBlur={() => !clientData.password && Animated.timing(passwordLabelAnim, {
-                toValue: 0,
-                duration: 200,
-                useNativeDriver: true,
-              }).start()}
-            />
-            <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.showPasswordButton}>
-              <FontAwesome name={showPassword ? "eye-slash" : "eye"} size={20} color="#888" />
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.container}>
+          <Animated.View style={[styles.formContainer, { opacity: formAnim }]}>
+            <View style={styles.logoContainer}>
+              <Image
+                source={{ uri: "https://res.cloudinary.com/doqyrz0sg/image/upload/v1717527579/WhatsApp_Image_2024-05-25_at_17.24.54_lpri1m.jpg" }}
+                style={styles.logo}
+              />
+            </View>
+            <View style={styles.inputContainer}>
+              <FontAwesome name="envelope" size={20} color="#888" style={styles.icon} />
+              <TextInput
+                onChangeText={(value) => handleChange('email', value)}
+                style={[styles.input, { borderColor: errors.email ? 'red' : '#ccc' }]}
+                value={clientData.email}
+                placeholder='Email Address'
+                placeholderTextColor='#888'
+                onFocus={() => Animated.timing(emailLabelAnim, {
+                  toValue: 1,
+                  duration: 200,
+                  useNativeDriver: true,
+                }).start()}
+                onBlur={() => !clientData.email && Animated.timing(emailLabelAnim, {
+                  toValue: 0,
+                  duration: 200,
+                  useNativeDriver: true,
+                }).start()}
+              />
+            </View>
+            <View style={styles.inputContainer}>
+              <FontAwesome name="lock" size={20} color="#888" style={styles.icon} />
+              <TextInput
+                onChangeText={(value) => handleChange('password', value)}
+                style={[styles.input, { borderColor: errors.password ? 'red' : '#ccc' }]}
+                secureTextEntry={!showPassword}
+                value={clientData.password}
+                placeholder='Password'
+                placeholderTextColor='#888'
+                onFocus={() => Animated.timing(passwordLabelAnim, {
+                  toValue: 1,
+                  duration: 200,
+                  useNativeDriver: true,
+                }).start()}
+                onBlur={() => !clientData.password && Animated.timing(passwordLabelAnim, {
+                  toValue: 0,
+                  duration: 200,
+                  useNativeDriver: true,
+                }).start()}
+              />
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.showPasswordButton}>
+                <FontAwesome name={showPassword ? "eye-slash" : "eye"} size={20} color="#888" />
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity onPress={handleLogin} style={styles.button}>
+              <Animated.Text style={[styles.buttonText, { transform: [{ scale: buttonAnim }] }]}>Log In</Animated.Text>
             </TouchableOpacity>
-          </View>
-          <TouchableOpacity onPress={handleLogin} style={styles.button}>
-            <Animated.Text style={[styles.buttonText, { transform: [{ scale: buttonAnim }] }]}>Log In</Animated.Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate('Signup')} style={styles.footerLink}>
-            <Text style={styles.footerText}>Don't have an account? Sign up</Text>
-          </TouchableOpacity>
-        </Animated.View>
-      </View>
-    </SafeAreaView>
+            <TouchableOpacity onPress={() => navigation.navigate('Signup')} style={styles.footerLink}>
+              <Text style={styles.footerText}>Don't have an account? Sign up</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
+      </SafeAreaView>
+    </TouchableWithoutFeedback>
   );
 }
 

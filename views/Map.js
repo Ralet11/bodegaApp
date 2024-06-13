@@ -54,6 +54,8 @@ const MapViewComponent = () => {
       }
     };
 
+    console.log(address)
+
     const fetchAddressLocation = async () => {
       try {
         const response = await fetch(

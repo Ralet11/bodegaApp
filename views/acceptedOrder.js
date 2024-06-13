@@ -17,7 +17,7 @@ const AcceptedOrder = () => {
   const [distance, setDistance] = useState('');
   const [duration, setDuration] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const address = useSelector((state) => state?.user?.address?.formatted_address) || '';
+  const address = useSelector((state) => state?.user?.address) || '';
   const user = useSelector((state) => state.user.userInfo.data);
   const navigation = useNavigation();
   const shops = useSelector((state) => state?.setUp?.shops);

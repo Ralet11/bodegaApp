@@ -18,6 +18,9 @@ const userSlice = createSlice({
     clearUser: (state) => {
       state.userInfo = null;
       state.isAuthenticated = false;
+      state.address = null;
+      state.addresses = []
+
     },
     setAddress: (state, action) => {
       state.address = action.payload;

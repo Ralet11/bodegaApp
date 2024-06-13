@@ -7,7 +7,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import * as Location from 'expo-location';
 import { useNavigation } from '@react-navigation/native';
 import Axios from 'react-native-axios';
-import { setAddress } from '../redux/slices/user.slice'; // Ajusta la ruta según la ubicación de tu archivo userSlice
+import Toast from 'react-native-toast-message';
+import { addAddress, setAddress } from '../redux/slices/user.slice'; // Ajusta la ruta según la ubicación de tu archivo userSlice
 import { API_URL } from '@env';
 
 const GOOGLE_API_KEY = 'AIzaSyB8fCVwRXbMe9FAxsrC5CsyfjzpHxowQmE';
@@ -15,12 +16,13 @@ const GOOGLE_API_KEY = 'AIzaSyB8fCVwRXbMe9FAxsrC5CsyfjzpHxowQmE';
 const SetAddressScreen = () => {
   const dispatch = useDispatch();
   const navigation = useNavigation();
-  const address = useSelector((state) => state?.user?.address.formatted_address) || '';
+  const address = useSelector((state) => state?.user?.address?.formatted_address) || '';
   const [region, setRegion] = useState(null);
   const [addressState, setAddressState] = useState(address);
   const [marker, setMarker] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [addressName, setAddressName] = useState('');
+  const [addressesState, setAddressesState] = useState(null)
   const token = useSelector((state) => state?.user.userInfo.data.token);
 
   const fetchCurrentLocation = async () => {
@@ -48,6 +50,7 @@ const SetAddressScreen = () => {
     const json = await response.json();
     if (json.results.length > 0) {
       setAddressState(json.results[0].formatted_address);
+      setAddressesState(json.results[0])
     }
   };
 
@@ -69,6 +72,7 @@ const SetAddressScreen = () => {
         longitude: location.lng,
       });
       setAddressState(json.results[0].formatted_address);
+      setAddressesState(json.results[0])
     }
   };
 
@@ -119,10 +123,22 @@ const SetAddressScreen = () => {
         longitude: location.lng,
       });
       setAddressState(details.formatted_address);
+      setAddressesState(details)
     }
   }, []);
 
+  console.log(addressesState, "adressStatet")
+
   const handleSaveAddress = useCallback(async () => {
+    if (!addressState) {
+      Toast.show({
+        type: 'error',
+        text1: 'Address required',
+        text2: 'You must choose an address to continue.',
+      });
+      return;
+    }
+
     try {
       const response = await Axios.post(
         `${API_URL}/api/addresses/addToUser`,
@@ -136,9 +152,11 @@ const SetAddressScreen = () => {
           },
         }
       );
+      console.log(response.data, "response en addres")
 
       if (response.status === 200) {
         dispatch(setAddress(addressState));
+        dispatch(addAddress(response.data))
         navigation.navigate('Home'); // Navega a la pantalla "Home"
       }
     } catch (error) {
@@ -240,6 +258,7 @@ const SetAddressScreen = () => {
           </View>
         </View>
       </Modal>
+      <Toast ref={(ref) => Toast.setRef(ref)} />
     </SafeAreaView>
   );
 };

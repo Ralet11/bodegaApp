@@ -3,7 +3,7 @@ import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { FontAwesome } from '@expo/vector-icons';
-import { useColorScheme, StyleSheet } from 'react-native';
+import { useColorScheme, StyleSheet, Platform } from 'react-native';
 import { Provider } from 'react-redux';
 import { StripeProvider } from '@stripe/stripe-react-native';
 import store from './redux/store';
@@ -24,6 +24,7 @@ import AccountSettings from './views/AccountSettings';
 import Toast from 'react-native-toast-message';
 import MyCoupons from './views/Discounts';
 import Contact from './views/Contact';
+import BodegaPro from './views/BodegaPro';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -142,6 +143,11 @@ export default function App() {
               component={Contact}
               options={{ headerShown: false }} 
             />
+             <Stack.Screen 
+              name="BodegaPro" 
+              component={BodegaPro}
+              options={{ headerShown: false }} 
+            />
           </Stack.Navigator>
         </NavigationContainer>
         <Toast />
@@ -163,12 +169,13 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.1,
     shadowRadius: 20,
+    paddingBottom: Platform.OS === 'ios' ? 0 : 0, // Ensures padding for iOS
   },
   tabBarDark: {
     position: 'absolute',
     backgroundColor: 'rgba(28, 28, 28, 0.9)',
     borderTopWidth: 0,
-    elevation: 15,
+    elevation: 35,
     height: 60,
     margin: 10,
     borderRadius: 15,
@@ -176,18 +183,19 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.1,
     shadowRadius: 20,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 0, // Ensures padding for iOS
   },
   tabBarLabel: {
     fontSize: 12,
-    marginBottom: 5,
-    color: 'black'
+    marginBottom: Platform.OS === 'ios' ? 5 : 5, // Adjusts label position for iOS
+    color: 'black',
   },
   tabBarLabelDark: {
     fontSize: 12,
-    marginBottom: 5,
+    marginBottom: Platform.OS === 'ios' ? 5 : 5, // Adjusts label position for iOS
     color: 'white',
   },
   tabBarIcon: {
-    marginTop: 5,
+    marginTop: Platform.OS === 'ios' ? -10 : 5, // Ensures icon position for iOS
   },
 });

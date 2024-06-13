@@ -15,7 +15,7 @@ const CartScreen = () => {
   const user = useSelector((state) => state.user.userInfo.data);
   const dispatch = useDispatch();
   const navigation = useNavigation();
-  const address = useSelector((state) => state?.user?.address?.formatted_address) || '';
+  const address = useSelector((state) => state?.user?.address) || '';
   
   const [tip, setTip] = useState(0);
   const [customTip, setCustomTip] = useState('');
@@ -45,6 +45,10 @@ const CartScreen = () => {
     return (subtotal + tax + tipAmount + deliveryFee).toFixed(2);
   };
 
+  const calculateSavings = () => {
+    return user.subscription === 1 ? 6.13 : 0;
+  };
+
   useEffect(() => {
     const findCurrentShop = () => {
       for (const categoryId in shops) {
@@ -55,8 +59,6 @@ const CartScreen = () => {
       }
       return null;
     };
-
-  
 
     const currentShopDetails = findCurrentShop();
 
@@ -173,12 +175,18 @@ const CartScreen = () => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.goBackButton} onPress={() => navigation.goBack()}>
+            <Icon name="arrow-back" size={24} color="#000" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Your Cart</Text>
+        </View>
         <View style={styles.addressContainer}>
-          <Text style={styles.addressLabel}>Dirección de Entrega:</Text>
+          <Text style={styles.addressLabel}>Delivery Address:</Text>
           <View style={styles.addressInputContainer}>
             <TextInput
               style={styles.addressInput}
-              placeholder="Ingrese su dirección"
+              placeholder="Enter your address"
               placeholderTextColor="#A9A9A9"
               value={address}
               editable={false}
@@ -242,11 +250,21 @@ const CartScreen = () => {
         </View>
         <View style={styles.summaryContainer}>
           <Text style={styles.summaryText}>Subtotal: ${calculateSubtotal()}</Text>
+          <Text style={styles.summaryText}>Delivery Fee: ${deliveryFee}</Text>
           <Text style={styles.summaryText}>Tax: ${calculateTax()}</Text>
           <Text style={styles.summaryText}>Tip: ${parseFloat(tip) || parseFloat(customTip) || 0}</Text>
-          <Text style={styles.summaryText}>Delivery: {user.subscription === 1 ? 'Free' : `$${deliveryFee}`}</Text>
           <Text style={styles.totalText}>Total: ${calculateTotal()}</Text>
         </View>
+        {user.subscription === 1 ? (
+          <View style={styles.savingsContainer}>
+            <Text style={styles.savingsText}>You're saving ${calculateSavings()} with promotions</Text>
+          </View>
+          ) : (
+            <View style={styles.adContainer}>
+              <Text style={styles.adTitle}>Subscribe now to Bodega Pro and save more!</Text>
+              <Text style={styles.adText}>Get free delivery and exclusive promotions</Text>
+            </View>
+        )}
         <TouchableOpacity style={styles.checkoutButton} onPress={payment}>
           <Text style={styles.checkoutButtonText}>Checkout</Text>
         </TouchableOpacity>
@@ -294,7 +312,21 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'space-between',
     padding: 20,
+    paddingTop: 20,
     backgroundColor: '#f9f9f9',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  goBackButton: {
+    marginRight: 10,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
   },
   addressContainer: {
     marginBottom: 20,
@@ -306,7 +338,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 6,
     elevation: 5,
-    marginTop: 70,
+    marginTop: 20,
   },
   addressLabel: {
     fontSize: 16,
@@ -474,6 +506,41 @@ const styles = StyleSheet.create({
     color: '#1a1a1a',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  savingsContainer: {
+    backgroundColor: '#fffbec',
+    borderRadius: 15,
+    padding: 15,
+    marginBottom: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderColor: '#ffcc00',
+    borderWidth: 1,
+  },
+  savingsText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#ff6600',
+  },
+  adContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 15,
+    padding: 15,
+    marginBottom: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderColor: '#007bff',
+    borderWidth: 1,
+  },
+  adTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#007bff',
+    marginBottom: 5,
+  },
+  adText: {
+    fontSize: 16,
+    color: '#007bff',
   },
   modalContainer: {
     flex: 1,

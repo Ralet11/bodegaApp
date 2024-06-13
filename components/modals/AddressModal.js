@@ -14,7 +14,7 @@ const AddressModal = ({ visible, addresses, onSelect, onClose }) => {
           <Text style={styles.modalTitle}>Select Address</Text>
           <FlatList
             data={addresses}
-            keyExtractor={(item) => item.adressID.toString()}
+            keyExtractor={(item) => item?.adressID?.toString() || Math.random().toString()} // Usar Math.random() como fallback
             renderItem={({ item }) => (
               <TouchableOpacity style={styles.addressContainer} onPress={() => onSelect(item.formatted_address)}>
                 <Text style={styles.addressName}>{item.name}</Text>
