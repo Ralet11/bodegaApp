@@ -17,6 +17,8 @@ const CategoryShops = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOrder, setSortOrder] = useState('name');
 
+  console.log(categoryId, categoryName)
+
   useEffect(() => {
     if (shopsByCategory && categoryId) {
       const shops = shopsByCategory[categoryId] || [];
@@ -60,7 +62,7 @@ const CategoryShops = () => {
     <SafeAreaView style={scheme === 'dark' ? darkTheme.safeArea : lightTheme.safeArea}>
       <View style={scheme === 'dark' ? darkTheme.header : lightTheme.header}>
         <TouchableOpacity onPress={handleBackPress} style={scheme === 'dark' ? darkTheme.iconButton : lightTheme.iconButton}>
-          <FontAwesome name="arrow-left" size={24} color={scheme === 'dark' ? 'white' : '#333'} />
+          <FontAwesome name="arrow-left" size={24} color={scheme === 'dark' ? '#FFD700' : '#333'} />
         </TouchableOpacity>
         <Text style={scheme === 'dark' ? darkTheme.headerTitle : lightTheme.headerTitle}>{categoryName}</Text>
         <TouchableOpacity onPress={changeAddress} style={scheme === 'dark' ? darkTheme.iconButton : lightTheme.iconButton}>

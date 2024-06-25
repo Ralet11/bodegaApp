@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, TextInput, Animated, StyleSheet, Dimensions, Image, Keyboard, TouchableWithoutFeedback } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, Animated, StyleSheet, Dimensions, Image, Keyboard, TouchableWithoutFeedback, ActivityIndicator, useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Axios from 'react-native-axios';
 import { useDispatch } from 'react-redux';
@@ -8,12 +8,15 @@ import { FontAwesome } from '@expo/vector-icons';
 import { API_URL } from '@env';
 import { setUser } from '../redux/slices/user.slice';
 import { fetchCategories } from '../redux/slices/setUp.slice';
+import Toast from 'react-native-toast-message';
 
 const { width, height } = Dimensions.get('window');
 
 export default function Login() {
   const navigation = useNavigation();
   const dispatch = useDispatch();
+  const colorScheme = useColorScheme();
+  const styles = colorScheme === 'dark' ? stylesDark : stylesLight;
   const [clientData, setClientData] = useState({
     email: "ramiro@gmail.com",
     password: "123456"
@@ -28,12 +31,20 @@ export default function Login() {
   const [passwordLabelAnim] = useState(new Animated.Value(clientData.password ? 1 : 0));
   const [buttonAnim] = useState(new Animated.Value(1));
   const [formAnim] = useState(new Animated.Value(0));
+  const [imageAnim] = useState(new Animated.Value(0));
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     Animated.timing(formAnim, {
       toValue: 1,
       duration: 500,
+      useNativeDriver: true,
+    }).start();
+
+    Animated.timing(imageAnim, {
+      toValue: 1,
+      duration: 1000,
       useNativeDriver: true,
     }).start();
   }, []);
@@ -72,9 +83,26 @@ export default function Login() {
 
   const handleLogin = async () => {
     if (errors.email || errors.password) {
+      if (errors.email) {
+        Toast.show({
+          type: 'error',
+          text1: 'Email Error',
+          text2: 'Please enter a valid email address.',
+        });
+      }
+
+      if (errors.password) {
+        Toast.show({
+          type: 'error',
+          text1: 'Password Error',
+          text2: 'Please enter a valid password.',
+        });
+      }
+
       return;
     }
 
+    setLoading(true);
     Animated.timing(buttonAnim, {
       toValue: 0.95, 
       duration: 200,
@@ -86,30 +114,36 @@ export default function Login() {
           credentials: true,
         });
 
-        console.log(response.data);
-
-         if (response.data.error === false) {
-           console.log('Inicio de sesión exitoso');
-           const _clientData = response.data;
-           console.log(_clientData.data.client.id, "info del cliente");
-           dispatch(setUser(_clientData));
-           dispatch(fetchCategories());
-           navigation.navigate(`Main`);
-         } else {
-           console.log('Error en la respuesta del servidor:', response.data);
-           Animated.timing(buttonAnim, {
-             toValue: 1,
-             duration: 200,
-             useNativeDriver: true,
-           }).start();
-         }
+        if (response.data.error === false) {
+          const _clientData = response.data;
+          dispatch(setUser(_clientData));
+          dispatch(fetchCategories());
+          navigation.navigate('Main');
+        } else {
+          Toast.show({
+            type: 'error',
+            text1: 'Login Error',
+            text2: response.data.message || 'Invalid Username or password.',
+          });
+          Animated.timing(buttonAnim, {
+            toValue: 1,
+            duration: 200,
+            useNativeDriver: true,
+          }).start();
+        }
       } catch (error) {
-        console.log(error);
+        Toast.show({
+          type: 'error',
+          text1: 'Network Error',
+          text2: error.response?.data?.message || error.message || 'Something went wrong. Please try again later.',
+        });
         Animated.timing(buttonAnim, {
           toValue: 1,
           duration: 200,
           useNativeDriver: true,
         }).start();
+      } finally {
+        setLoading(false);
       }
     });
   };
@@ -119,20 +153,28 @@ export default function Login() {
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.container}>
           <Animated.View style={[styles.formContainer, { opacity: formAnim }]}>
-            <View style={styles.logoContainer}>
+            <Animated.View style={[styles.logoContainer, {
+              opacity: imageAnim,
+              transform: [{
+                translateY: imageAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [-50, 0]
+                })
+              }]
+            }]}>
               <Image
                 source={{ uri: "https://res.cloudinary.com/doqyrz0sg/image/upload/v1717527579/WhatsApp_Image_2024-05-25_at_17.24.54_lpri1m.jpg" }}
                 style={styles.logo}
               />
-            </View>
+            </Animated.View>
             <View style={styles.inputContainer}>
-              <FontAwesome name="envelope" size={20} color="#888" style={styles.icon} />
+              <FontAwesome name="envelope" size={20} color={colorScheme === 'dark' ? '#FFF' : '#888'} style={styles.icon} />
               <TextInput
                 onChangeText={(value) => handleChange('email', value)}
-                style={[styles.input, { borderColor: errors.email ? 'red' : '#ccc' }]}
+                style={[styles.input, { borderColor: errors.email ? 'red' : colorScheme === 'dark' ? '#FFF' : '#ccc' }]}
                 value={clientData.email}
                 placeholder='Email Address'
-                placeholderTextColor='#888'
+                placeholderTextColor={colorScheme === 'dark' ? '#FFF' : '#888'}
                 onFocus={() => Animated.timing(emailLabelAnim, {
                   toValue: 1,
                   duration: 200,
@@ -146,14 +188,14 @@ export default function Login() {
               />
             </View>
             <View style={styles.inputContainer}>
-              <FontAwesome name="lock" size={20} color="#888" style={styles.icon} />
+              <FontAwesome name="lock" size={20} color={colorScheme === 'dark' ? '#FFF' : '#888'} style={styles.icon} />
               <TextInput
                 onChangeText={(value) => handleChange('password', value)}
-                style={[styles.input, { borderColor: errors.password ? 'red' : '#ccc' }]}
+                style={[styles.input, { borderColor: errors.password ? 'red' : colorScheme === 'dark' ? '#FFF' : '#ccc' }]}
                 secureTextEntry={!showPassword}
                 value={clientData.password}
                 placeholder='Password'
-                placeholderTextColor='#888'
+                placeholderTextColor={colorScheme === 'dark' ? '#FFF' : '#888'}
                 onFocus={() => Animated.timing(passwordLabelAnim, {
                   toValue: 1,
                   duration: 200,
@@ -166,26 +208,30 @@ export default function Login() {
                 }).start()}
               />
               <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.showPasswordButton}>
-                <FontAwesome name={showPassword ? "eye-slash" : "eye"} size={20} color="#888" />
+                <FontAwesome name={showPassword ? "eye-slash" : "eye"} size={20} color={colorScheme === 'dark' ? '#FFF' : '#888'} />
               </TouchableOpacity>
             </View>
-            <TouchableOpacity onPress={handleLogin} style={styles.button}>
-              <Animated.Text style={[styles.buttonText, { transform: [{ scale: buttonAnim }] }]}>Log In</Animated.Text>
+            <TouchableOpacity onPress={handleLogin} style={styles.button} disabled={loading}>
+              {loading ? (
+                <ActivityIndicator size="small" color="#FFF" />
+              ) : (
+                <Animated.Text style={[styles.buttonText, { transform: [{ scale: buttonAnim }] }]}>Log In</Animated.Text>
+              )}
             </TouchableOpacity>
             <TouchableOpacity onPress={() => navigation.navigate('Signup')} style={styles.footerLink}>
               <Text style={styles.footerText}>Don't have an account? Sign up</Text>
             </TouchableOpacity>
           </Animated.View>
         </View>
+        <Toast />
       </SafeAreaView>
     </TouchableWithoutFeedback>
   );
 }
 
-const styles = StyleSheet.create({
+const commonStyles = {
   safeArea: {
     flex: 1,
-    backgroundColor: "#F2BA25",
   },
   container: {
     flex: 1,
@@ -196,44 +242,37 @@ const styles = StyleSheet.create({
   formContainer: {
     width: '100%',
     maxWidth: 500,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderRadius: 20,
-    padding: 30,
+    paddingHorizontal: 30,
+    paddingBottom: 30,
     shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 10,
-    elevation: 10,
+    shadowOpacity: 0.9, 
+    shadowOffset: { width: 0, height: 10 }, 
+    shadowRadius: 20, 
+    elevation: 50, 
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
   },
   logoContainer: {
     alignItems: 'center',
     marginBottom: 30,
   },
   logo: {
-    width: 100,
-    height: 100,
-    resizeMode: 'contain',
+    width: 300,
+    height: 120,
+    resizeMode: 'cover',
     marginBottom: 20,
-    borderRadius: 30, // Redondear los bordes de la imagen
-    borderWidth: 3, // Ancho del borde
-    borderColor: '#fff', // Color del borde
+    borderRadius: 10,
     shadowColor: '#000',
-    shadowOpacity: 0.3,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 10,
-    elevation: 10,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
+    shadowOpacity: 0.4,
+    shadowOffset: { width: 0, height: 10 },
+    shadowRadius: 20,
+    elevation: 15, 
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 20,
     borderBottomWidth: 1,
-    borderColor: '#ccc',
     paddingBottom: 5,
   },
   icon: {
@@ -243,7 +282,6 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 10,
     fontSize: 16,
-    color: '#333',
   },
   showPasswordButton: {
     padding: 10,
@@ -254,18 +292,69 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     marginTop: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.4, 
+    shadowOffset: { width: 0, height: 10 }, 
+    shadowRadius: 20, 
+    elevation: 15, 
   },
   buttonText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#000',
   },
   footerLink: {
     marginTop: 20,
     alignItems: 'center',
   },
   footerText: {
-    color: '#333',
     fontSize: 16,
+  },
+};
+
+const stylesLight = StyleSheet.create({
+  ...commonStyles,
+  safeArea: {
+    ...commonStyles.safeArea,
+    backgroundColor: "#F2BA25",
+  },
+  formContainer: {
+    ...commonStyles.formContainer,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+  },
+  input: {
+    ...commonStyles.input,
+    color: '#333',
+  },
+  buttonText: {
+    ...commonStyles.buttonText,
+    color: '#000',
+  },
+  footerText: {
+    ...commonStyles.footerText,
+    color: '#333',
+  },
+});
+
+const stylesDark = StyleSheet.create({
+  ...commonStyles,
+  safeArea: {
+    ...commonStyles.safeArea,
+    backgroundColor: "#333",
+  },
+  formContainer: {
+    ...commonStyles.formContainer,
+    backgroundColor: '#444',
+  },
+  input: {
+    ...commonStyles.input,
+    color: '#FFF',
+  },
+  buttonText: {
+    ...commonStyles.buttonText,
+    color: '#000',
+  },
+  footerText: {
+    ...commonStyles.footerText,
+    color: '#FFF',
   },
 });

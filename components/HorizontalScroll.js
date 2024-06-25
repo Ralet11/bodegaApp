@@ -3,12 +3,14 @@ import { View, Text, ScrollView, Image, TouchableOpacity, StyleSheet, ActivityIn
 import { FontAwesome } from '@expo/vector-icons';
 import { useSelector } from 'react-redux';
 import Axios from 'react-native-axios';
+import { useNavigation } from '@react-navigation/native';
 
-const HorizontalScroll = ({ title, items, scheme, handleItemPress }) => {
+const HorizontalScroll = ({ title, items, scheme, handleItemPress, categoryId}) => {
   const [distances, setDistances] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const address = useSelector((state) => state?.user?.address);
   const styles = scheme === 'dark' ? darkTheme : lightTheme;
+  const navigation = useNavigation()
 
   const GOOGLE_MAPS_API_KEY = 'AIzaSyB8fCVwRXbMe9FAxsrC5CsyfjzpHxowQmE'
 
@@ -41,13 +43,29 @@ const HorizontalScroll = ({ title, items, scheme, handleItemPress }) => {
     }
   }, [address, items]);
 
-  console.log(address)
+
+
+  const handleCategoryPress = (categoryId) => {
+    let categoryName
+    if(categoryId == 1) {
+      categoryName = "Smoke shop"
+    } else if(categoryId == 2) {
+      categoryName = "Drinks"
+    } else if (categoryId == 3) {
+      categoryName = "Restaurants"
+    } else {
+      categoryName = "Market"
+    }
+    navigation.navigate('CategoryShops', { categoryId: categoryId, categoryName: categoryName });
+  };
+
+
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>{title}</Text>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => handleCategoryPress(categoryId)}>
           <Text style={styles.viewMore}>See more</Text>
         </TouchableOpacity>
       </View>
@@ -88,7 +106,7 @@ const commonStyles = {
   container: { marginVertical: 20 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, paddingHorizontal: 15 },
   title: { fontSize: 15, fontWeight: 'bold' },
-  viewMore: { fontSize: 14, color: '#ff6347' },
+  viewMore: { fontSize: 14, color: '#ff9900' },
   scrollView: {},
   itemContainer: { marginRight: 15, padding: 5 },
   card: { width: 250, height: 180, backgroundColor: '#fff', borderRadius: 15, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.2, shadowOffset: { width: 0, height: 4 }, shadowRadius: 8, elevation: 5 },
@@ -114,7 +132,7 @@ const lightTheme = StyleSheet.create({
 const darkTheme = StyleSheet.create({
   ...commonStyles,
   title: { ...commonStyles.title, color: '#fff' },
-  viewMore: { ...commonStyles.viewMore, color: '#ff6347' },
+  viewMore: { ...commonStyles.viewMore, color: '#ff9900' },
   card: { ...commonStyles.card, backgroundColor: '#333' },
   itemName: { ...commonStyles.itemName, color: '#fff' },
   itemAddress: { ...commonStyles.itemAddress, color: '#bbb' },

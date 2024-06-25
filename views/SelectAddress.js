@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Modal, TextInput, ActivityIndicator } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -8,8 +8,9 @@ import * as Location from 'expo-location';
 import { useNavigation } from '@react-navigation/native';
 import Axios from 'react-native-axios';
 import Toast from 'react-native-toast-message';
-import { addAddress, setAddress } from '../redux/slices/user.slice'; // Ajusta la ruta según la ubicación de tu archivo userSlice
+import { addAddress, setAddress } from '../redux/slices/user.slice';
 import { API_URL } from '@env';
+import { Ionicons } from '@expo/vector-icons';
 
 const GOOGLE_API_KEY = 'AIzaSyB8fCVwRXbMe9FAxsrC5CsyfjzpHxowQmE';
 
@@ -22,13 +23,21 @@ const SetAddressScreen = () => {
   const [marker, setMarker] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [addressName, setAddressName] = useState('');
-  const [addressesState, setAddressesState] = useState(null)
+  const [houseNumber, setHouseNumber] = useState('');
+  const [streetName, setStreetName] = useState('');
+  const [additionalDetails, setAdditionalDetails] = useState('');
+  const [postalCode, setPostalCode] = useState('');
+  const [addressesState, setAddressesState] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [errors, setErrors] = useState({});
   const token = useSelector((state) => state?.user.userInfo.data.token);
 
   const fetchCurrentLocation = async () => {
+    setLoading(true);
     let { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') {
       console.warn('Permission to access location was denied');
+      setLoading(false);
       return;
     }
 
@@ -50,11 +59,13 @@ const SetAddressScreen = () => {
     const json = await response.json();
     if (json.results.length > 0) {
       setAddressState(json.results[0].formatted_address);
-      setAddressesState(json.results[0])
+      setAddressesState(json.results[0]);
     }
+    setLoading(false);
   };
 
   const fetchAddressLocation = async () => {
+    setLoading(true);
     const response = await fetch(
       `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${GOOGLE_API_KEY}`
     );
@@ -72,8 +83,9 @@ const SetAddressScreen = () => {
         longitude: location.lng,
       });
       setAddressState(json.results[0].formatted_address);
-      setAddressesState(json.results[0])
+      setAddressesState(json.results[0]);
     }
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -85,6 +97,7 @@ const SetAddressScreen = () => {
   }, [address]);
 
   const fetchAddress = async (latitude, longitude) => {
+    setLoading(true);
     try {
       const response = await fetch(
         `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_API_KEY}`
@@ -96,6 +109,7 @@ const SetAddressScreen = () => {
     } catch (error) {
       console.warn(error);
     }
+    setLoading(false);
   };
 
   const handleMapPress = useCallback((e) => {
@@ -123,18 +137,23 @@ const SetAddressScreen = () => {
         longitude: location.lng,
       });
       setAddressState(details.formatted_address);
-      setAddressesState(details)
+      setAddressesState(details);
     }
   }, []);
 
-  console.log(addressesState, "adressStatet")
-
   const handleSaveAddress = useCallback(async () => {
-    if (!addressState) {
+    const newErrors = {};
+    if (!addressName) newErrors.addressName = true;
+    if (!houseNumber) newErrors.houseNumber = true;
+    if (!streetName) newErrors.streetName = true;
+    if (!postalCode) newErrors.postalCode = true;
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       Toast.show({
         type: 'error',
         text1: 'Address required',
-        text2: 'You must choose an address to continue.',
+        text2: 'Please fill all required fields.',
       });
       return;
     }
@@ -144,6 +163,10 @@ const SetAddressScreen = () => {
         `${API_URL}/api/addresses/addToUser`,
         {
           name: addressName,
+          houseNumber,
+          streetName,
+          additionalDetails,
+          postalCode,
           formatted_address: addressState,
         },
         {
@@ -152,85 +175,108 @@ const SetAddressScreen = () => {
           },
         }
       );
-      console.log(response.data, "response en addres")
 
       if (response.status === 200) {
         dispatch(setAddress(addressState));
-        dispatch(addAddress(response.data))
-        navigation.navigate('Home'); // Navega a la pantalla "Home"
+        dispatch(addAddress(response.data));
+        setModalVisible(false);
+        navigation.navigate('Home');
       }
     } catch (error) {
       console.error(error);
     }
-  }, [addressName, addressState, dispatch, navigation, token]);
+  }, [addressName, houseNumber, streetName, additionalDetails, postalCode, addressState, dispatch, navigation, token]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        {region && (
-          <MapView
-            style={styles.map}
-            region={region}
-            onPress={handleMapPress}
-          >
-            {marker && <Marker coordinate={marker} />}
-          </MapView>
-        )}
-        <View style={styles.searchContainer}>
-          <GooglePlacesAutocomplete
-            placeholder="Enter your street and number"
-            minLength={2}
-            fetchDetails={true}
-            onPress={handleAddressSelect}
-            query={{
-              key: GOOGLE_API_KEY,
-              language: 'en',
-            }}
-            styles={{
-              container: {
-                position: 'absolute',
-                width: '100%',
-                top: 10,
-                zIndex: 1,
-              },
-              textInputContainer: {
-                width: '100%',
-                backgroundColor: 'rgba(255,255,255,1)',
-                borderTopWidth: 0,
-                borderBottomWidth: 0,
-                paddingHorizontal: 20,
-              },
-              textInput: {
-                height: 44,
-                color: '#5d5d5d',
-                fontSize: 16,
-                paddingHorizontal: 10,
-                borderRadius: 10,
-                borderWidth: 1,
-                borderColor: '#ddd',
-                backgroundColor: '#f9f9f9',
-              },
-              listView: {
-                backgroundColor: 'white',
-              },
-              description: {
-                fontSize: 16,
-              },
-            }}
-            debounce={200}
-          />
-        </View>
-        <View style={styles.addressContainer}>
-          <Text style={styles.addressText}>{addressState}</Text>
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => setModalVisible(true)}
-          >
-            <Text style={styles.buttonText}>Save Address</Text>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={24} color="black" />
           </TouchableOpacity>
+          <Text style={styles.headerTitle}>Set Address</Text>
         </View>
+        {loading ? (
+          <ActivityIndicator size="large" color="#0000ff" style={styles.loader} />
+        ) : (
+          <>
+            {region && (
+              <MapView
+                style={styles.map}
+                region={region}
+                onPress={handleMapPress}
+              >
+                {marker && <Marker coordinate={marker} />}
+              </MapView>
+            )}
+            <View style={styles.searchContainer}>
+              <GooglePlacesAutocomplete
+                placeholder="Enter your street and number"
+                minLength={2}
+                fetchDetails={true}
+                onPress={handleAddressSelect}
+                query={{
+                  key: GOOGLE_API_KEY,
+                  language: 'en',
+                }}
+                styles={{
+                  container: {
+                    flex: 1,
+                    zIndex: 2,
+                  },
+                  textInputContainer: {
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: '#fff',
+                    borderRadius: 10,
+                    borderWidth: 1,
+                    borderColor: '#ddd',
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.3,
+                    shadowRadius: 5,
+                    elevation: 5,
+                    marginHorizontal: 20,
+                  },
+                  textInput: {
+                    flex: 1,
+                    height: 44,
+                    color: '#5d5d5d',
+                    fontSize: 16,
+                    paddingHorizontal: 10,
+                    borderRadius: 10,
+                  },
+                  predefinedPlacesDescription: {
+                    color: '#1faadb',
+                  },
+                  listView: {
+                    backgroundColor: 'white',
+                    marginHorizontal: 20,
+                    borderRadius: 10,
+                    elevation: 5,
+                  },
+                  description: {
+                    fontSize: 16,
+                  },
+                }}
+                renderLeftButton={() => (
+                  <Ionicons name="search" size={20} color="#1faadb" style={{ marginLeft: 10 }} />
+                )}
+                debounce={200}
+              />
+            </View>
+            <View style={styles.addressContainer}>
+              <Text style={styles.addressText}>{addressState}</Text>
+              <TouchableOpacity
+                style={styles.button}
+                onPress={() => setModalVisible(true)}
+              >
+                <Text style={styles.buttonText}>Save Address</Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
       </View>
-
       <Modal
         animationType="slide"
         transparent={true}
@@ -239,26 +285,59 @@ const SetAddressScreen = () => {
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Enter Address Name</Text>
+            <Text style={styles.modalTitle}>Enter Address Details</Text>
+            <TextInput
+              style={[styles.modalInput, errors.addressName && styles.errorInput]}
+              placeholder="Home Name (e.g. My Home)"
+              value={addressName}
+              onChangeText={(text) => {
+                setAddressName(text);
+                if (errors.addressName) setErrors((prev) => ({ ...prev, addressName: false }));
+              }}
+            />
+            <TextInput
+              style={[styles.modalInput, errors.houseNumber && styles.errorInput]}
+              placeholder="House Number (e.g. 123)"
+              value={houseNumber}
+              onChangeText={(text) => {
+                setHouseNumber(text);
+                if (errors.houseNumber) setErrors((prev) => ({ ...prev, houseNumber: false }));
+              }}
+            />
+            <TextInput
+              style={[styles.modalInput, errors.streetName && styles.errorInput]}
+              placeholder="Street Name (e.g. Main St)"
+              value={streetName}
+              onChangeText={(text) => {
+                setStreetName(text);
+                if (errors.streetName) setErrors((prev) => ({ ...prev, streetName: false }));
+              }}
+            />
             <TextInput
               style={styles.modalInput}
-              placeholder="Address Name"
-              value={addressName}
-              onChangeText={setAddressName}
+              placeholder="Additional Information (e.g. Apt 1B, Floor 2)"
+              value={additionalDetails}
+              onChangeText={setAdditionalDetails}
+            />
+            <TextInput
+              style={[styles.modalInput, errors.postalCode && styles.errorInput]}
+              placeholder="Postal Code (e.g. 12345)"
+              value={postalCode}
+              onChangeText={(text) => {
+                setPostalCode(text);
+                if (errors.postalCode) setErrors((prev) => ({ ...prev, postalCode: false }));
+              }}
             />
             <TouchableOpacity
               style={styles.modalButton}
-              onPress={async () => {
-                await handleSaveAddress();
-                setModalVisible(false);
-              }}
+              onPress={handleSaveAddress}
             >
               <Text style={styles.modalButtonText}>Save</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
-      <Toast ref={(ref) => Toast.setRef(ref)} />
+      <Toast />
     </SafeAreaView>
   );
 };
@@ -271,18 +350,29 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    backgroundColor: '#f9f9f9',
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginLeft: 10,
+  },
   map: {
     flex: 1,
     zIndex: 0,
   },
   searchContainer: {
     position: 'absolute',
-    top: 10,
+    top: 60,
     width: '100%',
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    zIndex: 1,
+    zIndex: 2,
   },
   addressContainer: {
     position: 'absolute',
@@ -291,6 +381,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     padding: 20,
     alignItems: 'center',
+    zIndex: 1,
   },
   addressText: {
     fontSize: 16,
@@ -345,8 +436,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 5,
     paddingHorizontal: 10,
-    marginBottom: 20,
+    marginBottom: 10,
     backgroundColor: '#f9f9f9',
+  },
+  errorInput: {
+    borderColor: 'red',
   },
   modalButton: {
     width: '100%',
@@ -360,6 +454,11 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  loader: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

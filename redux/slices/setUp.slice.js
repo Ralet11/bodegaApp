@@ -19,6 +19,8 @@ const initialState = {
   shops: [],
   status: 'idle',
   error: null,
+  auxShops: 0,
+  userDiscounts: []
 };
 
 const setUpSlice = createSlice({
@@ -30,6 +32,12 @@ const setUpSlice = createSlice({
     },
     setShops: (state, action) => {
       state.shops = action.payload
+    },
+    setAuxShops: (state) => {
+      state.auxShops = state.auxShops + 1
+    },
+    setUserDiscounts: (state, action) => {
+      state.userDiscounts = action.payload
     }
   },
 
@@ -49,5 +57,5 @@ const setUpSlice = createSlice({
   },
 });
 
-export const { setCategories, setShops } = setUpSlice.actions;
+export const { setCategories, setShops, setAuxShops, setUserDiscounts } = setUpSlice.actions;
 export default setUpSlice.reducer;

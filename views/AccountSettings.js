@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView, ActivityIndicator, useColorScheme } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
@@ -9,7 +9,7 @@ import { API_URL } from '@env';
 import Toast from 'react-native-toast-message';
 import AddressModal from '../components/modals/AddressModal'; // Asegúrate de ajustar la ruta según la ubicación del archivo
 
-const AccountSettings = ({ theme = 'light' }) => {
+const AccountSettings = () => {
   const navigation = useNavigation();
   const user = useSelector((state) => state?.user?.userInfo?.data?.client);
   const token = useSelector((state) => state?.user?.userInfo?.data?.token);
@@ -18,6 +18,7 @@ const AccountSettings = ({ theme = 'light' }) => {
   const [isLoadingData, setIsLoadingData] = useState(true); // Estado para controlar el loader
   const address = useSelector((state) => state?.user?.address);
   const addresses = useSelector((state) => state?.user?.addresses);
+  const colorScheme = useColorScheme();
 
   const inputRefs = useRef({
     name: null,
@@ -104,14 +105,14 @@ const AccountSettings = ({ theme = 'light' }) => {
     }
   };
 
-  const styles = theme === 'dark' ? stylesDark : stylesLight;
+  const styles = colorScheme === 'dark' ? stylesDark : stylesLight;
 
   return (
     <SafeAreaView style={[styles.safeArea]}>
       <View style={[styles.container]}>
         <View style={[styles.header]}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
-            <FontAwesome name="arrow-left" size={24} color={theme === 'dark' ? "#fff" : "#333"} />
+            <FontAwesome name="arrow-left" size={24} color={colorScheme === 'dark' ? '#FFD700' : '#333'}  />
           </TouchableOpacity>
           <Text style={[styles.headerTitle]}>Account Settings</Text>
         </View>
@@ -122,53 +123,53 @@ const AccountSettings = ({ theme = 'light' }) => {
         ) : (
           <ScrollView contentContainerStyle={styles.scrollContent}>
             <View style={[styles.inputContainer]}>
-              <FontAwesome name="user" size={20} color={theme === 'dark' ? "#fff" : "#333"} />
+              <FontAwesome name="user" size={20} color={colorScheme === 'dark' ? "#fff" : "#333"} />
               <TextInput
                 ref={(ref) => inputRefs.current.name = ref}
                 style={[styles.input]}
                 placeholder="Name"
-                placeholderTextColor={theme === 'dark' ? "#999" : "#666"}
+                placeholderTextColor={colorScheme === 'dark' ? "#999" : "#666"}
                 value={formData.name}
                 onChangeText={(value) => handleInputChange('name', value)}
               />
             </View>
             <View style={[styles.inputContainer]}>
-              <FontAwesome name="envelope" size={20} color={theme === 'dark' ? "#fff" : "#333"} />
+              <FontAwesome name="envelope" size={20} color={colorScheme === 'dark' ? "#fff" : "#333"} />
               <TextInput
                 ref={(ref) => inputRefs.current.email = ref}
                 style={[styles.input]}
                 placeholder="Email"
-                placeholderTextColor={theme === 'dark' ? "#999" : "#666"}
+                placeholderTextColor={colorScheme === 'dark' ? "#999" : "#666"}
                 value={formData.email}
                 onChangeText={(value) => handleInputChange('email', value)}
               />
             </View>
             <View style={[styles.inputContainer]}>
-              <FontAwesome name="phone" size={20} color={theme === 'dark' ? "#fff" : "#333"} />
+              <FontAwesome name="phone" size={20} color={colorScheme === 'dark' ? "#fff" : "#333"} />
               <TextInput
                 ref={(ref) => inputRefs.current.phone = ref}
                 style={[styles.input]}
                 placeholder="Phone"
-                placeholderTextColor={theme === 'dark' ? "#999" : "#666"}
+                placeholderTextColor={colorScheme === 'dark' ? "#999" : "#666"}
                 value={formData.phone}
                 onChangeText={(value) => handleInputChange('phone', value)}
               />
             </View>
             <View style={[styles.inputContainer]}>
-              <FontAwesome name="home" size={20} color={theme === 'dark' ? "#fff" : "#333"} />
+              <FontAwesome name="home" size={20} color={colorScheme === 'dark' ? "#fff" : "#333"} />
               <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.addressContainer}>
-                <Text style={[styles.addressText, { color: theme === 'dark' ? '#fff' : '#333' }]}>
+                <Text style={[styles.addressText, { color: colorScheme === 'dark' ? '#fff' : '#333' }]}>
                   {formData.address}
                 </Text>
               </TouchableOpacity>
             </View>
             <View style={[styles.inputContainer]}>
-              <FontAwesome name="lock" size={20} color={theme === 'dark' ? "#fff" : "#333"} />
+              <FontAwesome name="lock" size={20} color={colorScheme === 'dark' ? "#fff" : "#333"} />
               <TextInput
                 ref={(ref) => inputRefs.current.password = ref}
                 style={[styles.input]}
                 placeholder="Password"
-                placeholderTextColor={theme === 'dark' ? "#999" : "#666"}
+                placeholderTextColor={colorScheme === 'dark' ? "#999" : "#666"}
                 secureTextEntry={true}
                 value={formData.password}
                 onChangeText={(value) => handleInputChange('password', value)}
@@ -198,7 +199,7 @@ const AccountSettings = ({ theme = 'light' }) => {
             setModalVisible(false);
           }}
           onClose={() => setModalVisible(false)}
-          theme={theme} // Pass the theme prop to AddressModal
+          theme={colorScheme} // Pass the theme prop to AddressModal
         />
       </View>
     </SafeAreaView>
@@ -208,7 +209,7 @@ const AccountSettings = ({ theme = 'light' }) => {
 const commonStyles = {
   safeArea: {
     flex: 1,
-    marginTop: 30
+    marginTop: 30,
   },
   container: {
     flex: 1,
@@ -298,6 +299,10 @@ const stylesDark = StyleSheet.create({
     ...commonStyles.input,
     color: '#fff',
   },
+  addressText: {
+    ...commonStyles.addressText,
+    color: '#fff',
+  },
   saveButtonText: {
     ...commonStyles.saveButtonText,
     color: '#333',
@@ -330,6 +335,10 @@ const stylesLight = StyleSheet.create({
   },
   input: {
     ...commonStyles.input,
+    color: '#333',
+  },
+  addressText: {
+    ...commonStyles.addressText,
     color: '#333',
   },
   saveButtonText: {

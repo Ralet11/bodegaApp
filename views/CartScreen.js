@@ -1,52 +1,80 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Image, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, TextInput, Alert, Modal, FlatList } from 'react-native';
+import { View, Text, Image, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, TextInput, Alert, Modal, FlatList, ActivityIndicator, useColorScheme, Switch } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
-import { incrementQuantity, decrementQuantity } from '../redux/slices/cart.slice';
+import { incrementQuantity, decrementQuantity, clearCart } from '../redux/slices/cart.slice';
 import Axios from 'react-native-axios';
 import { API_URL } from '@env';
 import { useStripe } from '@stripe/stripe-react-native';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { setAddress } from '../redux/slices/user.slice';
+import { setCurrentOrder, setOrderIn } from '../redux/slices/orders.slice';
+import { setUser } from '../redux/slices/user.slice';
+import CartSkeletonLoader from '../components/SkeletonLoaderCart';
 
 const CartScreen = () => {
   const cart = useSelector(state => state.cart.items);
   const currentShop = useSelector((state) => state.currentShop.currentShop);
-  const user = useSelector((state) => state.user.userInfo.data);
+  const user = useSelector((state) => state.user.userInfo.data.client);
   const dispatch = useDispatch();
   const navigation = useNavigation();
   const address = useSelector((state) => state?.user?.address) || '';
-  
+  const colorScheme = useColorScheme();
+
   const [tip, setTip] = useState(0);
   const [customTip, setCustomTip] = useState('');
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
-  const token = user?.token;
+  const token = useSelector((state) => state.user.userInfo.data.token);
   const [deliveryFee, setDeliveryFee] = useState(0);
+  const [originalDeliveryFee, setOriginalDeliveryFee] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const userAddresses = useSelector((state) => state?.user?.addresses) || [];
   const shops = useSelector((state) => state?.setUp?.shops);
+  const [useBalance, setUseBalance] = useState(false); // Nuevo estado para usar balance
+  const [balance, setBalance] = useState(user?.balance)
+  const [prevBalance, setPrevBalance] = useState(user?.balance)
+  const [finalPrice, setFinalPrice] = useState(null)
 
-  const GOOGLE_API_KEY = 'AIzaSyB8fCVwRXbMe9FAxsrC5CsyfjzpHxowQmE';
+
+  const GOOGLE_API_KEY = 'AIzaSyB8fCVwRXbMe9FAxsrC5CsyfjzpHxowQmE'; // Reemplaza con tu clave de API de Google
 
   const calculateSubtotal = () => {
     return cart.reduce((total, item) => total + parseFloat(item.price.replace('$', '')) * item.quantity, 0).toFixed(2);
   };
 
-  const calculateTax = () => {
-    const taxRate = user.subscription === 1 ? 1 : 2.00;
-    return taxRate;
+  const calculateTax = (subtotal) => {
+    const taxRate = 0.08; // 8% tax rate as an example
+    const tax = subtotal * taxRate;
+    return user.subscription === 1 ? tax / 2 : tax;
+  };
+
+  const calculateTipAmount = (subtotal) => {
+    const tipPercentage = parseFloat(tip) || parseFloat(customTip) || 0;
+    return (subtotal * tipPercentage / 100).toFixed(2);
   };
 
   const calculateTotal = () => {
     const subtotal = parseFloat(calculateSubtotal());
-    const tax = calculateTax();
-    const tipAmount = parseFloat(tip) || parseFloat(customTip) || 0;
-    return (subtotal + tax + tipAmount + deliveryFee).toFixed(2);
+    const tax = calculateTax(subtotal);
+    const tipAmount = parseFloat(calculateTipAmount(subtotal));
+    const total = subtotal + tax + tipAmount + deliveryFee;
+
+    if (useBalance) {
+      if (user.balance >= total) {
+        return 0;
+      } else {
+        return (total - user.balance).toFixed(2);
+      }
+    }
+
+    return total.toFixed(2);
   };
 
   const calculateSavings = () => {
-    return user.subscription === 1 ? 6.13 : 0;
+    const originalTax = parseFloat(calculateSubtotal()) * 0.08;
+    const savedTax = user.subscription === 1 ? originalTax / 2 : 0;
+    return user.subscription === 1 ? (originalDeliveryFee + savedTax).toFixed(2) : 0;
   };
 
   useEffect(() => {
@@ -74,6 +102,7 @@ const CartScreen = () => {
             } else if (distance > 4 && distance <= 10) {
               fee = 6;
             }
+            setOriginalDeliveryFee(fee);
             setDeliveryFee(user.subscription === 1 ? 0 : fee);
           } else {
             console.error("Error fetching distance from Google Maps API:", response.data);
@@ -100,39 +129,48 @@ const CartScreen = () => {
       return;
     }
 
-    console.log("Payment process started");
+
     const total_price = calculateTotal();
     const finalPrice = Math.floor(total_price * 100);
 
     try {
-      const response = await Axios.post(`${API_URL}/api/payment/intent`, {
-        finalPrice: finalPrice
-      });
-      const { clientSecret } = response.data;
+      if (finalPrice > 0) {
+        const response = await Axios.post(`${API_URL}/api/payment/intent`, {
+          finalPrice: finalPrice
+        });
+        const { clientSecret } = response.data;
+        console.log(response, "data del init")
 
-      if (response.error) {
-        Alert.alert('Something went wrong');
-        return;
-      }
+        if (response.error) {
+          Alert.alert('Something went wrong');
+          return;
+        }
 
-      const initResponse = await initPaymentSheet({
-        merchantDisplayName: "Example Name",
-        paymentIntentClientSecret: clientSecret,
-      });
+        const paymentIntentId = clientSecret.split('_secret')[0];
+        console.log(paymentIntentId, "pid id")
 
-      if (initResponse.error) {
-        console.log(initResponse.error);
-        Alert.alert("Something went wrong");
-        return;
-      }
 
-      const { error } = await presentPaymentSheet();
+        const initResponse = await initPaymentSheet({
+          merchantDisplayName: "Example Name",
+          paymentIntentClientSecret: clientSecret,
+        });
 
-      if (error) {
-        console.log(error);
-        Alert.alert(`Error code: ${error.code}`, error.message);
+        if (initResponse.error) {
+          console.log(initResponse.error);
+          Alert.alert("Something went wrong");
+          return;
+        }
+
+        const { error } = await presentPaymentSheet();
+
+        if (error) {
+          console.log(error);
+          Alert.alert(`Error code: ${error.code}`, error.message);
+        } else {
+          handleOrder(paymentIntentId);
+        }
       } else {
-        handleOrder();
+        handleOrder('bodegaBalance');
       }
     } catch (error) {
       console.error("Error during payment request:", error);
@@ -140,15 +178,21 @@ const CartScreen = () => {
     }
   };
 
-  const handleOrder = async () => {
+
+
+  const handleOrder = async (pi) => {
+    const total_price = calculateTotal();
     const data = {
       delivery_fee: deliveryFee,
-      total_price: calculateTotal(),
-      oder_details: cart,
+      total_price: total_price,
+      oder_details: cart, // corregir el typo de 'oder_details'
       local_id: currentShop,
       status: "new order",
       date_time: new Date().toISOString().slice(0, -5),
+      pi: pi
     };
+
+    console.log(pi, "pi")
 
     try {
       const headers = {
@@ -158,8 +202,52 @@ const CartScreen = () => {
 
       const response = await Axios.post(`${API_URL}/api/orders/add`, data, { headers });
 
-      console.log(response.data, "orden");
 
+      dispatch(setOrderIn(response.data.newOrder));
+      dispatch(clearCart());
+      console.log(response.data.newOrder, "nueva orden")
+      console.log(useBalance)
+
+
+      if (useBalance) {
+        const newBalance = user.balance >= finalPrice ? user.balance - finalPrice : 0;
+        const headers = {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        };
+
+        const data = { newBalance }
+
+        const response = await Axios.put(`${API_URL}/api/users/removeUserBalance`, data, { headers })
+        console.log(newBalance, "nuevo balance")
+        console.log(finalPrice, "precio")
+
+        const info = {
+          data: {
+            client: { ...user, balance: newBalance },
+            token,
+          },
+        };
+
+        dispatch(setUser(info));
+      }
+
+      const findCurrentShop = () => {
+        for (const categoryId in shops) {
+          const shop = shops[categoryId].find(shop => shop.id === currentShop);
+          if (shop) {
+            return shop;
+          }
+        }
+        return null;
+      };
+
+      const currentShopDetails = findCurrentShop();
+
+      const randomPhoneNumber = `+${currentShopDetails.phone}`;
+      /* await makeCall(randomPhoneNumber, response.data.newOrder.id); */
+      dispatch(clearCart())
+      dispatch(setCurrentOrder(response.data.newOrder))
       navigation.navigate('AcceptedOrder');
     } catch (error) {
       console.log(error.message);
@@ -167,153 +255,219 @@ const CartScreen = () => {
     }
   };
 
+  const makeCall = async (to, orderId) => {
+    try {
+      const response = await Axios.post(`${API_URL}/api/twilio/make-call`, { to, orderId });
+
+    } catch (error) {
+      console.error('Error making call:', error);
+    }
+  };
+
+  const handleBalanceChange = async (value) => {
+    setPrevBalance(user.balance)
+    const total_price = calculateTotal();
+    setFinalPrice(total_price)
+    setUseBalance(value)
+    const newBalance = user.balance >= total_price ? user.balance - total_price : 0
+    if(value === true) {
+      setBalance(newBalance)
+    } else {
+      setBalance(prevBalance)
+    }
+   
+  }
+
   const selectAddress = (address) => {
-    dispatch(setAddress(address))
+    dispatch(setAddress(address.formatted_address));
     setModalVisible(false);
   };
 
+  const styles = colorScheme === 'dark' ? stylesDark : stylesLight;
+
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.goBackButton} onPress={() => navigation.goBack()}>
-            <Icon name="arrow-back" size={24} color="#000" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Your Cart</Text>
-        </View>
-        <View style={styles.addressContainer}>
-          <Text style={styles.addressLabel}>Delivery Address:</Text>
-          <View style={styles.addressInputContainer}>
-            <TextInput
-              style={styles.addressInput}
-              placeholder="Enter your address"
-              placeholderTextColor="#A9A9A9"
-              value={address}
-              editable={false}
-            />
-            <TouchableOpacity onPress={() => setModalVisible(true)}>
-              <Icon name="location-outline" size={24} color="#000" />
+      {isLoading ? (
+        <CartSkeletonLoader />
+      ) : (
+        <ScrollView contentContainerStyle={styles.container}>
+          <View style={styles.header}>
+            <TouchableOpacity style={styles.goBackButton} onPress={() => navigation.goBack()}>
+              <Icon name="arrow-back" size={24} color={colorScheme === 'dark' ? '#fff' : '#000'} />
             </TouchableOpacity>
+            <Text style={styles.headerTitle}>Your Cart</Text>
           </View>
-        </View>
-        <View style={styles.cartItemsContainer}>
-          {cart.map((item) => (
-            <View key={item.id} style={styles.cartItem}>
-              <Image source={{ uri: item.image }} style={styles.cartItemImage} />
-              <View style={styles.cartItemDetails}>
-                <Text style={styles.cartItemName}>{item.name}</Text>
-                <View style={styles.row}>
-                  <Text style={styles.cartItemPrice}>{item.price}</Text>
-                  <View style={styles.quantityContainer}>
-                    <TouchableOpacity style={styles.quantityButton} onPress={() => dispatch(decrementQuantity(item.id))}>
-                      <Text style={styles.quantityButtonText}>-</Text>
-                    </TouchableOpacity>
-                    <Text style={styles.quantityText}>{item.quantity}</Text>
-                    <TouchableOpacity style={styles.quantityButton} onPress={() => dispatch(incrementQuantity(item.id))}>
-                      <Text style={styles.quantityButtonText}>+</Text>
-                    </TouchableOpacity>
+          <View style={styles.addressContainer}>
+            <Text style={styles.addressLabel}>Delivery Address:</Text>
+            <View style={styles.addressInputContainer}>
+              <TextInput
+                style={styles.addressInput}
+                placeholder="Enter your address"
+                placeholderTextColor="#A9A9A9"
+                value={address}
+                editable={false}
+              />
+              <TouchableOpacity onPress={() => setModalVisible(true)}>
+                <Icon name="location-outline" size={24} color={colorScheme === 'dark' ? '#fff' : '#000'} />
+              </TouchableOpacity>
+            </View>
+          </View>
+          <View style={styles.cartItemsContainer}>
+            {cart.map((item) => (
+              <View key={item.id} style={styles.cartItem}>
+                <Image source={{ uri: item.image }} style={styles.cartItemImage} />
+                <View style={styles.cartItemDetails}>
+                  <Text style={styles.cartItemName}>{item.name}</Text>
+                  <View style={styles.row}>
+                    <Text style={styles.cartItemPrice}>{item.price}</Text>
+                    <View style={styles.quantityContainer}>
+                      <TouchableOpacity style={styles.quantityButton} onPress={() => dispatch(decrementQuantity(item.id))}>
+                        <Text style={styles.quantityButtonText}>-</Text>
+                      </TouchableOpacity>
+                      <Text style={[styles.quantityText, { color: colorScheme === 'dark' ? '#fff' : '#000' }]}>
+                        {item.quantity}
+                      </Text>
+                      <TouchableOpacity style={styles.quantityButton} onPress={() => dispatch(incrementQuantity(item.id))}>
+                        <Text style={styles.quantityButtonText}>+</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 </View>
               </View>
-            </View>
-          ))}
-        </View>
-        <View style={styles.tipContainer}>
-          <Text style={styles.tipLabel}>Tip:</Text>
-          <View style={styles.tipOptions}>
-            {[1, 2, 3, 4, 5].map(amount => (
-              <TouchableOpacity
-                key={amount}
-                style={[styles.tipButton, tip === amount && styles.tipButtonSelected]}
-                onPress={() => { setTip(amount); setCustomTip(''); }}
-              >
-                <Text style={styles.tipButtonText}>${amount}</Text>
-              </TouchableOpacity>
             ))}
-            <TouchableOpacity
-              style={[styles.tipButton, customTip !== '' && styles.tipButtonSelected]}
-              onPress={() => { setTip(''); setCustomTip(''); }}
-            >
-              <Text style={styles.tipButtonText}>Custom</Text>
-            </TouchableOpacity>
           </View>
-          {tip === '' && (
-            <TextInput
-              style={styles.customTipInput}
-              placeholder="Enter custom tip"
-              placeholderTextColor="#A9A9A9"
-              keyboardType="numeric"
-              value={customTip}
-              onChangeText={text => setCustomTip(text.replace(/[^0-9.]/g, ''))}
-            />
-          )}
-        </View>
-        <View style={styles.summaryContainer}>
-          <Text style={styles.summaryText}>Subtotal: ${calculateSubtotal()}</Text>
-          <Text style={styles.summaryText}>Delivery Fee: ${deliveryFee}</Text>
-          <Text style={styles.summaryText}>Tax: ${calculateTax()}</Text>
-          <Text style={styles.summaryText}>Tip: ${parseFloat(tip) || parseFloat(customTip) || 0}</Text>
-          <Text style={styles.totalText}>Total: ${calculateTotal()}</Text>
-        </View>
-        {user.subscription === 1 ? (
-          <View style={styles.savingsContainer}>
-            <Text style={styles.savingsText}>You're saving ${calculateSavings()} with promotions</Text>
+          <View style={styles.tipContainer}>
+            <Text style={styles.tipLabel}>Tip:</Text>
+            <View style={styles.tipOptions}>
+              {[5, 10, 15, 20].map(percentage => (
+                <TouchableOpacity
+                  key={percentage}
+                  style={[styles.tipButton, tip === percentage && styles.tipButtonSelected]}
+                  onPress={() => { setTip(percentage); setCustomTip(''); }}
+                >
+                  <Text style={styles.tipButtonText}>{percentage}%</Text>
+                </TouchableOpacity>
+              ))}
+              <TouchableOpacity
+                style={[styles.tipButton, customTip !== '' && styles.tipButtonSelected]}
+                onPress={() => { setTip(''); setCustomTip(''); }}
+              >
+                <Text style={styles.tipButtonText}>Custom</Text>
+              </TouchableOpacity>
+            </View>
+            {tip === '' && (
+              <TextInput
+                style={styles.customTipInput}
+                placeholder="Enter custom tip percentage"
+                placeholderTextColor="#A9A9A9"
+                keyboardType="numeric"
+                value={customTip}
+                onChangeText={text => setCustomTip(text.replace(/[^0-9.]/g, ''))}
+              />
+            )}
           </View>
+          <View style={styles.balanceContainer}>
+            <Text style={styles.balanceText}>Bodega Balance: ${(balance.toFixed(2))}</Text>
+            <View style={styles.useBalanceContainer}>
+              <Switch
+                value={useBalance}
+                onValueChange={(value) => handleBalanceChange(value)}
+                trackColor={{ false: '#767577', true: '#ffcc00' }}
+                thumbColor={useBalance ? '#f4f3f4' : '#f4f3f4'}
+              />
+              <Text style={styles.useBalanceLabel}>{useBalance ? 'Using Balance' : 'Use Balance'}</Text>
+            </View>
+          </View>
+          <View style={styles.summaryContainer}>
+            <Text style={styles.summaryText}>Subtotal: ${calculateSubtotal()}</Text>
+            <Text style={styles.summaryText}>
+              Delivery Fee:
+              {user.subscription === 1 ? (
+                <>
+                  <Text style={styles.strikethrough}>${originalDeliveryFee}</Text> <Text style={styles.freeText}>Free</Text>
+                </>
+              ) : (
+                `$${deliveryFee}`
+              )}
+            </Text>
+            <Text style={styles.summaryText}>
+              Tax:
+              {user.subscription === 1 ? (
+                <>
+                  <Text style={styles.strikethrough}>${(calculateTax(parseFloat(calculateSubtotal())) * 2).toFixed(2)}</Text> ${(calculateTax(parseFloat(calculateSubtotal()))).toFixed(2)}
+                </>
+              ) : (
+                `$${calculateTax(parseFloat(calculateSubtotal())).toFixed(2)}`
+              )}
+            </Text>
+            <Text style={styles.summaryText}>
+              Tip: ${calculateTipAmount(parseFloat(calculateSubtotal()))}
+            </Text>
+            <Text style={styles.totalText}>Total: ${calculateTotal()}</Text>
+          </View>
+          {user.subscription === 1 ? (
+            <View style={styles.savingsContainer}>
+              <Text style={styles.savingsText}>You're saving ${calculateSavings()} with promotions</Text>
+            </View>
           ) : (
             <View style={styles.adContainer}>
               <Text style={styles.adTitle}>Subscribe now to Bodega Pro and save more!</Text>
               <Text style={styles.adText}>Get free delivery and exclusive promotions</Text>
             </View>
-        )}
-        <TouchableOpacity style={styles.checkoutButton} onPress={payment}>
-          <Text style={styles.checkoutButtonText}>Checkout</Text>
-        </TouchableOpacity>
-        <Modal
-          visible={modalVisible}
-          animationType="slide"
-          transparent={true}
-          onRequestClose={() => setModalVisible(false)}
-        >
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Select Delivery Address</Text>
-              <FlatList
-                data={userAddresses}
-                keyExtractor={(item) => item.adressID?.toString() || item.id?.toString()}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={styles.addressItem}
-                    onPress={() => selectAddress(item)}
-                  >
-                    <Text style={styles.addressText}>{item.formatted_address}</Text>
-                  </TouchableOpacity>
-                )}
-              />
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={() => setModalVisible(false)}
-              >
-                <Text style={styles.closeButtonText}>Close</Text>
-              </TouchableOpacity>
+          )}
+          <TouchableOpacity style={styles.checkoutButton} onPress={payment}>
+            <Text style={styles.checkoutButtonText}>Checkout</Text>
+          </TouchableOpacity>
+          <Modal
+            visible={modalVisible}
+            animationType="slide"
+            transparent={true}
+            onRequestClose={() => setModalVisible(false)}
+          >
+            <View style={styles.modalContainer}>
+              <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>Select Delivery Address</Text>
+                <FlatList
+                  data={userAddresses}
+                  keyExtractor={(item) => item.adressID?.toString() || item.id?.toString()}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity
+                      style={styles.addressItem}
+                      onPress={() => selectAddress(item)}
+                    >
+                      <Text style={styles.addressText}>{item.formatted_address}</Text>
+                    </TouchableOpacity>
+                  )}
+                />
+                <TouchableOpacity
+                  style={styles.closeButton}
+                  onPress={() => setModalVisible(false)}
+                >
+                  <Text style={styles.closeButtonText}>Close</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
-        </Modal>
-      </ScrollView>
+          </Modal>
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
+const commonStyles = {
   safeArea: {
     flex: 1,
     backgroundColor: '#f9f9f9',
+  },
+  loaderContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   container: {
     flexGrow: 1,
     justifyContent: 'space-between',
     padding: 20,
-    paddingTop: 20,
-    backgroundColor: '#f9f9f9',
+    paddingTop: 30,
   },
   header: {
     flexDirection: 'row',
@@ -326,7 +480,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
   },
   addressContainer: {
     marginBottom: 20,
@@ -343,7 +496,6 @@ const styles = StyleSheet.create({
   addressLabel: {
     fontSize: 16,
     marginBottom: 5,
-    color: '#333',
     fontWeight: '600',
   },
   addressInputContainer: {
@@ -358,7 +510,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 10,
     backgroundColor: '#f9f9f9',
-    color: '#333',
   },
   cartItemsContainer: {
     marginBottom: 10,
@@ -390,11 +541,9 @@ const styles = StyleSheet.create({
   cartItemName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
   },
   cartItemPrice: {
     fontSize: 14,
-    color: '#333',
     marginTop: 4,
   },
   row: {
@@ -420,7 +569,6 @@ const styles = StyleSheet.create({
   quantityText: {
     fontSize: 16,
     marginHorizontal: 10,
-    color: '#333',
   },
   tipContainer: {
     backgroundColor: '#fff',
@@ -437,7 +585,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 10,
-    color: '#333',
   },
   tipOptions: {
     flexDirection: 'row',
@@ -455,7 +602,6 @@ const styles = StyleSheet.create({
   tipButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1a1a1a',
   },
   customTipInput: {
     marginTop: 10,
@@ -465,7 +611,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 10,
     backgroundColor: '#f9f9f9',
-    color: '#333',
   },
   summaryContainer: {
     backgroundColor: '#fff',
@@ -480,13 +625,20 @@ const styles = StyleSheet.create({
   },
   summaryText: {
     fontSize: 16,
-    color: '#333',
     marginBottom: 5,
+  },
+  strikethrough: {
+    textDecorationLine: 'line-through',
+    textDecorationStyle: 'solid',
+    color: '#A9A9A9',
+  },
+  freeText: {
+    color: 'green',
+    fontWeight: 'bold',
   },
   totalText: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#333',
     marginTop: 10,
     textAlign: 'right',
   },
@@ -535,12 +687,10 @@ const styles = StyleSheet.create({
   adTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#007bff',
     marginBottom: 5,
   },
   adText: {
     fontSize: 16,
-    color: '#007bff',
   },
   modalContainer: {
     flex: 1,
@@ -581,6 +731,247 @@ const styles = StyleSheet.create({
   closeButtonText: {
     color: '#1a1a1a',
     fontWeight: 'bold',
+  },
+  balanceContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+    padding: 15,
+    borderRadius: 15,
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  useBalanceContainer: {
+    flexDirection: 'col',
+    alignItems: 'center',
+  },
+  balanceText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  useBalanceButton: {
+    marginLeft: 10,
+  },
+  useBalanceLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 5,
+    color: '#333',
+  },
+};
+
+const stylesDark = StyleSheet.create({
+  ...commonStyles,
+  safeArea: {
+    ...commonStyles.safeArea,
+    backgroundColor: '#1c1c1c',
+  },
+  loaderContainer: {
+    ...commonStyles.loaderContainer,
+    backgroundColor: '#1c1c1c',
+  },
+  container: {
+    ...commonStyles.container,
+    backgroundColor: '#1c1c1c',
+  },
+  headerTitle: {
+    ...commonStyles.headerTitle,
+    color: '#fff',
+  },
+  addressContainer: {
+    ...commonStyles.addressContainer,
+    backgroundColor: '#333',
+  },
+  addressLabel: {
+    ...commonStyles.addressLabel,
+    color: '#fff',
+  },
+  addressInput: {
+    ...commonStyles.addressInput,
+    backgroundColor: '#444',
+    color: '#fff',
+  },
+  cartItem: {
+    ...commonStyles.cartItem,
+    backgroundColor: '#333',
+  },
+  cartItemName: {
+    ...commonStyles.cartItemName,
+    color: '#fff',
+  },
+  cartItemPrice: {
+    ...commonStyles.cartItemPrice,
+    color: '#fff',
+  },
+  tipContainer: {
+    ...commonStyles.tipContainer,
+    backgroundColor: '#333',
+  },
+  tipLabel: {
+    ...commonStyles.tipLabel,
+    color: '#fff',
+  },
+  tipButton: {
+    ...commonStyles.tipButton,
+    backgroundColor: '#444',
+  },
+  tipButtonSelected: {
+    ...commonStyles.tipButtonSelected,
+    backgroundColor: '#ff9900',
+  },
+  tipButtonText: {
+    ...commonStyles.tipButtonText,
+    color: '#fff',
+  },
+  customTipInput: {
+    ...commonStyles.customTipInput,
+    backgroundColor: '#444',
+    color: '#fff',
+    borderColor: '#555',
+  },
+  summaryContainer: {
+    ...commonStyles.summaryContainer,
+    backgroundColor: '#333',
+  },
+  summaryText: {
+    ...commonStyles.summaryText,
+    color: '#fff',
+  },
+  totalText: {
+    ...commonStyles.totalText,
+    color: '#fff',
+  },
+  savingsContainer: {
+    ...commonStyles.savingsContainer,
+    backgroundColor: '#444',
+    borderColor: '#555',
+  },
+  savingsText: {
+    ...commonStyles.savingsText,
+    color: '#ffcc00',
+  },
+  adContainer: {
+    ...commonStyles.adContainer,
+    backgroundColor: '#333',
+    borderColor: '#444',
+  },
+  adTitle: {
+    ...commonStyles.adTitle,
+    color: '#fff',
+  },
+  adText: {
+    ...commonStyles.adText,
+    color: '#fff',
+  },
+  useBalanceLabel: {
+    ...commonStyles.useBalanceLabel,
+    color: '#fff',
+  },
+});
+
+const stylesLight = StyleSheet.create({
+  ...commonStyles,
+  container: {
+    ...commonStyles.container,
+    backgroundColor: '#fff',
+  },
+  loaderContainer: {
+    ...commonStyles.loaderContainer,
+    backgroundColor: '#fff',
+  },
+  headerTitle: {
+    ...commonStyles.headerTitle,
+    color: '#333',
+  },
+  addressContainer: {
+    ...commonStyles.addressContainer,
+    backgroundColor: '#fff',
+  },
+  addressLabel: {
+    ...commonStyles.addressLabel,
+    color: '#333',
+  },
+  addressInput: {
+    ...commonStyles.addressInput,
+    backgroundColor: '#f9f9f9',
+    color: '#333',
+  },
+  cartItem: {
+    ...commonStyles.cartItem,
+    backgroundColor: '#fff',
+  },
+  cartItemName: {
+    ...commonStyles.cartItemName,
+    color: '#333',
+  },
+  cartItemPrice: {
+    ...commonStyles.cartItemPrice,
+    color: '#333',
+  },
+  tipContainer: {
+    ...commonStyles.tipContainer,
+    backgroundColor: '#fff',
+  },
+  tipLabel: {
+    ...commonStyles.tipLabel,
+    color: '#333',
+  },
+  tipButton: {
+    ...commonStyles.tipButton,
+    backgroundColor: '#f2f2f2',
+  },
+  tipButtonSelected: {
+    ...commonStyles.tipButtonSelected,
+    backgroundColor: '#ff9900',
+  },
+  tipButtonText: {
+    ...commonStyles.tipButtonText,
+    color: '#333',
+  },
+  customTipInput: {
+    ...commonStyles.customTipInput,
+    backgroundColor: '#f9f9f9',
+    color: '#333',
+    borderColor: '#ccc',
+  },
+  summaryContainer: {
+    ...commonStyles.summaryContainer,
+    backgroundColor: '#fff',
+  },
+  summaryText: {
+    ...commonStyles.summaryText,
+    color: '#333',
+  },
+  totalText: {
+    ...commonStyles.totalText,
+    color: '#333',
+  },
+  savingsContainer: {
+    ...commonStyles.savingsContainer,
+    backgroundColor: '#fffbec',
+    borderColor: '#ffcc00',
+  },
+  savingsText: {
+    ...commonStyles.savingsText,
+    color: '#ff6600',
+  },
+  adContainer: {
+    ...commonStyles.adContainer,
+    backgroundColor: '#fff',
+    borderColor: '#007bff',
+  },
+  adTitle: {
+    ...commonStyles.adTitle,
+    color: '#333',
+  },
+  adText: {
+    ...commonStyles.adText,
+    color: '#333',
   },
 });
 

@@ -25,6 +25,8 @@ import Toast from 'react-native-toast-message';
 import MyCoupons from './views/Discounts';
 import Contact from './views/Contact';
 import BodegaPro from './views/BodegaPro';
+import SearchShops from './views/SearchShops';
+import DiscountDetailView from './views/DiscountDetailView';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -146,6 +148,16 @@ export default function App() {
              <Stack.Screen 
               name="BodegaPro" 
               component={BodegaPro}
+              options={{ headerShown: false }} 
+            />
+             <Stack.Screen 
+              name="SearchShops" 
+              component={SearchShops}
+              options={{ headerShown: false }} 
+            />
+            <Stack.Screen 
+              name="DiscountDetail" 
+              component={DiscountDetailView}
               options={{ headerShown: false }} 
             />
           </Stack.Navigator>

@@ -3,16 +3,18 @@ import { View, Animated, StyleSheet, Dimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux'; 
 import { clearUser } from '../redux/slices/user.slice';
+import { setUserDiscounts } from '../redux/slices/setUp.slice';
+
 
 const LogoScreen = () => {
   const navigation = useNavigation();
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const isAuthenticated = useSelector(state => state.user.isAuthenticated); 
-  const dispatch = useDispatch()
+  const dispatch = useDispatch();
+
 
   useEffect(() => {
     const redirectTimeout = setTimeout(() => {
-      // Si el usuario está autenticado, redirige a la pantalla principal de la aplicación
       if (isAuthenticated) {
         navigation.navigate('Main');
       } else {
@@ -22,7 +24,9 @@ const LogoScreen = () => {
     }, 3000);
 
     return () => clearTimeout(redirectTimeout);
-  }, [isAuthenticated, navigation]);
+  }, [isAuthenticated, navigation, dispatch]);
+
+  
 
   useEffect(() => {
     Animated.loop(
@@ -40,7 +44,6 @@ const LogoScreen = () => {
       ])
     ).start();
   }, [scaleAnim]);
-
 
   return (
     <View style={styles.container}>

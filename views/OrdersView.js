@@ -1,8 +1,15 @@
-import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, Text, ScrollView, TouchableOpacity, useColorScheme } from 'react-native';
+// screens/OrderScreen.js
+
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, Text, ScrollView, TouchableOpacity, useColorScheme, Image, Modal } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { getAllOrders } from '../redux/slices/orders.slice';
 import { useNavigation } from '@react-navigation/native';
+import { FontAwesome } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import dayjs from 'dayjs';
+import Loader from '../components/Loader'
+import OrderSkeletonLoader from '../components/SkeletonOrder';
 
 const OrderScreen = () => {
   const orders = useSelector((state) => state?.orders.historicOrders);
@@ -12,66 +19,121 @@ const OrderScreen = () => {
   const navigation = useNavigation();
   const scheme = useColorScheme();
   const styles = scheme === 'dark' ? darkStyles : lightStyles;
+  
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedOrderDetails, setSelectedOrderDetails] = useState([]);
+  const [loading, setLoading] = useState(true);  // State to manage loading
 
   useEffect(() => {
     if (user) {
-      dispatch(getAllOrders(user.id, token));
+      dispatch(getAllOrders(user.id, token)).then(() => setLoading(false));  // Set loading to false once data is fetched
     }
-  }, []);
+  }, [dispatch, user, token]);
+
+  const formatDateTime = (dateString) => {
+    const date = dayjs(dateString);
+    return `${date.format('MM-DD-YY')} ${date.format('HH:mm')}`;
+  };
+
+  const handleViewDetails = (orderDetails) => {
+    setSelectedOrderDetails(orderDetails);
+    setModalVisible(true);
+  };
+
+  if (loading) {
+    return <OrderSkeletonLoader />;  // Show loader while loading
+  }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={[styles.container, scheme === 'dark' ? styles.darkContainer : styles.lightContainer]}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>←</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <FontAwesome name="arrow-left" size={24} color={scheme === 'dark' ? '#FFD700' : '#333'} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>My Orders</Text>
       </View>
-      <ScrollView>
-        {orders && orders.map((order) => (
-          <View key={order.id} style={styles.card}>
-            <Text style={styles.cardHeader}>Order #{order.id}</Text>
-            <Text style={styles.status}>{order.status}</Text>
-            <Text style={styles.date}>{order.date_time}</Text>
-            <Text style={styles.total}>Total Price: ${order.total_price}</Text>
-            <Text style={styles.localInfo}>{order.local.name}</Text>
-            <View style={styles.itemsContainer}>
-              <View style={styles.detailsContainer}>
-                <Text style={styles.detailsText}>Details</Text>
-                <TouchableOpacity>
-                  <Text style={styles.detailsLink}>View Details</Text>
-                </TouchableOpacity>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {orders && orders.length > 0 ? (
+          orders.map((order) => (
+            <View key={order.id} style={styles.card}>
+              <Text style={styles.cardHeader}>Order #{order.id}</Text>
+              <Text style={styles.status}>{order.status}</Text>
+              <Text style={styles.date}>{formatDateTime(order.date_time)}</Text>
+              <Text style={styles.total}>Total Price: ${order.total_price}</Text>
+              <Text style={styles.localInfo}>{order.local.name}</Text>
+              <View style={styles.itemsContainer}>
+                <View style={styles.detailsContainer}>
+                  <Text style={styles.detailsText}>Details</Text>
+                  <TouchableOpacity onPress={() => handleViewDetails(order.order_details)}>
+                    <Text style={styles.detailsLink}>View Details</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
+          ))
+        ) : (
+          <View style={styles.noOrdersContainer}>
+            <Text style={styles.noOrdersText}>No orders have been made yet</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Home')} style={styles.orderButton}>
+              <Text style={styles.orderButtonText}>Start Ordering</Text>
+            </TouchableOpacity>
+            <Text style={styles.tipText}>Tip: Explore our menu and make your first order!</Text>
           </View>
-        ))}
+        )}
       </ScrollView>
-    </View>
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => {
+          setModalVisible(!modalVisible);
+        }}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <ScrollView contentContainerStyle={styles.modalContent}>
+              <Text style={styles.modalTitle}>Order Details</Text>
+              {selectedOrderDetails.map((item) => (
+                <View key={item.id} style={styles.detailCard}>
+                  <Image source={{ uri: item.image }} style={styles.detailImage} />
+                  <View style={styles.detailInfo}>
+                    <Text style={styles.detailName}>{item.name}</Text>
+                    <Text style={styles.detailDescription}>{item.description}</Text>
+                    <Text style={styles.detailPrice}>Price: {item.price}</Text>
+                    <Text style={styles.detailQuantity}>Quantity: {item.quantity}</Text>
+                  </View>
+                </View>
+              ))}
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setModalVisible(!modalVisible)}>
+                <Text style={styles.closeButtonText}>Close</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    </SafeAreaView>
   );
 };
 
 const commonStyles = {
   container: {
     flex: 1,
-    paddingHorizontal: 16,
-    paddingTop: 50,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
-  },
-  backButton: {
-    padding: 10,
-  },
-  backButtonText: {
-    fontSize: 20,
+    padding: 15,
+    borderBottomWidth: 1,
   },
   headerTitle: {
-    fontWeight: 'bold',
+    marginLeft: 20,
     fontSize: 20,
-    flex: 1,
-    textAlign: 'center',
+    fontWeight: 'bold',
+  },
+  scrollContent: {
+    paddingVertical: 20,
+    paddingHorizontal: 20,
   },
   card: {
     padding: 16,
@@ -124,6 +186,127 @@ const commonStyles = {
     fontWeight: 'bold',
     marginTop: 8,
   },
+  noOrdersContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 50,
+  },
+  noOrdersImage: {
+    width: 150,
+    height: 150,
+    marginBottom: 20,
+  },
+  noOrdersText: {
+    fontSize: 18,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  orderButton: {
+    backgroundColor: '#ffcc00',
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 25,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
+    marginBottom: 20,
+  },
+  orderButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  tipText: {
+    fontSize: 16,
+    textAlign: 'center',
+    color: '#666',
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContainer: {
+    width: '90%',
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalContent: {
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+  detailCard: {
+    flexDirection: 'row',
+    marginBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+    paddingBottom: 10,
+  },
+  detailImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 10,
+    marginRight: 10,
+  },
+  detailInfo: {
+    flex: 1,
+  },
+  detailName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  detailDescription: {
+    fontSize: 14,
+    marginBottom: 5,
+  },
+  detailPrice: {
+    fontSize: 14,
+    marginBottom: 5,
+  },
+  detailQuantity: {
+    fontSize: 14,
+    marginBottom: 5,
+  },
+  closeButton: {
+    backgroundColor: '#ffcc00',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 25,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
+    marginTop: 20,
+  },
+  closeButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#000',
+  },
 };
 
 const lightStyles = StyleSheet.create({
@@ -131,6 +314,15 @@ const lightStyles = StyleSheet.create({
   container: {
     ...commonStyles.container,
     backgroundColor: '#f0f0f0',
+  },
+  header: {
+    ...commonStyles.header,
+    backgroundColor: '#fff',
+    borderBottomColor: '#ddd',
+  },
+  headerTitle: {
+    ...commonStyles.headerTitle,
+    color: '#333',
   },
   card: {
     ...commonStyles.card,
@@ -140,10 +332,6 @@ const lightStyles = StyleSheet.create({
   },
   backButtonText: {
     ...commonStyles.backButtonText,
-    color: '#000',
-  },
-  headerTitle: {
-    ...commonStyles.headerTitle,
     color: '#000',
   },
   cardHeader: {
@@ -170,6 +358,30 @@ const lightStyles = StyleSheet.create({
     ...commonStyles.total,
     color: '#000',
   },
+  noOrdersText: {
+    ...commonStyles.noOrdersText,
+    color: '#000',
+  },
+  orderButtonText: {
+    ...commonStyles.orderButtonText,
+    color: '#000',
+  },
+  modalContainer: {
+    ...commonStyles.modalContainer,
+    backgroundColor: '#fff',
+  },
+  modalTitle: {
+    ...commonStyles.modalTitle,
+    color: '#000',
+  },
+  closeButton: {
+    ...commonStyles.closeButton,
+    backgroundColor: '#ffcc00',
+  },
+  closeButtonText: {
+    ...commonStyles.closeButtonText,
+    color: '#000',
+  },
 });
 
 const darkStyles = StyleSheet.create({
@@ -177,6 +389,15 @@ const darkStyles = StyleSheet.create({
   container: {
     ...commonStyles.container,
     backgroundColor: '#121212',
+  },
+  header: {
+    ...commonStyles.header,
+    backgroundColor: '#333',
+    borderBottomColor: '#555',
+  },
+  headerTitle: {
+    ...commonStyles.headerTitle,
+    color: '#fff',
   },
   card: {
     ...commonStyles.card,
@@ -186,10 +407,6 @@ const darkStyles = StyleSheet.create({
   },
   backButtonText: {
     ...commonStyles.backButtonText,
-    color: '#fff',
-  },
-  headerTitle: {
-    ...commonStyles.headerTitle,
     color: '#fff',
   },
   cardHeader: {
@@ -215,6 +432,30 @@ const darkStyles = StyleSheet.create({
   total: {
     ...commonStyles.total,
     color: '#fff',
+  },
+  noOrdersText: {
+    ...commonStyles.noOrdersText,
+    color: '#fff',
+  },
+  orderButtonText: {
+    ...commonStyles.orderButtonText,
+    color: '#000',
+  },
+  modalContainer: {
+    ...commonStyles.modalContainer,
+    backgroundColor: '#1e1e1e',
+  },
+  modalTitle: {
+    ...commonStyles.modalTitle,
+    color: '#fff',
+  },
+  closeButton: {
+    ...commonStyles.closeButton,
+    backgroundColor: '#ffcc00',
+  },
+  closeButtonText: {
+    ...commonStyles.closeButtonText,
+    color: '#000',
   },
 });
 

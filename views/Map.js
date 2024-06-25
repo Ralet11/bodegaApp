@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, Image, ActivityIndicator } from 'react-native';
 import MapView, { Marker, Callout } from 'react-native-maps';
 import { useDispatch, useSelector } from 'react-redux';
@@ -10,13 +10,13 @@ const GOOGLE_API_KEY = 'AIzaSyB8fCVwRXbMe9FAxsrC5CsyfjzpHxowQmE';
 
 const MapViewComponent = () => {
   const dispatch = useDispatch();
-  const address = useSelector((state) => state?.user?.address.formatted_address) || '';
+  const address = useSelector((state) => state?.user?.address?.formatted_address) || '';
   const shopsByCategory = useSelector((state) => state?.setUp?.shops) || {};
   const [region, setRegion] = useState(null);
   const [marker, setMarker] = useState(null);
   const [selectedLocal, setSelectedLocal] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState(null); // Estado para la categoría seleccionada
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const navigation = useNavigation();
 
   const categoryTitles = {
@@ -54,7 +54,7 @@ const MapViewComponent = () => {
       }
     };
 
-    console.log(address)
+    console.log(address, "address");
 
     const fetchAddressLocation = async () => {
       try {
@@ -89,26 +89,28 @@ const MapViewComponent = () => {
     }
   }, [address]);
 
-  const handleMarkerPress = (local) => {
+  const handleMarkerPress = useCallback((local) => {
     setSelectedLocal(local);
-  };
+  }, []);
 
-  const handleCloseModal = () => {
+  const handleCloseModal = useCallback(() => {
     setSelectedLocal(null);
-  };
+  }, []);
 
-  const handleNavigateToShop = (shop) => {
+  const handleNavigateToShop = useCallback((shop) => {
     navigation.navigate('Shop', { shop });
     setSelectedLocal(null);
-  };
+  }, [navigation]);
 
-  const handleCategorySelect = (categoryId) => {
+  const handleCategorySelect = useCallback((categoryId) => {
     setSelectedCategory(categoryId);
-  };
+  }, []);
 
-  const filteredShops = selectedCategory
-    ? shopsByCategory[selectedCategory] || []
-    : Object.values(shopsByCategory).flat();
+  const filteredShops = useMemo(() => (
+    selectedCategory
+      ? shopsByCategory[selectedCategory] || []
+      : Object.values(shopsByCategory).flat()
+  ), [selectedCategory, shopsByCategory]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -166,7 +168,7 @@ const MapViewComponent = () => {
           <View style={styles.modalContent}>
             <Image source={{ uri: selectedLocal?.img }} style={styles.image} />
             <Text style={styles.modalTitle}>{selectedLocal?.name}</Text>
-            <Text>{selectedLocal?.address}</Text>
+            <Text style={styles.modalAddress}>{selectedLocal?.address}</Text>
             <TouchableOpacity
               style={styles.navigateButton}
               onPress={() => handleNavigateToShop(selectedLocal)}
@@ -242,42 +244,60 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
-    width: 300,
+    width: 320,
     padding: 20,
-    backgroundColor: 'white',
+    backgroundColor: '#fff',
     borderRadius: 10,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 5,
   },
   image: {
-    width: 100,
-    height: 100,
+    width: 120,
+    height: 120,
     borderRadius: 10,
     marginBottom: 10,
+    borderWidth: 2,
+    borderColor: '#ffcc00',
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 10,
+    color: '#333',
+  },
+  modalAddress: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 20,
+    textAlign: 'center',
   },
   navigateButton: {
     marginTop: 10,
-    padding: 10,
-    backgroundColor: '#008080',
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    backgroundColor: '#ffcc00',
     borderRadius: 5,
+    marginBottom: 10,
   },
   navigateButtonText: {
-    color: 'white',
+    color: '#000',
     fontSize: 16,
+    fontWeight: 'bold',
   },
   closeButton: {
-    marginTop: 20,
-    padding: 10,
-    backgroundColor: '#008080',
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    backgroundColor: '#000',
     borderRadius: 5,
   },
   closeButtonText: {
-    color: 'white',
+    color: '#ffcc00',
     fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 
