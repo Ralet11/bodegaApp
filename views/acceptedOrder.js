@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, useColorScheme, ActivityIndicator, Animated, Modal, FlatList } from 'react-native';
+import { View, Text, TouchableOpacity, Dimensions, useColorScheme, ActivityIndicator, Animated, Modal, StyleSheet } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
@@ -48,9 +48,7 @@ const AcceptedOrder = () => {
 
   useEffect(() => {
     const socket = socketIOClient(`${API_URL}`);
-    console.log("cambio en order")
     const fetchOrder = async (orderId) => {
-      console.log("fetchOrder")
       try {
         const response = await Axios.get(`${API_URL}/api/orders/getByOrderId/${orderId}`, {
           headers: {
@@ -74,10 +72,7 @@ const AcceptedOrder = () => {
 
     const handleOrderStateChange = (data) => {
       const { orderId } = data;
-      console.log(orderId, "orden")
-
       if (orderId == orderRef.current.id) {
-        console.log(orderId, orderRef.current.id, "order info");
         fetchOrder(orderId);
       }
     };
@@ -89,6 +84,26 @@ const AcceptedOrder = () => {
       socket.disconnect();
     };
   }, [dispatch, token]);
+
+  useEffect(() => {
+    if (order.status === 'finished' || order.status === 'rejected') {
+      Animated.loop(
+        Animated.timing(progressAnim, {
+          toValue: 1,
+          duration: 1500,
+          useNativeDriver: false,
+        })
+      ).stop();
+    } else {
+      Animated.loop(
+        Animated.timing(progressAnim, {
+          toValue: 1,
+          duration: 1500,
+          useNativeDriver: false,
+        })
+      ).start();
+    }
+  }, [order]);
 
   useEffect(() => {
     if (order.status === 'finished') {
@@ -104,14 +119,12 @@ const AcceptedOrder = () => {
     return true;
   };
 
-  console.log(order.id, "order")
-
   const handleRefund = async () => {
     setButtonsVisible(false);
     const data = {
       pi: order.pi,
       amount: Math.round(parseFloat(order.total_price) * 100), // Convert to cents
-    }
+    };
     try {
       const response = await Axios.post(`${API_URL}/api/payment/refoundOrder`, data, {
         headers: {
@@ -222,15 +235,7 @@ const AcceptedOrder = () => {
     }
   }, [address, destination]);
 
-  useEffect(() => {
-    Animated.timing(progressAnim, {
-      toValue: getOrderStatusText().progress,
-      duration: 500,
-      useNativeDriver: false,
-    }).start();
-  }, [order]);
-
-  const decode = (t, e) => {
+  const decode = (t) => {
     let points = [];
     let index = 0, len = t.length;
     let lat = 0, lng = 0;
@@ -261,44 +266,53 @@ const AcceptedOrder = () => {
   };
 
   const getOrderStatusText = () => {
+    let mainText = '';
+    let subText = '';
+    let progress = 0;
+
     switch (order?.status) {
       case 'new order':
-        return {
-          mainText: 'Order placed',
-          subText: 'The store will accept your order soon.',
-          progress: 0.3,
-        };
+        mainText = 'Order placed';
+        subText = 'The store will accept your order soon.';
+        progress = 0.3;
+        break;
       case 'accepted':
-        return {
-          mainText: 'Order accepted',
-          subText: 'The store is working on your order.',
-          progress: 0.6,
-        };
+        mainText = 'Order accepted';
+        subText = 'The store is working on your order.';
+        progress = 0.6;
+        break;
       case 'sending':
-        return {
-          mainText: 'Sending your order',
-          subText: 'The store is handling the delivery directly.',
-          progress: 1,
-        };
+        if (order?.type === 'Pick-up') {
+          mainText = 'Sending your order';
+          subText = 'Your order is ready to pick up';
+        } else if (order?.type === 'Order-In') {
+          mainText = 'Sending your order';
+          subText = 'Acércate al local para reclamar tu orden';
+        }
+        progress = 1;
+        break;
       case 'rejected':
-        return {
-          mainText: 'Order rejected',
-          subText: 'Your order has been canceled by the store.',
-          progress: 0,
-        };
+        mainText = 'Order rejected';
+        subText = 'Your order has been canceled by the store.';
+        progress = 0;
+        break;
       case 'finished':
-        return {
-          mainText: 'Order delivered',
-          subText: 'Please confirm the receipt of your order.',
-          progress: 1,
-        };
+        mainText = 'Order delivered';
+        subText = 'Please confirm the receipt of your order.';
+        progress = 1;
+        break;
       default:
-        return {
-          mainText: '',
-          subText: '',
-          progress: 0,
-        };
+        mainText = '';
+        subText = '';
+        progress = 0;
     }
+
+    return { mainText, subText, progress };
+  };
+
+  const formatCode = (code) => {
+    if (!code) return '';
+    return code.toUpperCase().replace(/(.{3})(.{3})/, '$1-$2');
   };
 
   const { mainText, subText, progress } = getOrderStatusText();
@@ -330,15 +344,48 @@ const AcceptedOrder = () => {
       )}
       <View style={[styles.infoContainer, colorScheme === 'dark' ? styles.darkInfoContainer : styles.lightInfoContainer]}>
         <View style={styles.orderInfo}>
-          <Text style={[styles.orderNumber, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>Order #{order?.id}</Text>
-          <View style={styles.progressBarContainer}>
-            <Animated.View style={[styles.progressBar, { width: progressAnim.interpolate({
-              inputRange: [0, 1],
-              outputRange: ['0%', '100%'],
-            }) }]} />
-          </View>
-          <Text style={[styles.orderStatus, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>{mainText}</Text>
-          <Text style={[styles.orderMessage, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>{subText}</Text>
+          <Text style={[styles.orderType, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>{order?.type}</Text>
+          {order?.type === 'Order-in' ? (
+            <>
+            <Text style={[styles.orderNumber, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>Order #{order?.id}</Text>
+              <Text style={[styles.orderMessage, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>
+                Acércate al local para reclamar tu orden
+              </Text>
+              <Text style={[styles.orderCode, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>
+                {formatCode(order?.code)}
+              </Text>
+            </>
+          ) : order?.type !== 'Delivery' ? (
+            <>
+              <Text style={[styles.orderNumber, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>Order #{order?.id}</Text>
+              <View style={styles.progressBarContainer}>
+                <Animated.View style={[styles.progressBar, { width: progressAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: ['0%', '100%'],
+                }) }]} />
+              </View>
+              <Text style={[styles.orderStatus, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>{mainText}</Text>
+              <Text style={[styles.orderMessage, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>{subText}</Text>
+              <Text style={[styles.orderCodeLabel, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>
+                You can pick up with this code:
+              </Text>
+              <Text style={[styles.orderCode, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>
+                {formatCode(order?.code)}
+              </Text>
+            </>
+          ) : (
+            <>
+              <Text style={[styles.orderNumber, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>Order #{order?.id}</Text>
+              <View style={styles.progressBarContainer}>
+                <Animated.View style={[styles.progressBar, { width: progressAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: ['0%', '100%'],
+                }) }]} />
+              </View>
+              <Text style={[styles.orderStatus, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>{mainText}</Text>
+              <Text style={[styles.orderMessage, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>{subText}</Text>
+            </>
+          )}
         </View>
         <View style={styles.orderDetails}>
           <View style={styles.orderDetail}>
@@ -410,45 +457,39 @@ const AcceptedOrder = () => {
         }}
       >
         <View style={styles.modalContainer}>
-          <FlatList
-            data={[{}]}
-            renderItem={() => (
-              <View style={[styles.modalContent, colorScheme === 'dark' ? styles.darkModalContent : styles.lightModalContent]}>
-                <Text style={[styles.modalTitle, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>Order Delivered</Text>
-                {showStars ? (
-                  <>
-                    <Text style={[styles.modalMessage, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>
-                      Rate this shop
-                    </Text>
-                    <AirbnbRating
-                      count={5}
-                      defaultRating={0}
-                      size={20}
-                      onFinishRating={(rating) => setRating(rating)}
-                    />
-                    <TouchableOpacity style={styles.modalButton} onPress={handleRating}>
-                      <Text style={styles.modalButtonText}>Confirm</Text>
-                    </TouchableOpacity>
-                  </>
-                ) : (
-                  <>
-                    <Text style={[styles.modalMessage, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>
-                      The store has marked your order as delivered. Did you receive your order correctly?
-                    </Text>
-                    <View style={styles.modalButtons}>
-                      <TouchableOpacity style={styles.modalButton} onPress={() => setShowStars(true)}>
-                        <Text style={styles.modalButtonText}>Yes</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity style={styles.modalButton} onPress={handleRefund}>
-                        <Text style={styles.modalButtonText}>Contact Support</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </>
-                )}
-              </View>
+          <View style={[styles.modalContent, colorScheme === 'dark' ? styles.darkModalContent : styles.lightModalContent]}>
+            <Text style={[styles.modalTitle, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>Order Delivered</Text>
+            {showStars ? (
+              <>
+                <Text style={[styles.modalMessage, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>
+                  Rate this shop
+                </Text>
+                <AirbnbRating
+                  count={5}
+                  defaultRating={0}
+                  size={20}
+                  onFinishRating={(rating) => setRating(rating)}
+                />
+                <TouchableOpacity style={styles.modalButton} onPress={handleRating}>
+                  <Text style={styles.modalButtonText}>Confirm</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <Text style={[styles.modalMessage, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>
+                  The store has marked your order as delivered. Did you receive your order correctly?
+                </Text>
+                <View style={styles.modalButtons}>
+                  <TouchableOpacity style={styles.modalButton} onPress={() => setShowStars(true)}>
+                    <Text style={styles.modalButtonText}>Yes</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.modalButton} onPress={handleRefund}>
+                    <Text style={styles.modalButtonText}>Contact Support</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
             )}
-            keyExtractor={(item, index) => index.toString()}
-          />
+          </View>
         </View>
       </Modal>
     </SafeAreaView>
@@ -478,6 +519,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     elevation: 10,
+    marginTop: -20, // Adjust to improve space usage
   },
   lightInfoContainer: {
     backgroundColor: '#fff',
@@ -487,19 +529,41 @@ const styles = StyleSheet.create({
   },
   orderInfo: {
     marginBottom: 15,
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#444',
+    paddingBottom: 15,
+  },
+  orderType: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#ff9900',
   },
   orderNumber: {
     fontSize: 16,
     fontWeight: 'bold',
+    marginTop: 10,
   },
   orderStatus: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginTop: 5,
+    marginTop: 10,
   },
   orderMessage: {
     fontSize: 14,
+    marginTop: 10,
+    textAlign: 'center',
+  },
+  orderCode: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginTop: 10,
+    color: '#ff9900',
+  },
+  orderCodeLabel: {
+    fontSize: 14,
     marginTop: 5,
+    textAlign: 'center',
   },
   lightText: {
     color: '#000',
@@ -510,7 +574,9 @@ const styles = StyleSheet.create({
   orderDetails: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 15,
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#444',
   },
   orderDetail: {
     alignItems: 'center',
@@ -523,20 +589,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 15,
-  },
-  cancelButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderRadius: 10,
-    flex: 1,
-    marginRight: 10,
-    borderColor: '#dc3545',
-    borderWidth: 1,
-  },
-  cancelButtonText: {
-    fontSize: 14,
-    textAlign: 'center',
-    color: '#dc3545',
   },
   backButton: {
     backgroundColor: '#ff9900',
@@ -551,16 +603,17 @@ const styles = StyleSheet.create({
     color: '#000',
   },
   progressBarContainer: {
-    height: 4,
+    height: 10,
     width: '100%',
     backgroundColor: '#E0E0E0',
-    borderRadius: 2,
+    borderRadius: 5,
     marginTop: 10,
+    overflow: 'hidden',
   },
   progressBar: {
-    height: 4,
+    height: 10,
     backgroundColor: '#ff9900',
-    borderRadius: 2,
+    borderRadius: 5,
   },
   modalContainer: {
     flex: 1,
@@ -569,8 +622,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
-    width: '95%',
-    padding: 25,
+    width: '85%',
+    padding: 20,
     borderRadius: 10,
     alignItems: 'center',
     elevation: 10,
@@ -594,31 +647,29 @@ const styles = StyleSheet.create({
   },
   modalButtons: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'space-evenly',
     width: '100%',
+    marginTop: 10,
   },
   modalButton: {
     flex: 1,
-    padding: 12,
-    borderRadius: 5,
+    paddingVertical: 5,
+    paddingHorizontal: 20,
+    borderRadius: 25,
     marginHorizontal: 10,
     backgroundColor: '#ff9900',
     alignItems: 'center',
-    marginTop: 50
+    elevation: 2,
   },
   modalButtonText: {
-    fontSize: 18,
-    textAlign: 'center',
+    fontSize: 12,
+    fontWeight: '600',
     color: '#000',
   },
   centeredLoader: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  scrollViewContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
   },
 });
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, TextInput, Animated, StyleSheet, Dimensions, Image, Keyboard, TouchableWithoutFeedback, ActivityIndicator, useColorScheme } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, Animated, StyleSheet, Dimensions, Image, Keyboard, TouchableWithoutFeedback, ActivityIndicator, useColorScheme, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Axios from 'react-native-axios';
 import { useDispatch } from 'react-redux';
@@ -151,6 +151,7 @@ export default function Login() {
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <SafeAreaView style={styles.safeArea}>
+        <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={colorScheme === 'dark' ? '#333' : '#F2BA25'} />
         <View style={styles.container}>
           <Animated.View style={[styles.formContainer, { opacity: formAnim }]}>
             <Animated.View style={[styles.logoContainer, {

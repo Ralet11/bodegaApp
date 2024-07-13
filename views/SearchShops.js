@@ -1,30 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Image, TextInput, useColorScheme } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Image, TextInput, useColorScheme, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
-import { lightTheme, darkTheme } from '../components/themeCategory';
+
 
 const SearchShops = () => {
     const scheme = useColorScheme();
     const route = useRoute();
     const navigation = useNavigation();
-    const { categoryId, categoryName } = route.params;
+    const { categoryId, categoryName, filteredShops: initialFilteredShops, searchQuery: initialSearchQuery } = route.params || {};
     const shopsByCategory = useSelector((state) => state.setUp.shops);
     const categories = useSelector((state) => state.setUp.categories);
-    const [filteredShops, setFilteredShops] = useState([]);
-    const [searchQuery, setSearchQuery] = useState('');
+    const [filteredShops, setFilteredShops] = useState(initialFilteredShops || []);
+    const [searchQuery, setSearchQuery] = useState(initialSearchQuery || '');
     const [sortOrder, setSortOrder] = useState('name');
-
-    console.log(categoryId, categoryName)
+    const [drawerVisible, setDrawerVisible] = useState(false);
 
     useEffect(() => {
-        if (shopsByCategory && categoryId) {
+        if (shopsByCategory && categoryId && !initialFilteredShops) {
             const shops = shopsByCategory[categoryId] || [];
             setFilteredShops(shops);
         }
-    }, [shopsByCategory, categoryId]);
+    }, [shopsByCategory, categoryId, initialFilteredShops]);
 
     const handleBackPress = () => {
         navigation.goBack();
@@ -60,54 +59,215 @@ const SearchShops = () => {
 
     const toggleDrawer = () => {
         setDrawerVisible(!drawerVisible);
-      };
+    };
 
-      const handleSearchSubmit = () => {
+    const handleSearchSubmit = () => {
         if (searchQuery.trim()) {
-          navigation.navigate('SearchShops', { searchQuery });
+            handleSearch(searchQuery);
         }
-      };
+    };
+
+    const styles = scheme === 'dark' ? darkTheme : lightTheme;
 
     return (
-        <SafeAreaView style={scheme === 'dark' ? darkTheme.safeArea : lightTheme.safeArea}>
-            <View style={scheme === 'dark' ? darkTheme.header : lightTheme.header}>
-                <TouchableOpacity onPress={toggleDrawer} style={scheme === 'dark' ? darkTheme.iconButton : lightTheme.iconButton}>
-                    <FontAwesome name="bars" size={24} color={scheme === 'dark' ? 'white' : '#333'} />
+        <SafeAreaView style={styles.safeArea}>
+            <View style={styles.header}>
+                <TouchableOpacity onPress={handleBackPress} style={styles.iconButton}>
+                    <FontAwesome name="arrow-left" size={24} color={scheme === 'dark' ? '#FFD700' : '#333'} />
                 </TouchableOpacity>
                 <TextInput
-                    style={scheme === 'dark' ? darkTheme.searchInput : lightTheme.searchInput}
+                    style={styles.searchInput}
                     placeholder="Search places, foods..."
                     placeholderTextColor="#aaa"
-                    value={searchQuery} // Bind the state to the TextInput
-                    onChangeText={setSearchQuery} // Update state on text change
-                    onSubmitEditing={handleSearchSubmit} // Handle search submit
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    onSubmitEditing={handleSearchSubmit}
                 />
-                <TouchableOpacity onPress={changeAddress} style={scheme === 'dark' ? darkTheme.iconButton : lightTheme.iconButton}>
+                <TouchableOpacity onPress={changeAddress} style={styles.iconButton}>
                     <FontAwesome name="map-marker" size={24} color={scheme === 'dark' ? 'white' : 'black'} />
                 </TouchableOpacity>
             </View>
-            <View style={scheme === 'dark' ? darkTheme.categoryContainer : lightTheme.categoryContainer}>
-                <Text style={scheme === 'dark' ? darkTheme.headerTitle : lightTheme.headerTitle}>{categoryName}</Text>
+            <View style={styles.categoryContainer}>
+                <Text style={styles.headerTitle}>{categoryName}</Text>
             </View>
-            <ScrollView contentContainerStyle={scheme === 'dark' ? darkTheme.contentContainer : lightTheme.contentContainer}>
+            <ScrollView contentContainerStyle={styles.contentContainer}>
                 {filteredShops.length > 0 ? (
                     filteredShops.map((shop) => (
                         <TouchableOpacity key={shop.id} onPress={() => handleShopPress(shop)}>
-                            <View style={scheme === 'dark' ? darkTheme.card : lightTheme.card}>
-                                <Image source={{ uri: shop.img }} style={scheme === 'dark' ? darkTheme.cardImage : lightTheme.cardImage} />
-                                <View style={scheme === 'dark' ? darkTheme.cardContent : lightTheme.cardContent}>
-                                    <Text style={scheme === 'dark' ? darkTheme.cardTitle : lightTheme.cardTitle}>{shop.name}</Text>
-                                    <Text style={scheme === 'dark' ? darkTheme.cardSubtitle : lightTheme.cardSubtitle}>{shop.address}</Text>
+                            <View style={styles.card}>
+                                <Image source={{ uri: shop.img }} style={styles.shopImage} />
+                                <View style={styles.cardContent}>
+                                    <Text style={styles.cardTitle}>{shop.name}</Text>
+                                    <Text style={styles.cardSubtitle}>{shop.address}</Text>
                                 </View>
                             </View>
                         </TouchableOpacity>
                     ))
                 ) : (
-                    <Text style={scheme === 'dark' ? darkTheme.noShopsText : lightTheme.noShopsText}>No shops available in this category</Text>
+                    <Text style={styles.noShopsText}>No shops available in this category</Text>
                 )}
             </ScrollView>
         </SafeAreaView>
     );
 };
+
+const commonStyles = {
+    safeArea: {
+        flex: 1,
+        backgroundColor: '#fff',
+    },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 10,
+        backgroundColor: '#fff',
+        borderBottomWidth: 1,
+        borderBottomColor: '#ccc',
+    },
+    iconButton: {
+        padding: 10,
+    },
+    searchInput: {
+        flex: 1,
+        height: 40,
+        backgroundColor: '#f0f0f0',
+        borderRadius: 20,
+        paddingHorizontal: 15,
+        marginHorizontal: 10,
+        color: '#000',
+    },
+    categoryContainer: {
+        padding: 15,
+    },
+    headerTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#333',
+    },
+    contentContainer: {
+        padding: 10,
+    },
+    card: {
+        flexDirection: 'row',
+        marginBottom: 15,
+        backgroundColor: '#fff',
+        borderRadius: 10,
+        overflow: 'hidden',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 5,
+        elevation: 5,
+    },
+    shopImage: {
+        width: 100,
+        height: 100,
+    },
+    cardContent: {
+        flex: 1,
+        padding: 10,
+        justifyContent: 'center',
+    },
+    cardTitle: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#333',
+    },
+    cardSubtitle: {
+        fontSize: 14,
+        color: '#666',
+    },
+    noShopsText: {
+        textAlign: 'center',
+        marginTop: 20,
+        fontSize: 16,
+        color: '#666',
+    },
+};
+
+const darkTheme = StyleSheet.create({
+    ...commonStyles,
+    safeArea: {
+        ...commonStyles.safeArea,
+        backgroundColor: '#121212',
+    },
+    header: {
+        ...commonStyles.header,
+        backgroundColor: '#1f1f1f',
+        borderBottomColor: '#333',
+    },
+    searchInput: {
+        ...commonStyles.searchInput,
+        backgroundColor: '#333',
+        color: '#fff',
+    },
+    iconButton: {
+        ...commonStyles.iconButton,
+        color: '#fff',
+    },
+    headerTitle: {
+        ...commonStyles.headerTitle,
+        color: '#fff',
+    },
+    card: {
+        ...commonStyles.card,
+        backgroundColor: '#1f1f1f',
+        borderColor: '#333',
+    },
+    cardTitle: {
+        ...commonStyles.cardTitle,
+        color: '#fff',
+    },
+    cardSubtitle: {
+        ...commonStyles.cardSubtitle,
+        color: '#ccc',
+    },
+    noShopsText: {
+        ...commonStyles.noShopsText,
+        color: '#ccc',
+    },
+});
+
+const lightTheme = StyleSheet.create({
+    ...commonStyles,
+    safeArea: {
+        ...commonStyles.safeArea,
+        backgroundColor: '#f9f9f9',
+    },
+    header: {
+        ...commonStyles.header,
+        backgroundColor: '#fff',
+        borderBottomColor: '#ccc',
+    },
+    searchInput: {
+        ...commonStyles.searchInput,
+        backgroundColor: '#eee',
+        color: '#000',
+    },
+    iconButton: {
+        ...commonStyles.iconButton,
+        color: '#000',
+    },
+    headerTitle: {
+        ...commonStyles.headerTitle,
+        color: '#000',
+    },
+    card: {
+        ...commonStyles.card,
+        backgroundColor: '#fff',
+    },
+    cardTitle: {
+        ...commonStyles.cardTitle,
+        color: '#000',
+    },
+    cardSubtitle: {
+        ...commonStyles.cardSubtitle,
+        color: '#666',
+    },
+    noShopsText: {
+        ...commonStyles.noShopsText,
+        color: '#666',
+    },
+});
 
 export default SearchShops;

@@ -66,7 +66,7 @@ function TabNavigator() {
       <Tab.Screen 
         name="Map" 
         component={MapViewComponent} 
-        options={{ tabBarLabel: 'Map' }} 
+        options={{ tabBarLabel: 'Discounts' }} 
       />
       <Tab.Screen 
         name="Orders" 

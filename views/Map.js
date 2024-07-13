@@ -1,10 +1,13 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal, Image, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Modal, Image, ActivityIndicator, FlatList, Dimensions } from 'react-native';
 import MapView, { Marker, Callout } from 'react-native-maps';
 import { useDispatch, useSelector } from 'react-redux';
 import * as Location from 'expo-location';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { FontAwesome } from '@expo/vector-icons';
+
+const { width, height } = Dimensions.get('window');
 
 const GOOGLE_API_KEY = 'AIzaSyB8fCVwRXbMe9FAxsrC5CsyfjzpHxowQmE';
 
@@ -14,16 +17,17 @@ const MapViewComponent = () => {
   const shopsByCategory = useSelector((state) => state?.setUp?.shops) || {};
   const [region, setRegion] = useState(null);
   const [marker, setMarker] = useState(null);
-  const [selectedLocal, setSelectedLocal] = useState(null);
+  const [selectedLocalIndex, setSelectedLocalIndex] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [locationPermissionDenied, setLocationPermissionDenied] = useState(false);
   const navigation = useNavigation();
+  const flatListRef = useRef();
 
   const categoryTitles = {
-    1: 'Smoke Shops',
-    2: 'Drinks',
+    2: 'Alcohol',
     3: 'Restaurants',
-    4: 'Markets',
+    5: 'Nightclubs',
   };
 
   useEffect(() => {
@@ -31,8 +35,8 @@ const MapViewComponent = () => {
       try {
         let { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
-          console.warn('Permission to access location was denied');
           setLoading(false);
+          setLocationPermissionDenied(true);
           return;
         }
 
@@ -47,6 +51,20 @@ const MapViewComponent = () => {
         });
 
         setMarker({ latitude, longitude });
+
+        // Set up location listener
+        Location.watchPositionAsync(
+          { accuracy: Location.Accuracy.High, timeInterval: 5000, distanceInterval: 10 },
+          (newLocation) => {
+            const { latitude, longitude } = newLocation.coords;
+            setRegion((prevRegion) => ({
+              ...prevRegion,
+              latitude,
+              longitude,
+            }));
+            setMarker({ latitude, longitude });
+          }
+        );
       } catch (error) {
         console.error('Error fetching location:', error);
       } finally {
@@ -54,7 +72,7 @@ const MapViewComponent = () => {
       }
     };
 
-    console.log(address, "address");
+    console.log(shopsByCategory, "shops");
 
     const fetchAddressLocation = async () => {
       try {
@@ -89,34 +107,78 @@ const MapViewComponent = () => {
     }
   }, [address]);
 
-  const handleMarkerPress = useCallback((local) => {
-    setSelectedLocal(local);
+  const handleMarkerPress = useCallback((local, index) => {
+    setSelectedLocalIndex(index);
   }, []);
 
   const handleCloseModal = useCallback(() => {
-    setSelectedLocal(null);
+    setSelectedLocalIndex(null);
   }, []);
 
   const handleNavigateToShop = useCallback((shop) => {
     navigation.navigate('Shop', { shop });
-    setSelectedLocal(null);
+    setSelectedLocalIndex(null);
   }, [navigation]);
 
   const handleCategorySelect = useCallback((categoryId) => {
     setSelectedCategory(categoryId);
   }, []);
 
-  const filteredShops = useMemo(() => (
-    selectedCategory
-      ? shopsByCategory[selectedCategory] || []
-      : Object.values(shopsByCategory).flat()
-  ), [selectedCategory, shopsByCategory]);
+  const filterShops = useCallback(() => {
+    return selectedCategory
+      ? shopsByCategory[selectedCategory]?.filter(shop => shop.orderIn) || []
+      : Object.values(shopsByCategory).flat().filter(shop => shop.orderIn);
+  }, [selectedCategory, shopsByCategory]);
+
+  const filteredShops = useMemo(() => filterShops(), [filterShops]);
+
+  const handleNext = () => {
+    if (selectedLocalIndex < filteredShops.length - 1) {
+      const nextIndex = selectedLocalIndex + 1;
+      setSelectedLocalIndex(nextIndex);
+      flatListRef.current.scrollToIndex({ index: nextIndex, animated: true });
+    }
+  };
+
+  const handlePrevious = () => {
+    if (selectedLocalIndex > 0) {
+      const prevIndex = selectedLocalIndex - 1;
+      setSelectedLocalIndex(prevIndex);
+      flatListRef.current.scrollToIndex({ index: prevIndex, animated: true });
+    }
+  };
+
+  const snapToOffsets = useMemo(
+    () => filteredShops.map((_, index) => index * (width * 0.8)),
+    [filteredShops]
+  );
+
+  const renderStars = (rating) => {
+    const stars = [];
+    for (let i = 1; i <= 5; i++) {
+      stars.push(
+        <FontAwesome
+          key={i}
+          name={i <= rating ? 'star' : 'star-o'}
+          size={20}
+          color="#ffcc00"
+        />
+      );
+    }
+    return stars;
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       {loading ? (
         <View style={styles.loaderContainer}>
           <ActivityIndicator size="large" color="#008080" />
+        </View>
+      ) : locationPermissionDenied ? (
+        <View style={styles.permissionDeniedContainer}>
+          <Text style={styles.permissionDeniedText}>
+            Permission to access location was denied. Please enable location services to use the app.
+          </Text>
         </View>
       ) : (
         region && (
@@ -138,11 +200,11 @@ const MapViewComponent = () => {
             <MapView style={styles.map} region={region}>
               {marker && <Marker coordinate={marker} />}
 
-              {filteredShops.map((shop) => (
+              {filteredShops.map((shop, index) => (
                 <Marker
                   key={shop.id}
                   coordinate={{ latitude: shop.lat, longitude: shop.lng }}
-                  onPress={() => handleMarkerPress(shop)}
+                  onPress={() => handleMarkerPress(shop, index)}
                 >
                   <View style={styles.markerContainer}>
                     <View style={styles.circle}>
@@ -159,26 +221,54 @@ const MapViewComponent = () => {
         )
       )}
       <Modal
-        visible={!!selectedLocal}
+        visible={selectedLocalIndex !== null}
         transparent={true}
         animationType="slide"
         onRequestClose={handleCloseModal}
       >
         <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Image source={{ uri: selectedLocal?.img }} style={styles.image} />
-            <Text style={styles.modalTitle}>{selectedLocal?.name}</Text>
-            <Text style={styles.modalAddress}>{selectedLocal?.address}</Text>
-            <TouchableOpacity
-              style={styles.navigateButton}
-              onPress={() => handleNavigateToShop(selectedLocal)}
-            >
-              <Text style={styles.navigateButtonText}>View Details</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.closeButton} onPress={handleCloseModal}>
-              <Text style={styles.closeButtonText}>Close</Text>
-            </TouchableOpacity>
-          </View>
+          {selectedLocalIndex !== null && (
+            <>
+              <TouchableOpacity style={styles.arrowLeft} onPress={handlePrevious}>
+                <Text style={styles.arrowText}>{'<'}</Text>
+              </TouchableOpacity>
+              <FlatList
+                ref={flatListRef}
+                data={filteredShops}
+                horizontal
+                pagingEnabled
+                snapToInterval={width * 0.8}
+                snapToAlignment="center"
+                decelerationRate="fast"
+                snapToOffsets={snapToOffsets}
+                renderItem={({ item }) => (
+                  <View style={styles.modalContent}>
+                    <Image source={{ uri: item.img }} style={styles.modalImage} />
+                    <Text style={styles.modalTitle}>{item.name}</Text>
+                    <View style={styles.ratingContainer}>{renderStars(item.rating)}</View>
+                    <Text style={styles.modalAddress}>{item.address}</Text>
+                    <TouchableOpacity
+                      style={styles.navigateButton}
+                      onPress={() => handleNavigateToShop(item)}
+                    >
+                      <Text style={styles.navigateButtonText}>View Details</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+                keyExtractor={(item) => item.id.toString()}
+                initialScrollIndex={selectedLocalIndex}
+                getItemLayout={(data, index) => (
+                  { length: width * 0.8, offset: width * 0.8 * index, index }
+                )}
+              />
+              <TouchableOpacity style={styles.arrowRight} onPress={handleNext}>
+                <Text style={styles.arrowText}>{'>'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.closeButton} onPress={handleCloseModal}>
+                <Text style={styles.closeButtonText}>X</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       </Modal>
     </SafeAreaView>
@@ -196,6 +286,17 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  permissionDeniedContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  permissionDeniedText: {
+    fontSize: 16,
+    color: '#ff0000',
+    textAlign: 'center',
   },
   filterContainer: {
     flexDirection: 'row',
@@ -244,21 +345,24 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
-    width: 320,
+    width: width * 0.8,
+    height: 500, // half the modal height
     padding: 20,
     backgroundColor: '#fff',
-    borderRadius: 10,
+    borderRadius: 20,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 6,
     elevation: 5,
+    marginHorizontal: width * 0.1,
+    marginTop: 130,
   },
-  image: {
-    width: 120,
-    height: 120,
-    borderRadius: 10,
+  modalImage: {
+    width: '100%',
+    height: 250,
+    borderRadius: 20,
     marginBottom: 10,
     borderWidth: 2,
     borderColor: '#ffcc00',
@@ -269,10 +373,14 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     color: '#333',
   },
+  ratingContainer: {
+    flexDirection: 'row',
+    marginBottom: 10,
+  },
   modalAddress: {
     fontSize: 16,
     color: '#666',
-    marginBottom: 20,
+    marginBottom: 10,
     textAlign: 'center',
   },
   navigateButton: {
@@ -280,7 +388,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 25,
     backgroundColor: '#ffcc00',
-    borderRadius: 5,
+    borderRadius: 10,
     marginBottom: 10,
   },
   navigateButtonText: {
@@ -289,15 +397,42 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   closeButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 25,
+    position: 'absolute',
+    top: 20,
+    right: 20,
+    padding: 10,
     backgroundColor: '#000',
-    borderRadius: 5,
+    borderRadius: 20,
   },
   closeButtonText: {
     color: '#ffcc00',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  arrowLeft: {
+    position: 'absolute',
+    left: 10,
+    top: '50%',
+    transform: [{ translateY: -15 }],
+    zIndex: 1,
+    padding: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    borderRadius: 20,
+  },
+  arrowRight: {
+    position: 'absolute',
+    right: 10,
+    top: '50%',
+    transform: [{ translateY: -15 }],
+    zIndex: 1,
+    padding: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    borderRadius: 20,
+  },
+  arrowText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
   },
 });
 

@@ -30,7 +30,6 @@ const OrderStatus = () => {
           const updatedOrder = response.data;
           dispatch(updateOrderIn({ orderId: updatedOrder.id, status: updatedOrder.status }));
 
-          console.log(updateOrderIn.status, "el estado")
           if (updatedOrder.status === 'rejected' || updatedOrder.status === 'finished') {
             dispatch(removeOrderIn({ orderId: updatedOrder.id }));
             dispatch(setCurrentOrder(updatedOrder));
@@ -49,41 +48,44 @@ const OrderStatus = () => {
     };
   }, [dispatch, token]);
 
-  
+  const getOrderStatusText = (order) => {
+    const { status, type } = order;
+    let mainText = '';
+    let progress = 0;
+    let showProgressBar = true;
 
-  const getOrderStatusText = (status) => {
-    switch (status) {
-      case 'new order':
-        return {
-          mainText: 'Order placed',
-          progress: 0.3,
-        };
-      case 'accepted':
-        return {
-          mainText: 'Order accepted',
-          progress: 0.6,
-        };
-      case 'sending':
-        return {
-          mainText: 'Sending your order',
-          progress: 1,
-        };
-      case 'rejected':
-        return {
-          mainText: 'Order rejected',
-          progress: 0,
-        };
-      case 'finished':
-        return {
-          mainText: 'Order delivered',
-          progress: 1,
-        };
-      default:
-        return {
-          mainText: 'Unknown status',
-          progress: 0,
-        };
+    if (type === 'Order-in') {
+      mainText = 'Acércate al shop para retirar tu pedido';
+      showProgressBar = false;
+    } else {
+      switch (status) {
+        case 'new order':
+          mainText = 'Order placed';
+          progress = 0.3;
+          break;
+        case 'accepted':
+          mainText = 'Order accepted';
+          progress = 0.6;
+          break;
+        case 'sending':
+          mainText = type === 'Pick-up' ? 'You can pick up your order' : 'Sending your order';
+          progress = 1;
+          break;
+        case 'rejected':
+          mainText = 'Order rejected';
+          progress = 0;
+          break;
+        case 'finished':
+          mainText = 'Order delivered';
+          progress = 1;
+          break;
+        default:
+          mainText = 'Unknown status';
+          progress = 0;
+      }
     }
+
+    return { mainText, progress, showProgressBar };
   };
 
   const seeOrder = (item) => {
@@ -95,7 +97,7 @@ const OrderStatus = () => {
   };
 
   const renderItem = ({ item }) => {
-    const { mainText, progress } = getOrderStatusText(item.status);
+    const { mainText, progress, showProgressBar } = getOrderStatusText(item);
 
     return (
       <View style={[styles.orderContainer, colorScheme === 'dark' ? styles.darkContainer : styles.lightContainer]}>
@@ -106,9 +108,11 @@ const OrderStatus = () => {
           </TouchableOpacity>
         </View>
         <Text style={[styles.orderStatus, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>{mainText}</Text>
-        <View style={styles.progressBarContainer}>
-          <View style={[styles.progressBar, { width: `${progress * 100}%` }]} />
-        </View>
+        {showProgressBar && (
+          <View style={styles.progressBarContainer}>
+            <View style={[styles.progressBar, { width: `${progress * 100}%` }]} />
+          </View>
+        )}
       </View>
     );
   };

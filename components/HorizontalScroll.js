@@ -106,7 +106,7 @@ const commonStyles = {
   container: { marginVertical: 20 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, paddingHorizontal: 15 },
   title: { fontSize: 15, fontWeight: 'bold' },
-  viewMore: { fontSize: 14, color: '#ff9900' },
+  viewMore: { fontSize: 14, color: 'tomato' },
   scrollView: {},
   itemContainer: { marginRight: 15, padding: 5 },
   card: { width: 250, height: 180, backgroundColor: '#fff', borderRadius: 15, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.2, shadowOffset: { width: 0, height: 4 }, shadowRadius: 8, elevation: 5 },

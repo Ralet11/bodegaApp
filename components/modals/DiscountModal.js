@@ -1,27 +1,42 @@
 import React, { useState } from 'react';
 import { View, Text, Image, Modal, TouchableOpacity, StyleSheet, useColorScheme, Alert } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
+import { useDispatch } from 'react-redux';
+import { addToCart } from '../../redux/slices/cart.slice';
 
-const ModalProduct = ({ visible, onClose, product, addToCart }) => {
+const combineProductAndDiscount = (product, discount) => {
+  const discountedPrice = discount.discountType === 'percentage'
+    ? product.price - (product.price * discount.percentage / 100)
+    : product.price - discount.fixedValue;
+
+  return {
+    id: product.id,
+    name: product.name,
+    description: product.description,
+    image: product.img,
+    price: discountedPrice.toFixed(2), // Format the price as a string with a dollar sign
+    quantity: 1, // Default quantity to 1
+    discount: true,
+    discountId: discount.id,
+    discountType: discount.delivery,
+  };
+};
+
+const ModalDiscount = ({ visible, onClose, discount }) => {
+  const dispatch = useDispatch();
   const [quantity, setQuantity] = useState(1);
   const [selectedExtras, setSelectedExtras] = useState({});
   const scheme = useColorScheme();
   const styles = scheme === 'dark' ? stylesDark : stylesLight;
 
   const handleAdd = () => {
-    const missingRequired = product.extras.some(extra => extra.required && !selectedExtras[extra.name]);
+    const missingRequired = discount.product.extras.some(extra => extra.required && !selectedExtras[extra.name]);
     if (missingRequired) {
       Alert.alert('Error', 'Please select all required options.');
       return;
     }
-
-    const extrasTotalPrice = Object.values(selectedExtras).reduce((total, extra) => {
-      return total + (extra.price ? parseFloat(extra.price) : 0);
-    }, 0);
-
-    const finalPrice = (parseFloat(product.price) + extrasTotalPrice).toFixed(2);
-
-    addToCart({ ...product, selectedExtras, price: finalPrice }, quantity);
+    const productWithDiscount = combineProductAndDiscount(discount.product, discount);
+    dispatch(addToCart({ ...productWithDiscount, selectedExtras, quantity }));
     onClose();
   };
 
@@ -30,8 +45,8 @@ const ModalProduct = ({ visible, onClose, product, addToCart }) => {
   };
 
   const renderExtras = () => {
-    if (!product.extras) return null;
-    return product.extras.map(extra => {
+    if (!discount.product.extras) return null;
+    return discount.product.extras.map(extra => {
       const validOptions = extra.options.filter(option => option.name !== null);
       return (
         <View key={extra.id} style={styles.extraContainer}>
@@ -65,12 +80,13 @@ const ModalProduct = ({ visible, onClose, product, addToCart }) => {
           <TouchableOpacity style={styles.closeIcon} onPress={onClose}>
             <Text style={styles.closeIconText}>×</Text>
           </TouchableOpacity>
-          {product && (
+          {discount && discount.product && (
             <>
-              <Image source={{ uri: product.image }} style={styles.modalImage} />
-              <Text style={styles.modalTitle}>{product.name}</Text>
-              <Text style={styles.modalDescription}>{product.description}</Text>
-              <Text style={styles.modalPrice}>${product.price}</Text>
+              <Image source={{ uri: discount.product.img }} style={styles.modalImage} />
+              <Text style={styles.modalTitle}>{discount.product.name}</Text>
+              <Text style={styles.modalDescription}>{discount.product.description}</Text>
+              <Text style={styles.modalPrice}>${discount.product.price}</Text>
+              <Text style={styles.modalDiscount}>Discount: {discount.description}</Text>
               {renderExtras()}
               <View style={styles.quantityContainer}>
                 <Text style={styles.quantityLabel}>Quantity:</Text>
@@ -149,6 +165,12 @@ const commonStyles = {
     fontWeight: 'bold',
     textAlign: 'center',
   },
+  modalDiscount: {
+    fontSize: 16,
+    marginBottom: 20,
+    color: '#ff0000',
+    textAlign: 'center',
+  },
   quantityContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -168,6 +190,7 @@ const commonStyles = {
   quantityButtonText: {
     fontSize: 18,
     fontWeight: 'bold',
+    color: '#fff',
   },
   quantityValue: {
     fontSize: 16,
@@ -184,6 +207,7 @@ const commonStyles = {
   addButtonText: {
     fontWeight: 'bold',
     fontSize: 16,
+    color: '#fff',
   },
   extraContainer: {
     width: '100%',
@@ -222,6 +246,10 @@ const stylesLight = StyleSheet.create({
     ...commonStyles.modalPrice,
     color: '#000',
   },
+  modalDiscount: {
+    ...commonStyles.modalDiscount,
+    color: '#ff0000',
+  },
   quantityLabel: {
     ...commonStyles.quantityLabel,
     color: '#000',
@@ -254,6 +282,10 @@ const stylesDark = StyleSheet.create({
     ...commonStyles.modalPrice,
     color: '#fff',
   },
+  modalDiscount: {
+    ...commonStyles.modalDiscount,
+    color: '#ff9999',
+  },
   quantityLabel: {
     ...commonStyles.quantityLabel,
     color: '#fff',
@@ -264,4 +296,4 @@ const stylesDark = StyleSheet.create({
   },
 });
 
-export default ModalProduct;
+export default ModalDiscount;

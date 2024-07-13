@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Image, Animated,
-  SafeAreaView, useColorScheme, ScrollView, ActivityIndicator, Easing, Modal, BackHandler
+  SafeAreaView, useColorScheme, ScrollView, ActivityIndicator, Modal, BackHandler
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -12,6 +12,10 @@ import { useDispatch, useSelector } from 'react-redux';
 import { addToCart, incrementQuantity, decrementQuantity, clearCart } from '../redux/slices/cart.slice';
 import { setCurrentShop } from '../redux/slices/currentShop.slice';
 import CartSkeletonLoader from '../components/SkeletonLoaderCart';
+import { stylesDark, stylesLight } from '../components/themeShop';
+import DiscountCard from '../components/DiscountCard';
+import ModalDiscount from '../components/modals/DiscountModal';
+
 
 const ShopScreen = () => {
   const route = useRoute();
@@ -24,11 +28,17 @@ const ShopScreen = () => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [confirmationModalVisible, setConfirmationModalVisible] = useState(false);
+  const [orderTypeModalVisible, setOrderTypeModalVisible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [discounts, setDiscounts] = useState([]);
+  const [orderType, setOrderType] = useState('Pick-up');
+  const [pendingOrderType, setPendingOrderType] = useState(null);
   const headerHeight = useRef(new Animated.Value(250)).current;
   const scrollY = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef(null);
+  const [selectedDiscount, setSelectedDiscount] = useState(false)
+  const [discountModalVisible, setDiscountModalVisible] = useState(false)
+
 
   const { shop } = route.params || {};
 
@@ -51,7 +61,7 @@ const ShopScreen = () => {
             Authorization: `Bearer ${token}`,
           },
         });
-        console.log(response.data)
+
         setDiscounts(response.data);
       } catch (error) {
         console.log(error);
@@ -75,19 +85,47 @@ const ShopScreen = () => {
     setModalVisible(true);
   };
 
+  const openDiscountModal = (Discount) => {
+    setSelectedDiscount(Discount);
+    setDiscountModalVisible(true);
+  };
+
   const closeModal = () => {
     setModalVisible(false);
     setSelectedProduct(null);
   };
 
-  const handleAddToCart = (product, quantity) => {
-    dispatch(addToCart({ ...product, quantity }));
+  const closeDiscountModal = () => {
+    setDiscountModalVisible(false);
+    setSelectedDiscount(null);
+  };
+
+  const handleAddToCart = (product, quantity, selectedExtras = []) => {
+    if (product.extras && product.extras.length > 0) {
+      setSelectedProduct(product);
+      setModalVisible(true);
+    } else {
+      if (orderType == 'Order-in' && product.delivery == 0) {
+        alertCannotAddProduct();
+      } else if ((orderType == 'Pick-up' || orderType == 'Delivery') && product.delivery == 1) {
+        alertCannotAddProduct();
+      } else {
+        dispatch(addToCart({ ...product, quantity, extras: selectedExtras }));
+        closeModal();
+      }
+    }
+  };
+
+  const handleAddToCartFromModal = (product, quantity, selectedExtras) => {
+    dispatch(addToCart({ ...product, quantity, extras: selectedExtras }));
     closeModal();
   };
 
+  console.log(cart)
+
   const totalAmount = cart.reduce((sum, item) => {
-    const cleanPrice = item.price.replace(/[^\d.-]/g, '');
-    return sum + parseFloat(cleanPrice) * item.quantity;
+    const price = item.price || 0;
+    return sum + price * item.quantity;
   }, 0).toFixed(2);
 
   const totalItems = cart.reduce((total, item) => total + item.quantity, 0);
@@ -105,7 +143,6 @@ const ShopScreen = () => {
       Animated.timing(headerHeight, {
         toValue: newHeight,
         duration: 100,
-        easing: Easing.inOut(Easing.ease),
         useNativeDriver: false,
       }).start();
     });
@@ -139,40 +176,65 @@ const ShopScreen = () => {
   };
 
   const navigateToDiscount = (discount) => {
-    console.log(discount, "dis in shop")
     navigation.navigate('DiscountDetail', { shop, discount });
   };
 
+  const alertCannotAddProduct = () => {
+    alert('You cannot add this product to your cart for the current order type.');
+  };
 
+  const handleOrderTypeChange = (type) => {
+    const hasIncompatibleItems = type == 'Order-in'
+      ? cart.some(item => item.discountType != 1)
+      : cart.some(item => item.discountType == 1);
 
-  const renderDiscount = (discount) => (
-    <TouchableOpacity key={discount.id} style={styles.discountCard} onPress={() => navigateToDiscount(discount)}>
-      <Image source={{ uri: discount.image }} style={styles.discountImage} />
-      <View style={styles.discountDetails}>
-        <Text style={styles.discountTitle}>{discount.productName}</Text>
-        <Text style={styles.discountDescription}>{discount.description}</Text>
-        <Text style={styles.discountValidity}>Valid until {discount.limitDate}</Text>
-        <Text style={styles.discountType}>{discount.delivery ? "Delivery" : "Pick-up"}</Text>
-      </View>
-    </TouchableOpacity>
-  );
+    if (hasIncompatibleItems) {
+      setPendingOrderType(type);
+      setOrderTypeModalVisible(true);
+    } else {
+      setOrderType(type);
+    }
+  };
+
+  const confirmOrderTypeChange = () => {
+    setOrderType(pendingOrderType);
+    setPendingOrderType(null);
+    dispatch(clearCart());
+    setOrderTypeModalVisible(false);
+  };
+
+  const renderDiscount = (discount, isBlockLayout) => {
+    return (
+      <DiscountCard
+        key={discount.id}
+        discount={discount}
+        openDiscountModal={openDiscountModal}
+        isBlockLayout={isBlockLayout}
+      />
+    );
+  };
 
   const renderProduct = (product) => {
-    const productInCart = cart.find(cartItem => cartItem.id === product.id);
+    const productInCart = cart?.find(cartItem => cartItem?.id == product?.id);
 
     const handleIncrementQuantity = () => {
-      if (productInCart) {
-        dispatch(incrementQuantity(product.id));
-      } else {
-        dispatch(addToCart({ ...product, quantity: 1 }));
+      if(product.extras.length > 0) {
+        openModal(product)
+      }else {
+        if (productInCart) {
+          dispatch(incrementQuantity(product?.id));
+        } else {
+          dispatch(addToCart({ ...product, quantity: 1 }));
+        }
       }
+      
     };
 
     const handleDecrementQuantity = () => {
       if (productInCart && productInCart.quantity > 1) {
-        dispatch(decrementQuantity(product.id));
-      } else if (productInCart && productInCart.quantity === 1) {
-        dispatch(decrementQuantity(product.id));
+        dispatch(decrementQuantity(product?.id));
+      } else if (productInCart && productInCart.quantity == 1) {
+        dispatch(decrementQuantity(product?.id));
       }
     };
 
@@ -185,7 +247,7 @@ const ShopScreen = () => {
           <TouchableOpacity onPress={() => openModal(product)}>
             <Text style={styles.productName}>{product.name}</Text>
           </TouchableOpacity>
-          <Text style={styles.productPrice}>{product.price}</Text>
+          <Text style={styles.productPrice}>${product.price}</Text>
           <View style={styles.productActions}>
             <TouchableOpacity style={styles.quantityButton} onPress={handleDecrementQuantity}>
               <FontAwesome name="minus" size={14} color="#000" />
@@ -207,25 +269,35 @@ const ShopScreen = () => {
     </View>
   );
 
-  const styles = colorScheme === 'dark' ? stylesDark : stylesLight;
+  const styles = colorScheme == 'dark' ? stylesDark : stylesLight;
+
+  const orderTypes = [
+    { type: 'Pick-up', icon: 'shopping-basket' },
+    { type: 'Delivery', icon: 'bicycle' },
+    { type: 'Order-in', icon: 'cutlery' },
+  ];
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <Animated.View style={[styles.headerContainer, { height: headerHeight }]}>
-        <Animated.Image source={{ uri: shop?.img }} style={[styles.headerImage, { opacity: headerHeight.interpolate({
-          inputRange: [0, 250],
-          outputRange: [0, 1],
-          extrapolate: 'clamp',
-        }) }]} />
+        <Animated.Image source={{ uri: shop?.img }} style={[styles.headerImage, {
+          opacity: headerHeight.interpolate({
+            inputRange: [0, 250],
+            outputRange: [0, 1],
+            extrapolate: 'clamp',
+          })
+        }]} />
         <View style={styles.overlay} />
         <TouchableOpacity onPress={() => cart.length > 0 ? setConfirmationModalVisible(true) : navigation.goBack()} style={styles.backButton}>
           <FontAwesome name="arrow-left" size={24} color="#fff" />
         </TouchableOpacity>
-        <Animated.View style={[styles.headerTextContainer, { opacity: headerHeight.interpolate({
-          inputRange: [0, 250],
-          outputRange: [0, 1],
-          extrapolate: 'clamp',
-        }) }]}>
+        <Animated.View style={[styles.headerTextContainer, {
+          opacity: headerHeight.interpolate({
+            inputRange: [0, 250],
+            outputRange: [0, 1],
+            extrapolate: 'clamp',
+          })
+        }]}>
           <Text style={styles.headerTitle}>{shop?.name}</Text>
           <Text style={styles.headerSubtitle}>{shop?.address}</Text>
           <View style={styles.ratingContainer}>
@@ -235,20 +307,22 @@ const ShopScreen = () => {
         </Animated.View>
       </Animated.View>
       <View style={styles.categoryListContainer}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoryScrollContainer}
-        >
-          {categories.map((item, index) => (
-            <TouchableOpacity key={item.id} onPress={() => scrollToCategory(index)} style={styles.categoryButton}>
-              <Text style={styles.categoryButtonText}>{item.name}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+        {orderType !== 'Order-in' && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.categoryScrollContainer}
+          >
+            {categories.map((item, index) => (
+              <TouchableOpacity key={item.id} onPress={() => scrollToCategory(index)} style={styles.categoryButton}>
+                <Text style={styles.categoryButtonText}>{item.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
       </View>
       {loading ? (
-        <CartSkeletonLoader /> // Utiliza el componente de skeleton loader aquí
+        <CartSkeletonLoader />
       ) : (
         <Animated.ScrollView
           ref={scrollViewRef}
@@ -260,30 +334,56 @@ const ShopScreen = () => {
           )}
           contentContainerStyle={styles.contentContainer}
         >
-          {discounts.length !== 0 && <Text style={styles.discountSectionTitle}>Discounts</Text>}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.discountScrollContainer}
-          >
-            {discounts.map(discount => renderDiscount(discount))}
-          </ScrollView>
-          {categories.map(category => renderCategory(category))}
+          <View style={styles.orderTypeContainer}>
+            {orderTypes.map(order => (
+              <TouchableOpacity
+                key={order.type}
+                style={[
+                  styles.orderTypeButton,
+                  orderType == order.type && styles.selectedOrderTypeButton,
+                ]}
+                onPress={() => handleOrderTypeChange(order.type)}
+              >
+                <FontAwesome name={order.icon} size={15} color={orderType == order.type ? '#8C6D00' : '#333'} />
+                <Text style={styles.orderTypeText}>{order.type}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <Text style={styles.discountSectionTitle}>Discounts</Text>
+
+          {orderType == 'Order-in' ? (
+            discounts.filter(discount => discount.delivery == 1).map(discount => renderDiscount(discount, true))
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.discountScrollContainer}
+            >
+              {discounts.filter(discount => discount.delivery == 0).map(discount => renderDiscount(discount, false))}
+            </ScrollView>
+          )}
+          {orderType !== 'Order-in' && categories.map(category => renderCategory(category))}
         </Animated.ScrollView>
       )}
       <ModalProduct
         visible={modalVisible}
         onClose={closeModal}
         product={selectedProduct}
-        addToCart={handleAddToCart}
+        addToCart={handleAddToCartFromModal}
       />
+      <ModalDiscount
+      visible={discountModalVisible}
+      onClose={closeDiscountModal}
+      discount={selectedDiscount}
+       />
       {cart.length > 0 && (
         <View style={styles.cartContainer}>
           <Text style={styles.cartText}>{totalItems} Product{totalItems > 1 ? 's' : ''}</Text>
           <Text style={styles.cartText}>$ {totalAmount}</Text>
+          <Text style={styles.cartText}>{orderType}</Text>
           <TouchableOpacity
             style={styles.cartButton}
-            onPress={() => navigation.navigate('CartScreen')}
+            onPress={() => navigation.navigate('CartScreen', { orderType })}
           >
             <Text style={styles.cartButtonText}>Go to Cart</Text>
           </TouchableOpacity>
@@ -317,473 +417,36 @@ const ShopScreen = () => {
           </View>
         </Modal>
       )}
+      <Modal
+        visible={orderTypeModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setOrderTypeModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalText}>
+              Changing the order type will clear your cart. Are you sure you want to proceed?
+            </Text>
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalButton}
+                onPress={confirmOrderTypeChange}
+              >
+                <Text style={styles.modalButtonText}>Accept</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, { backgroundColor: '#ccc' }]}
+                onPress={() => setOrderTypeModalVisible(false)}
+              >
+                <Text style={styles.modalButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
-
-const commonStyles = {
-  safeArea: {
-    flex: 1,
-    marginTop: 30,
-  },
-  contentContainer: {
-    paddingBottom: 80,
-  },
-  container: {
-    flex: 1,
-    padding: 16,
-    marginTop: 30,
-  },
-  backButton: {
-    padding: 10,
-    alignSelf: 'flex-start',
-    position: 'absolute',
-    top: 40,
-    left: 20,
-    zIndex: 10,
-  },
-  headerContainer: {
-    position: 'relative',
-  },
-  headerImage: {
-    width: '100%',
-    height: '100%',
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)', // Aumenta la opacidad para mejorar la legibilidad
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-  },
-  headerTextContainer: {
-    position: 'absolute',
-    bottom: 20,
-    left: 20,
-    zIndex: 10,
-  },
-  headerTitle: {
-    fontSize: 22, // Tamaño de fuente reducido
-    fontWeight: 'bold',
-    color: '#fff',
-    fontFamily: 'sans-serif-medium',
-  },
-  headerSubtitle: {
-    fontSize: 14, // Tamaño de fuente reducido
-    color: '#fff',
-    marginTop: 4,
-    fontFamily: 'sans-serif',
-    width: "80%"
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  shopRating: {
-    marginLeft: 4,
-    fontSize: 12, // Tamaño de fuente reducido
-    color: '#ff9900',
-    fontFamily: 'sans-serif',
-  },
-  sectionTitle: {
-    fontSize: 18, // Tamaño de fuente reducido
-    fontWeight: 'bold',
-    marginTop: 20,
-    marginBottom: 10,
-    paddingHorizontal: 16,
-    fontFamily: 'sans-serif-medium',
-  },
-  offersContainer: {
-    flexDirection: 'row',
-    marginBottom: 20,
-    paddingHorizontal: 16,
-  },
-  categoryContainer: {
-    marginBottom: 20,
-    paddingHorizontal: 16,
-  },
-  categoryTitle: {
-    fontSize: 16, // Tamaño de fuente reducido
-    fontWeight: 'bold',
-    marginBottom: 10,
-    fontFamily: 'sans-serif-medium',
-  },
-  productCard: {
-    flexDirection: 'row',
-    padding: 10,
-    marginBottom: 10,
-    borderRadius: 10,
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 5,
-    width: '100%',
-  },
-  productImage: {
-    width: 80,
-    height: 140,
-    borderRadius: 10,
-  },
-  productDetails: {
-    flex: 1,
-    marginLeft: 10,
-    justifyContent: 'space-between',
-  },
-  productName: {
-    fontSize: 14, // Tamaño de fuente reducido
-    fontWeight: 'bold',
-    fontFamily: 'sans-serif-medium',
-  },
-  productPrice: {
-    fontSize: 12, // Tamaño de fuente reducido
-    marginTop: 4,
-    fontFamily: 'sans-serif',
-  },
-  productActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  quantityButton: {
-    width: 28,
-    height: 28,
-    backgroundColor: '#FFC107',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 14,
-  },
-  quantityText: {
-    fontSize: 14, // Tamaño de fuente reducido
-    marginHorizontal: 8,
-    fontFamily: 'sans-serif',
-  },
-  cartContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 15,
-    borderTopWidth: 1,
-    backgroundColor: '#fff',
-    borderTopColor: '#ccc',
-  },
-  cartText: {
-    fontSize: 14, // Tamaño de fuente reducido
-    fontFamily: 'sans-serif',
-  },
-  cartButton: {
-    backgroundColor: '#FFC107',
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-  },
-  cartButtonText: {
-    fontSize: 14, // Tamaño de fuente reducido
-    fontWeight: 'bold',
-    fontFamily: 'sans-serif-medium',
-  },
-  fab: {
-    position: 'absolute',
-    bottom: 80,
-    right: 20,
-    backgroundColor: '#FFC107',
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  categoryScrollContainer: {
-    paddingVertical: 10,
-    paddingLeft: 16,
-  },
-  categoryButton: {
-    padding: 10,
-    backgroundColor: '#FFC107',
-    borderRadius: 10,
-    marginRight: 10,
-  },
-  categoryButtonText: {
-    fontSize: 12, // Tamaño de fuente reducido
-    fontWeight: 'bold',
-    color: '#000',
-    fontFamily: 'sans-serif-medium',
-  },
-  categoryListContainer: {
-    backgroundColor: '#fff',
-    paddingVertical: 10,
-  },
-  loader: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  discountSectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginLeft: 16,
-    marginTop: 10,
-    marginBottom: 10,
-    fontFamily: 'sans-serif-medium',
-  },
-  discountScrollContainer: {
-    paddingVertical: 10,
-    paddingLeft: 16,
-    marginVertical: 10,
-  },
-  discountCard: {
-    width: 220,
-    height: 150,
-    marginRight: 20,
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 8,
-  },
-  discountImage: {
-    width: '100%',
-    height: 60,
-  },
-  discountDetails: {
-    padding: 10,
-  },
-  discountTitle: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    marginBottom: 2,
-    fontFamily: 'sans-serif-medium',
-  },
-  discountDescription: {
-    fontSize: 10,
-    marginBottom: 2,
-    color: '#666',
-  },
-  discountValidity: {
-    fontSize: 9,
-    color: '#999',
-  },
-  discountType: {
-    fontSize: 10,
-    color: '#999',
-    marginTop: 2,
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.6)', // Fondo más oscuro para mejor contraste
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    padding: 20, // Aumento de padding para mejor espaciado
-    borderRadius: 15, // Esquinas más redondeadas para un aspecto moderno
-    width: '85%', // Aumento de ancho para mejor visualización del contenido
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 10, // Aumento de elevación para un efecto de sombra más fuerte
-  },
-  modalText: {
-    fontSize: 16, // Tamaño de fuente reducido
-    marginBottom: 15,
-    fontFamily: 'sans-serif-medium',
-    color: '#333',
-    textAlign: 'center',
-  },
-  modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-  },
-  modalButton: {
-    backgroundColor: '#FFC107',
-    padding: 10, // Aumento de padding para mejor sensación del botón
-    borderRadius: 8, // Esquinas más redondeadas para un aspecto moderno
-    width: '45%',
-    alignItems: 'center',
-    elevation: 3,
-    marginTop: 10,
-  },
-  modalButtonText: {
-    fontSize: 14, // Tamaño de fuente reducido
-    fontFamily: 'sans-serif-medium',
-    color: '#333'
-  },
-};
-
-const stylesDark = StyleSheet.create({
-  ...commonStyles,
-  container: {
-    ...commonStyles.container,
-    backgroundColor: '#1c1c1c',
-  },
-  sectionTitle: {
-    ...commonStyles.sectionTitle,
-    color: '#fff',
-  },
-  offerCard: {
-    ...commonStyles.offerCard,
-    backgroundColor: '#444',
-  },
-  categoryTitle: {
-    ...commonStyles.categoryTitle,
-    color: '#fff',
-  },
-  productCard: {
-    ...commonStyles.productCard,
-    backgroundColor: '#333',
-  },
-  productName: {
-    ...commonStyles.productName,
-    color: '#fff',
-  },
-  productPrice: {
-    ...commonStyles.productPrice,
-    color: '#fff',
-  },
-  quantityText: {
-    ...commonStyles.quantityText,
-    color: '#fff',
-  },
-  cartContainer: {
-    ...commonStyles.cartContainer,
-    backgroundColor: '#333',
-    borderTopColor: '#444',
-  },
-  cartText: {
-    ...commonStyles.cartText,
-    color: '#fff',
-  },
-  cartButton: {
-    ...commonStyles.cartButton,
-    backgroundColor: '#FFC107',
-  },
-  cartButtonText: {
-    ...commonStyles.cartButtonText,
-    color: '#333',
-  },
-  fab: {
-    ...commonStyles.fab,
-    backgroundColor: '#FFC107',
-  },
-  categoryListContainer: {
-    backgroundColor: '#1c1c1c',
-    paddingVertical: 10,
-  },
-  modalContent: {
-    backgroundColor: '#444', // Fondo más oscuro para modo oscuro
-    shadowColor: '#fff',
-    padding: 20,
-    borderRadius: 15,
-    width: '85%',
-    alignItems: 'center',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 10,
-  },
-  modalText: {
-    color: '#fff',
-  },
-  modalButtonText: {
-    color: '#fff',
-  },
-});
-
-const stylesLight = StyleSheet.create({
-  ...commonStyles,
-  container: {
-    ...commonStyles.container,
-    backgroundColor: '#fff',
-  },
-  sectionTitle: {
-    ...commonStyles.sectionTitle,
-    color: '#333',
-  },
-  offerCard: {
-    ...commonStyles.offerCard,
-    backgroundColor: '#fff',
-  },
-  categoryTitle: {
-    ...commonStyles.categoryTitle,
-    color: '#333',
-  },
-  productCard: {
-    ...commonStyles.productCard,
-    backgroundColor: '#f8f8f8',
-  },
-  productName: {
-    ...commonStyles.productName,
-    color: '#000',
-  },
-  productPrice: {
-    ...commonStyles.productPrice,
-    color: '#000',
-  },
-  quantityText: {
-    ...commonStyles.quantityText,
-    color: '#000',
-  },
-  cartContainer: {
-    ...commonStyles.cartContainer,
-    backgroundColor: '#f8f8f8',
-    borderTopColor: '#ccc',
-  },
-  cartText: {
-    ...commonStyles.cartText,
-    color: '#333',
-  },
-  cartButton: {
-    ...commonStyles.cartButton,
-    backgroundColor: '#FFC107',
-  },
-  cartButtonText: {
-    ...commonStyles.cartButtonText,
-    color: '#333',
-  },
-  fab: {
-    ...commonStyles.fab,
-    backgroundColor: '#FFC107',
-  },
-  categoryListContainer: {
-    backgroundColor: '#fff',
-    paddingVertical: 10,
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    padding: 20,
-    borderRadius: 15,
-    width: '85%',
-    alignItems: 'center',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 10,
-  },
-  modalText: {
-    color: '#333',
-  },
-  modalButtonText: {
-    color: '#333',
-  },
-});
 
 export default ShopScreen;

@@ -1,4 +1,3 @@
-// themes.js
 import { StyleSheet } from 'react-native';
 
 const lightTheme = StyleSheet.create({
@@ -7,9 +6,8 @@ const lightTheme = StyleSheet.create({
     backgroundColor: '#f5f5f5',
   },
   header: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     alignItems: 'center',
-    padding: 10,
     backgroundColor: '#F2BB26',
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
@@ -18,6 +16,7 @@ const lightTheme = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 5,
     elevation: 5,
+    paddingTop: 10,
   },
   iconButton: {
     marginHorizontal: 10,
@@ -25,18 +24,47 @@ const lightTheme = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    height: 50,
+    height: 40,
     borderColor: '#ddd',
     borderWidth: 1,
-    borderRadius: 25,
-    paddingHorizontal: 20,
+    borderRadius: 20,
+    paddingHorizontal: 15,
     backgroundColor: '#fff',
     color: '#333',
-    fontSize: 16,
+    fontSize: 14,
+  },
+  addressToggleContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 5,
+    gap: 30
+  },
+  addressText: {
+    fontSize: 14,
+    color: '#333',
+    marginRight: 10,
+    maxWidth: 150, // Adjusted maxWidth to fit the screen
+  },
+  deliveryToggleContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#444',
+    borderRadius: 15,
+    padding: 3,
+  },
+  deliveryToggleButton: {
+    paddingVertical: 3,
+    paddingHorizontal: 10,
+    borderRadius: 15,
+    marginHorizontal: 3, // Added margin between toggle buttons
+  },
+  deliveryToggleText: {
+    fontSize: 14,
   },
   contentContainer: {
     padding: 20,
-    paddingBottom: 80
+    paddingBottom: 80,
   },
   sectionTitle: {
     fontSize: 18,
@@ -58,7 +86,6 @@ const lightTheme = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 10,
     marginRight: 10,
-
   },
   categoryImage: {
     width: 100,
@@ -182,9 +209,8 @@ const darkTheme = StyleSheet.create({
     backgroundColor: '#1c1c1c',
   },
   header: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     alignItems: 'center',
-    padding: 20,
     backgroundColor: '#2e2e2e',
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
@@ -193,6 +219,7 @@ const darkTheme = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 5,
     elevation: 5,
+    paddingTop: 10,
   },
   iconButton: {
     marginHorizontal: 10,
@@ -200,18 +227,47 @@ const darkTheme = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    height: 50,
+    height: 40,
     borderColor: '#555',
     borderWidth: 1,
-    borderRadius: 25,
-    paddingHorizontal: 20,
+    borderRadius: 20,
+    paddingHorizontal: 15,
     backgroundColor: '#333',
     color: 'white',
-    fontSize: 16,
+    fontSize: 14,
+  },
+  addressToggleContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 5,
+    gap: 30
+  },
+  addressText: {
+    fontSize: 14,
+    color: '#fff',
+    marginRight: 10,
+    maxWidth: 150, // Adjusted maxWidth to fit the screen
+  },
+  deliveryToggleContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#444',
+    borderRadius: 15,
+    padding: 3,
+  },
+  deliveryToggleButton: {
+    paddingVertical: 3,
+    paddingHorizontal: 10,
+    borderRadius: 15,
+    marginHorizontal: 3, // Added margin between toggle buttons
+  },
+  deliveryToggleText: {
+    fontSize: 14,
   },
   contentContainer: {
     padding: 20,
-    paddingBottom: 60
+    paddingBottom: 60,
   },
   sectionTitle: {
     fontSize: 18,
@@ -233,7 +289,6 @@ const darkTheme = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 10,
     marginRight: 10,
-    
   },
   categoryImage: {
     width: 100,
