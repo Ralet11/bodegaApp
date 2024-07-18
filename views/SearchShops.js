@@ -83,9 +83,6 @@ const SearchShops = () => {
                     onChangeText={setSearchQuery}
                     onSubmitEditing={handleSearchSubmit}
                 />
-                <TouchableOpacity onPress={changeAddress} style={styles.iconButton}>
-                    <FontAwesome name="map-marker" size={24} color={scheme === 'dark' ? 'white' : 'black'} />
-                </TouchableOpacity>
             </View>
             <View style={styles.categoryContainer}>
                 <Text style={styles.headerTitle}>{categoryName}</Text>

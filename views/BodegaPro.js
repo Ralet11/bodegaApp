@@ -1,11 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Dimensions, SafeAreaView, useColorScheme, Animated, Modal, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Dimensions, SafeAreaView, useColorScheme, Animated, Modal, Alert, ActivityIndicator  } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { useStripe } from '@stripe/stripe-react-native';
 import Axios from 'react-native-axios/lib/axios';
 import { API_URL } from '@env';
 import { setUser } from '../redux/slices/user.slice';
+import { LinearGradient } from 'expo-linear-gradient';
+import Toast from 'react-native-toast-message';
 
 const { width } = Dimensions.get('window');
 
@@ -26,6 +28,7 @@ const BodegaPro = ({ navigation }) => {
   ];
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const dispatch = useDispatch();
+  const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -35,21 +38,25 @@ const BodegaPro = ({ navigation }) => {
     }).start();
   }, [fadeAnim]);
 
-  const handleCancelSubscription = () => {
-    alert('Logic to cancel the subscription');
-  };
+
 
   const payment = async () => {
     const finalPrice = (10.99 * 100);
+    setIsCheckoutLoading(true)
 
     try {
-      const response = await Axios.post(`${API_URL}/api/payment/intent`, {
-        finalPrice: finalPrice
+      const response = await Axios.post(`${API_URL}/api/payment/bodegaProSub`, {
+        priceId: 'price_1PdJs5CtqRjqS5chUBi4PyDI'
+      }, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
       const { clientSecret } = response.data;
 
       if (response.error) {
         Alert.alert('Something went wrong');
+        setIsCheckoutLoading(false)
         return;
       }
 
@@ -60,6 +67,7 @@ const BodegaPro = ({ navigation }) => {
 
       if (initResponse.error) {
         Alert.alert("Something went wrong");
+        setIsCheckoutLoading(false)
         return;
       }
 
@@ -67,11 +75,58 @@ const BodegaPro = ({ navigation }) => {
 
       if (error) {
         Alert.alert(`Error code: ${error.code}`, error.message);
+        setIsCheckoutLoading(false)
       } else {
         await updateUser();
       }
     } catch (error) {
       Alert.alert('Error', 'There was an error processing your payment. Please try again.');
+      setIsCheckoutLoading(false)
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    try {
+      const response = await Axios.post(`${API_URL}/api/payment/cancelBodegaProSub`,{}, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      console.log(response.status)
+  
+      if (response.status === 200) {
+        Toast.show({
+          type: 'success',
+          text1: 'Subscription Cancelled',
+          text2: 'Your subscription has been successfully cancelled.',
+        });
+  
+        // Update user info in the redux store
+        const updatedUser = { ...user, subscription: 0 };
+        const info = {
+          data: {
+            client: updatedUser,
+            token,
+          },
+        };
+        dispatch(setUser(info));
+  
+        // Optionally, you can navigate the user to another screen or refresh the current view
+      } else {
+        Toast.show({
+          type: 'error',
+          text1: 'Cancellation Failed',
+          text2: 'There was an issue cancelling your subscription. Please try again.',
+        });
+      }
+    } catch (error) {
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'There was an error processing your request. Please try again.',
+      });
+      console.error('Error cancelling subscription:', error);
     }
   };
 
@@ -111,10 +166,17 @@ const BodegaPro = ({ navigation }) => {
             <>
               <View style={styles.headerCard}>
                 <View style={styles.cardContent}>
-                  <Ionicons name="star" size={50} color="#FFD700" style={styles.iconStyle} />
+                  <Ionicons name="star" size={50} color="#FF8C00" style={styles.iconStyle} />
                   <Text style={styles.headerTitle}>Welcome to Bodega+ Pro!</Text>
                   <Text style={styles.headerText}>You've saved</Text>
-                  <Text style={styles.savingsAmount}>$150</Text>
+                  <LinearGradient
+                    colors={['#FFA500', '#FF8C00']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.savingsTag}
+                  >
+                    <Text style={styles.savingsAmount}>${user.savings}</Text>
+                  </LinearGradient>
                   <Text style={styles.headerText}>with Bodega+ Pro</Text>
                 </View>
               </View>
@@ -146,9 +208,13 @@ const BodegaPro = ({ navigation }) => {
                   </View>
                 ))}
               </View>
-              <TouchableOpacity style={styles.subscribeButton} onPress={payment}>
-                <Text style={styles.subscribeButtonText}>Start Subscription</Text>
-              </TouchableOpacity>
+              <TouchableOpacity style={styles.subscribeButton} onPress={payment} disabled={isCheckoutLoading}>
+            {isCheckoutLoading ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.subscribeButtonText}>Start Subscription</Text>
+            )}
+          </TouchableOpacity>
             </>
           )}
         </Animated.View>
@@ -224,19 +290,30 @@ const commonStyles = {
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 5,
-    color: '',
+    color: '#000', // Change color to black
   },
   headerText: {
     fontSize: 16,
     textAlign: 'center',
     marginTop: 5,
-    color: '#FFD700',
+    color: '#000', // Change color to black
+  },
+  savingsTag: {
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    paddingVertical: 5,
+    marginVertical: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+    elevation: 8,
   },
   savingsAmount: {
-    fontSize: 42,
+    fontSize: 20, // Reduce font size
     fontWeight: 'bold',
-    marginTop: 10,
-    color: '#FFD700',
+    color: '#000', // Change color to black
+    textAlign: 'center',
   },
   benefitsContainer: {
     width: '100%',
@@ -247,7 +324,7 @@ const commonStyles = {
     fontWeight: 'bold',
     marginBottom: 10,
     textAlign: 'center',
-    color: '#FFD700',
+    color: '#000', // Change color to black
   },
   benefitItem: {
     flexDirection: 'row',
@@ -268,14 +345,14 @@ const commonStyles = {
     fontSize: 18,
     marginLeft: 15,
     flexShrink: 1,
-    color: '#FFD700',
+    color: '#000', // Change color to black
   },
   cancelLink: {
     fontSize: 18,
     marginTop: 30,
     textDecorationLine: 'underline',
     textAlign: 'center',
-    color: '#FFD700',
+    color: '#000', // Change color to black
   },
   joinCard: {
     padding: 30,
@@ -296,20 +373,20 @@ const commonStyles = {
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 5,
-    color: '#FFD700',
+    color: '#000', // Change color to black
   },
   joinPrice: {
     fontSize: 24,
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 10,
-    color: '#FFD700',
+    color: '#000', // Change color to black
   },
   joinSubtitle: {
     fontSize: 20,
     textAlign: 'center',
     marginTop: 5,
-    color: '#FFD700',
+    color: '#000', // Change color to black
   },
   subscribeButton: {
     padding: 15,

@@ -199,7 +199,8 @@ const CartScreen = () => {
       status: "new order",
       date_time: new Date().toISOString().slice(0, -5),
       pi: pi,
-      type: orderType
+      type: orderType,
+      savings: calculateSavings()
     };
 
     try {
@@ -211,6 +212,14 @@ const CartScreen = () => {
       const response = await Axios.post(`${API_URL}/api/orders/add`, data, { headers });
 
       dispatch(setOrderIn(response.data.newOrder));
+      const info = {
+        data: {
+          client: response.data.userUpdate,
+          token,
+        },
+      };
+
+      dispatch(setUser(info));
       dispatch(clearCart());
 
       if (useBalance) {
@@ -465,7 +474,7 @@ const CartScreen = () => {
           </View>
           {user.subscription === 1 ? (
             <View style={styles.savingsContainer}>
-              <Text style={styles.savingsText}>You're saving ${calculateSavings()} with promotions</Text>
+              <Text style={styles.savingsText}>You're saving ${calculateSavings()} with Bodega Pro</Text>
             </View>
           ) : (
             <View style={styles.adContainer}>

@@ -42,6 +42,8 @@ const AcceptedOrder = () => {
   const order = useSelector((state) => state.orders.currentOrder);
   const dispatch = useDispatch();
 
+  console.log(user)
+
   const orderRef = useRef(order);
 
   const progressAnim = useRef(new Animated.Value(0)).current;

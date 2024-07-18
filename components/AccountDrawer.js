@@ -31,6 +31,8 @@ const AccountDrawer = ({ user, visible, onClose, onNavigate, scheme }) => {
     }
   }, [visible]);
 
+  console.log(user)
+
   return (
     <Modal
       animationType="none"
@@ -45,7 +47,7 @@ const AccountDrawer = ({ user, visible, onClose, onNavigate, scheme }) => {
               <Image source={{ uri: user.avatar }} style={styles.avatar} />
               <View>
                 <Text style={[styles.drawerTitle, scheme === 'dark' ? styles.darkTitle : styles.lightTitle]}>
-                  ¡Hola {user.name}!
+                  {user.name}
                 </Text>
                 
               </View>

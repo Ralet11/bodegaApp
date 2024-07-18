@@ -1,27 +1,49 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, Modal } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
 import { useColorScheme } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { FontAwesome } from '@expo/vector-icons';
+import Axios from 'react-native-axios';
+import { API_URL } from '@env';
+import Toast from 'react-native-toast-message';
+import { useSelector } from 'react-redux';
 
 const Contact = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
-  const [modalVisible, setModalVisible] = useState(false);
-  const [inquiryId, setInquiryId] = useState('');
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
   const navigation = useNavigation();
+  const token = useSelector((state) => state.user.userInfo.data.token);
 
-  const handleSendEmail = () => {
+  const handleSendEmail = async () => {
     if (name && email && message) {
-      const randomId = Math.floor(Math.random() * 1000000).toString();
-      setInquiryId(randomId);
-      setModalVisible(true);
-      setName('');
-      setEmail('');
-      setMessage('');
+      const data = { name, email, message };
+      try {
+        const headers = {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        };
+        const response = await Axios.post(`${API_URL}/api/contact/sendContactAppMail`, data, { headers });
+        if (response.status === 200) {
+          Toast.show({
+            type: 'success',
+            text1: 'Success',
+            text2: 'Your inquiry was sent successfully!'
+          });
+          // Clear the input fields
+          setName('');
+          setEmail('');
+          setMessage('');
+        }
+      } catch (error) {
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: 'There was an error sending your inquiry.'
+        });
+      }
     } else {
       Alert.alert('Error', 'Please fill out all fields');
     }
@@ -31,7 +53,7 @@ const Contact = () => {
     <ScrollView contentContainerStyle={[styles.container, isDarkMode && styles.containerDark]}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.goBackButton}>
-          <FontAwesome name="arrow-left" size={24} color={colorScheme === 'dark' ? '#FFD700' : '#333'}  />
+          <FontAwesome name="arrow-left" size={24} color={colorScheme === 'dark' ? '#FFD700' : '#333'} />
         </TouchableOpacity>
         <Text style={[styles.title, isDarkMode && styles.titleDark]}>Contact Us</Text>
       </View>
@@ -64,24 +86,7 @@ const Contact = () => {
       <TouchableOpacity style={styles.button} onPress={handleSendEmail}>
         <Text style={styles.buttonText}>Send</Text>
       </TouchableOpacity>
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalView}>
-            <Text style={styles.modalText}>Your inquiry was sent successfully! ID: {inquiryId}</Text>
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={() => setModalVisible(false)}
-            >
-              <Text style={styles.closeButtonText}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      <Toast />
     </ScrollView>
   );
 };
@@ -91,7 +96,6 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     padding: 20,
     backgroundColor: '#f8f8f8',
-    marginTop: 30,
   },
   containerDark: {
     backgroundColor: '#333',
@@ -160,43 +164,6 @@ const styles = StyleSheet.create({
     color: '#000',
     fontSize: 18,
     fontWeight: 'bold',
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  modalView: {
-    margin: 20,
-    backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 35,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  modalText: {
-    marginBottom: 15,
-    textAlign: 'center',
-    fontSize: 18,
-  },
-  closeButton: {
-    backgroundColor: '#2196F3',
-    borderRadius: 10,
-    padding: 10,
-    elevation: 2,
-  },
-  closeButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
-    textAlign: 'center',
   },
 });
 
