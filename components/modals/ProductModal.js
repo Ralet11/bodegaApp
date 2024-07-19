@@ -1,12 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, Image, Modal, TouchableOpacity, StyleSheet, useColorScheme, Alert } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
+import RNPickerSelect from 'react-native-picker-select';
 
 const ModalProduct = ({ visible, onClose, product, addToCart }) => {
   const [quantity, setQuantity] = useState(1);
   const [selectedExtras, setSelectedExtras] = useState({});
   const scheme = useColorScheme();
   const styles = scheme === 'dark' ? stylesDark : stylesLight;
+
+  useEffect(() => {
+    if (visible) {
+      setSelectedExtras({});
+      setQuantity(1);
+    }
+  }, [product, visible]);
 
   const handleAdd = () => {
     const missingRequired = product.extras.some(extra => extra.required && !selectedExtras[extra.name]);
@@ -16,7 +23,7 @@ const ModalProduct = ({ visible, onClose, product, addToCart }) => {
     }
 
     const extrasTotalPrice = Object.values(selectedExtras).reduce((total, extra) => {
-      return total + (extra.price ? parseFloat(extra.price) : 0);
+      return total + (extra && extra.price ? parseFloat(extra.price) : 0);
     }, 0);
 
     const finalPrice = (parseFloat(product.price) + extrasTotalPrice).toFixed(2);
@@ -26,7 +33,10 @@ const ModalProduct = ({ visible, onClose, product, addToCart }) => {
   };
 
   const handleExtraChange = (extraName, value) => {
-    setSelectedExtras({ ...selectedExtras, [extraName]: value });
+    setSelectedExtras(prevState => ({
+      ...prevState,
+      [extraName]: value ? JSON.parse(value) : null,
+    }));
   };
 
   const renderExtras = () => {
@@ -38,16 +48,13 @@ const ModalProduct = ({ visible, onClose, product, addToCart }) => {
           <Text style={styles.extraLabel}>
             {extra.name} {extra.required ? '(Required)' : '(Optional)'}:
           </Text>
-          <Picker
-            selectedValue={selectedExtras[extra.name]}
+          <RNPickerSelect
             onValueChange={(itemValue) => handleExtraChange(extra.name, itemValue)}
-            style={styles.extraPicker}
-          >
-            <Picker.Item label="Select an option..." value={null} />
-            {validOptions.map((option, index) => (
-              <Picker.Item key={index} label={`${option.name} ($${option.price})`} value={option} />
-            ))}
-          </Picker>
+            items={validOptions.map(option => ({ label: `${option.name} ($${option.price})`, value: JSON.stringify(option) }))}
+            style={pickerSelectStyles}
+            placeholder={{ label: 'Select an option...', value: null }}
+            value={selectedExtras[extra.name] ? JSON.stringify(selectedExtras[extra.name]) : null}
+          />
         </View>
       );
     });
@@ -101,7 +108,7 @@ const commonStyles = {
     backgroundColor: 'rgba(0,0,0,0.7)',
   },
   modalView: {
-    width: '95%', // Aumentar el tamaño del modal
+    width: '95%',
     backgroundColor: 'white',
     borderRadius: 15,
     padding: 20,
@@ -194,10 +201,6 @@ const commonStyles = {
     marginBottom: 5,
     fontWeight: 'bold',
   },
-  extraPicker: {
-    height: 40,
-    width: '100%',
-  },
 };
 
 const stylesLight = StyleSheet.create({
@@ -261,6 +264,29 @@ const stylesDark = StyleSheet.create({
   quantityValue: {
     ...commonStyles.quantityValue,
     color: '#fff',
+  },
+});
+
+const pickerSelectStyles = StyleSheet.create({
+  inputIOS: {
+    fontSize: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    borderWidth: 1,
+    borderColor: 'gray',
+    borderRadius: 4,
+    color: 'black',
+    paddingRight: 30, // to ensure the text is never behind the icon
+  },
+  inputAndroid: {
+    fontSize: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderWidth: 0.5,
+    borderColor: 'purple',
+    borderRadius: 8,
+    color: 'black',
+    paddingRight: 30, // to ensure the text is never behind the icon
   },
 });
 

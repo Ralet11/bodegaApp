@@ -12,7 +12,9 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": false,
+      "bundleIdentifier": "com.khtech.bodega",
+      "buildNumber": "2"
     },
     "android": {
       "adaptiveIcon": {
