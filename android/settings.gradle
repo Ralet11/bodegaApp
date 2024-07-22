@@ -1,4 +1,4 @@
-rootProject.name = 'bodega'
+rootProject.name = 'Bodega'
 
 dependencyResolutionManagement {
   versionCatalogs {
