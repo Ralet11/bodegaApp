@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, TextInput, ActivityIndicator, Modal } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -31,61 +31,88 @@ const SetAddressScreen = () => {
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState({});
   const token = useSelector((state) => state?.user.userInfo.data.token);
+  const user = useSelector((state) => state?.user.userInfo.data.client);
 
-  const fetchCurrentLocation = async () => {
-    setLoading(true);
-    let { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== 'granted') {
-      console.warn('Permission to access location was denied');
-      setLoading(false);
-      return;
-    }
-
-    let location = await Location.getCurrentPositionAsync({});
-    const { latitude, longitude } = location.coords;
-
-    setRegion({
-      latitude,
-      longitude,
-      latitudeDelta: 0.015,
-      longitudeDelta: 0.0121,
-    });
-
-    setMarker({ latitude, longitude });
-
-    const response = await fetch(
-      `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_API_KEY}`
-    );
-    const json = await response.json();
-    if (json.results.length > 0) {
-      setAddressState(json.results[0].formatted_address);
-      setAddressesState(json.results[0]);
-    }
-    setLoading(false);
+  const defaultLocation = {
+    latitude: 40.7128, // Coordenadas para Nueva York como ejemplo
+    longitude: -74.0060,
+    latitudeDelta: 0.015,
+    longitudeDelta: 0.0121,
   };
 
-  const fetchAddressLocation = async () => {
-    setLoading(true);
-    const response = await fetch(
-      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${GOOGLE_API_KEY}`
-    );
-    const json = await response.json();
-    if (json.results.length > 0) {
-      const location = json.results[0].geometry.location;
+  const fetchCurrentLocation = async () => {
+    try {
+      setLoading(true);
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        console.warn('Permission to access location was denied');
+        setRegion(defaultLocation);
+        setMarker(defaultLocation);
+        setAddressState('New York, NY, USA'); // Puedes ajustar la dirección predeterminada aquí
+        setLoading(false);
+        return;
+      }
+
+      let location = await Location.getCurrentPositionAsync({});
+      const { latitude, longitude } = location.coords;
+
       setRegion({
-        latitude: location.lat,
-        longitude: location.lng,
+        latitude,
+        longitude,
         latitudeDelta: 0.015,
         longitudeDelta: 0.0121,
       });
-      setMarker({
-        latitude: location.lat,
-        longitude: location.lng,
-      });
-      setAddressState(json.results[0].formatted_address);
-      setAddressesState(json.results[0]);
+
+      setMarker({ latitude, longitude });
+
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_API_KEY}`
+      );
+      const json = await response.json();
+      if (json.results.length > 0) {
+        setAddressState(json.results[0].formatted_address);
+        setAddressesState(json.results[0]);
+      }
+    } catch (error) {
+      console.error('Error fetching location:', error);
+      setRegion(defaultLocation);
+      setMarker(defaultLocation);
+      setAddressState('New York, NY, USA'); // Puedes ajustar la dirección predeterminada aquí
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
+  };
+
+  const fetchAddressLocation = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${GOOGLE_API_KEY}`
+      );
+      const json = await response.json();
+      if (json.results.length > 0) {
+        const location = json.results[0].geometry.location;
+        setRegion({
+          latitude: location.lat,
+          longitude: location.lng,
+          latitudeDelta: 0.015,
+          longitudeDelta: 0.0121,
+        });
+        setMarker({
+          latitude: location.lat,
+          longitude: location.lng,
+        });
+        setAddressState(json.results[0].formatted_address);
+        setAddressesState(json.results[0]);
+      }
+    } catch (error) {
+      console.error('Error fetching address location:', error);
+      setRegion(defaultLocation);
+      setMarker(defaultLocation);
+      setAddressState('New York, NY, USA'); // Puedes ajustar la dirección predeterminada aquí
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -97,8 +124,8 @@ const SetAddressScreen = () => {
   }, [address]);
 
   const fetchAddress = async (latitude, longitude) => {
-    setLoading(true);
     try {
+      setLoading(true);
       const response = await fetch(
         `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_API_KEY}`
       );
@@ -107,9 +134,10 @@ const SetAddressScreen = () => {
         setAddressState(json.results[0].formatted_address);
       }
     } catch (error) {
-      console.warn(error);
+      console.warn('Error fetching address:', error);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleMapPress = useCallback((e) => {
@@ -142,6 +170,12 @@ const SetAddressScreen = () => {
   }, []);
 
   const handleSaveAddress = useCallback(async () => {
+    if (user?.role === 'guest') {
+      dispatch(setAddress(addressState));
+      navigation.navigate('Home');
+      return;
+    }
+
     const newErrors = {};
     if (!addressName) newErrors.addressName = true;
     if (!houseNumber) newErrors.houseNumber = true;
@@ -177,15 +211,16 @@ const SetAddressScreen = () => {
       );
 
       if (response.status === 200) {
-        dispatch(setAddress(addressState));
+        console.log(response.data, "chequeando address")
+        dispatch(setAddress(response.data.formatted_address));
         dispatch(addAddress(response.data));
         setModalVisible(false);
         navigation.navigate('Home');
       }
     } catch (error) {
-      console.error(error);
+      console.error('Error saving address:', error);
     }
-  }, [addressName, houseNumber, streetName, additionalDetails, postalCode, addressState, dispatch, navigation, token]);
+  }, [addressName, houseNumber, streetName, additionalDetails, postalCode, addressState, dispatch, navigation, token, user]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -269,74 +304,76 @@ const SetAddressScreen = () => {
               <Text style={styles.addressText}>{addressState}</Text>
               <TouchableOpacity
                 style={styles.button}
-                onPress={() => setModalVisible(true)}
+                onPress={() => user?.role === 'guest' ? handleSaveAddress() : setModalVisible(true)}
               >
-                <Text style={styles.buttonText}>Save Address</Text>
+                <Text style={styles.buttonText}>{user?.role === 'guest' ? 'Use this address as guest' : 'Save Address'}</Text>
               </TouchableOpacity>
             </View>
           </>
         )}
       </View>
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Enter Address Details</Text>
-            <TextInput
-              style={[styles.modalInput, errors.addressName && styles.errorInput]}
-              placeholder="Home Name (e.g. My Home)"
-              value={addressName}
-              onChangeText={(text) => {
-                setAddressName(text);
-                if (errors.addressName) setErrors((prev) => ({ ...prev, addressName: false }));
-              }}
-            />
-            <TextInput
-              style={[styles.modalInput, errors.houseNumber && styles.errorInput]}
-              placeholder="House Number (e.g. 123)"
-              value={houseNumber}
-              onChangeText={(text) => {
-                setHouseNumber(text);
-                if (errors.houseNumber) setErrors((prev) => ({ ...prev, houseNumber: false }));
-              }}
-            />
-            <TextInput
-              style={[styles.modalInput, errors.streetName && styles.errorInput]}
-              placeholder="Street Name (e.g. Main St)"
-              value={streetName}
-              onChangeText={(text) => {
-                setStreetName(text);
-                if (errors.streetName) setErrors((prev) => ({ ...prev, streetName: false }));
-              }}
-            />
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Additional Information (e.g. Apt 1B, Floor 2)"
-              value={additionalDetails}
-              onChangeText={setAdditionalDetails}
-            />
-            <TextInput
-              style={[styles.modalInput, errors.postalCode && styles.errorInput]}
-              placeholder="Postal Code (e.g. 12345)"
-              value={postalCode}
-              onChangeText={(text) => {
-                setPostalCode(text);
-                if (errors.postalCode) setErrors((prev) => ({ ...prev, postalCode: false }));
-              }}
-            />
-            <TouchableOpacity
-              style={styles.modalButton}
-              onPress={handleSaveAddress}
-            >
-              <Text style={styles.modalButtonText}>Save</Text>
-            </TouchableOpacity>
+      {user?.role !== 'guest' && (
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={modalVisible}
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Enter Address Details</Text>
+              <TextInput
+                style={[styles.modalInput, errors.addressName && styles.errorInput]}
+                placeholder="Home Name (e.g. My Home)"
+                value={addressName}
+                onChangeText={(text) => {
+                  setAddressName(text);
+                  if (errors.addressName) setErrors((prev) => ({ ...prev, addressName: false }));
+                }}
+              />
+              <TextInput
+                style={[styles.modalInput, errors.houseNumber && styles.errorInput]}
+                placeholder="House Number (e.g. 123)"
+                value={houseNumber}
+                onChangeText={(text) => {
+                  setHouseNumber(text);
+                  if (errors.houseNumber) setErrors((prev) => ({ ...prev, houseNumber: false }));
+                }}
+              />
+              <TextInput
+                style={[styles.modalInput, errors.streetName && styles.errorInput]}
+                placeholder="Street Name (e.g. Main St)"
+                value={streetName}
+                onChangeText={(text) => {
+                  setStreetName(text);
+                  if (errors.streetName) setErrors((prev) => ({ ...prev, streetName: false }));
+                }}
+              />
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Additional Information (e.g. Apt 1B, Floor 2)"
+                value={additionalDetails}
+                onChangeText={setAdditionalDetails}
+              />
+              <TextInput
+                style={[styles.modalInput, errors.postalCode && styles.errorInput]}
+                placeholder="Postal Code (e.g. 12345)"
+                value={postalCode}
+                onChangeText={(text) => {
+                  setPostalCode(text);
+                  if (errors.postalCode) setErrors((prev) => ({ ...prev, postalCode: false }));
+                }}
+              />
+              <TouchableOpacity
+                style={styles.modalButton}
+                onPress={handleSaveAddress}
+              >
+                <Text style={styles.modalButtonText}>Save</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-      </Modal>
+        </Modal>
+      )}
       <Toast />
     </SafeAreaView>
   );

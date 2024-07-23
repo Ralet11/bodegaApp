@@ -19,14 +19,16 @@ const OrderScreen = () => {
   const navigation = useNavigation();
   const scheme = useColorScheme();
   const styles = scheme === 'dark' ? darkStyles : lightStyles;
-  
+
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedOrderDetails, setSelectedOrderDetails] = useState([]);
   const [loading, setLoading] = useState(true);  // State to manage loading
 
   useEffect(() => {
-    if (user) {
+    if (user && user.role !== 'guest') {
       dispatch(getAllOrders(user.id, token)).then(() => setLoading(false));  // Set loading to false once data is fetched
+    } else {
+      setLoading(false); // Set loading to false immediately if user is a guest
     }
   }, [dispatch, user, token]);
 
@@ -52,35 +54,47 @@ const OrderScreen = () => {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>My Orders</Text>
       </View>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {orders && orders.length > 0 ? (
-          orders.map((order) => (
-            <View key={order.id} style={styles.card}>
-              <Text style={styles.cardHeader}>Order #{order.id}</Text>
-              <Text style={styles.status}>{order.status}</Text>
-              <Text style={styles.date}>{formatDateTime(order.date_time)}</Text>
-              <Text style={styles.total}>Total Price: ${order.total_price}</Text>
-              <Text style={styles.localInfo}>{order.local.name}</Text>
-              <View style={styles.itemsContainer}>
-                <View style={styles.detailsContainer}>
-                  <Text style={styles.detailsText}>Details</Text>
-                  <TouchableOpacity onPress={() => handleViewDetails(order.order_details)}>
-                    <Text style={styles.detailsLink}>View Details</Text>
-                  </TouchableOpacity>
+      {user.role === 'guest' ? (
+        <View style={styles.guestContainer}>
+          <Text style={styles.guestText}>To view your orders, please log in or sign up</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('Login')} style={styles.orderButton}>
+            <Text style={styles.orderButtonText}>Log In</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('SignUp')} style={styles.orderButton}>
+            <Text style={styles.orderButtonText}>Sign Up</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          {orders && orders.length > 0 ? (
+            orders.map((order) => (
+              <View key={order.id} style={styles.card}>
+                <Text style={styles.cardHeader}>Order #{order.id}</Text>
+                <Text style={styles.status}>{order.status}</Text>
+                <Text style={styles.date}>{formatDateTime(order.date_time)}</Text>
+                <Text style={styles.total}>Total Price: ${order.total_price}</Text>
+                <Text style={styles.localInfo}>{order.local.name}</Text>
+                <View style={styles.itemsContainer}>
+                  <View style={styles.detailsContainer}>
+                    <Text style={styles.detailsText}>Details</Text>
+                    <TouchableOpacity onPress={() => handleViewDetails(order.order_details)}>
+                      <Text style={styles.detailsLink}>View Details</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
+            ))
+          ) : (
+            <View style={styles.noOrdersContainer}>
+              <Text style={styles.noOrdersText}>No orders have been made yet</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Home')} style={styles.orderButton}>
+                <Text style={styles.orderButtonText}>Start Ordering</Text>
+              </TouchableOpacity>
+              <Text style={styles.tipText}>Tip: Explore our menu and make your first order!</Text>
             </View>
-          ))
-        ) : (
-          <View style={styles.noOrdersContainer}>
-            <Text style={styles.noOrdersText}>No orders have been made yet</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Home')} style={styles.orderButton}>
-              <Text style={styles.orderButtonText}>Start Ordering</Text>
-            </TouchableOpacity>
-            <Text style={styles.tipText}>Tip: Explore our menu and make your first order!</Text>
-          </View>
-        )}
-      </ScrollView>
+          )}
+        </ScrollView>
+      )}
       <Modal
         animationType="slide"
         transparent={true}
@@ -306,6 +320,17 @@ const commonStyles = {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#000',
+  },
+  guestContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  guestText: {
+    fontSize: 18,
+    textAlign: 'center',
+    marginBottom: 20,
   },
 };
 

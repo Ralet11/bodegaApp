@@ -5,6 +5,8 @@ import { FontAwesome } from '@expo/vector-icons';
 import { useDispatch } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
 import { clearUser } from '../redux/slices/user.slice'; // Ajusta la ruta según la ubicación de tu archivo userSlice
+import { clearOrders } from '../redux/slices/orders.slice';
+import { clearCart } from '../redux/slices/cart.slice';
 
 const AccountDrawer = ({ user, visible, onClose, onNavigate, scheme }) => {
   const dispatch = useDispatch();
@@ -13,6 +15,8 @@ const AccountDrawer = ({ user, visible, onClose, onNavigate, scheme }) => {
 
   const handleLogout = () => {
     dispatch(clearUser());
+    dispatch(clearOrders())
+    dispatch(clearCart())
     navigation.navigate('Login');
   };
 
@@ -32,7 +36,9 @@ const AccountDrawer = ({ user, visible, onClose, onNavigate, scheme }) => {
     }
   }, [visible]);
 
-  console.log(user);
+  if (!user) {
+    return null; // No renderizar nada si el usuario es null
+  }
 
   return (
     <Modal
@@ -47,10 +53,10 @@ const AccountDrawer = ({ user, visible, onClose, onNavigate, scheme }) => {
           <SafeAreaView style={styles.safeArea}>
             <View style={styles.header}>
               <View style={styles.userDetails}>
-                <Image source={{ uri: user.avatar }} style={styles.avatar} />
+                <Image source={{ uri: user?.avatar }} style={styles.avatar} />
                 <View>
                   <Text style={[styles.drawerTitle, scheme === 'dark' ? styles.darkTitle : styles.lightTitle]}>
-                    {user.name}
+                    {user?.name}
                   </Text>
                 </View>
               </View>
@@ -58,46 +64,62 @@ const AccountDrawer = ({ user, visible, onClose, onNavigate, scheme }) => {
                 <FontAwesome name="close" size={24} color={scheme === 'dark' ? '#FFD700' : '#000'} />
               </TouchableOpacity>
             </View>
-            
-            <View style={styles.drawerSection}>
-              <TouchableOpacity onPress={() => onNavigate('AccountSettings')} style={styles.drawerButton}>
-                <FontAwesome name="cog" size={20} color={scheme === 'dark' ? '#FFD700' : '#333'} />
-                <Text style={[styles.drawerButtonText, scheme === 'dark' ? styles.darkButtonText : styles.lightButtonText]}>
-                  Account Settings
+
+            {user?.role === 'guest' ? (
+              <View style={styles.guestContainer}>
+                <Text style={[styles.drawerTitle, scheme === 'dark' ? styles.darkTitle : styles.lightTitle]}>
+                  You are logged in as guest
                 </Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => onNavigate('MyCoupons')} style={styles.drawerButton}>
-                <FontAwesome name="ticket" size={20} color={scheme === 'dark' ? '#FFD700' : '#333'} />
-                <Text style={[styles.drawerButtonText, scheme === 'dark' ? styles.darkButtonText : styles.lightButtonText]}>
-                  My Coupons
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => onNavigate('Contact')} style={styles.drawerButton}>
-                <FontAwesome name="phone" size={20} color={scheme === 'dark' ? '#FFD700' : '#333'} />
-                <Text style={[styles.drawerButtonText, scheme === 'dark' ? styles.darkButtonText : styles.lightButtonText]}>
-                  Contact
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => onNavigate('BodegaPro')} style={styles.drawerButton}>
-                <FontAwesome name="star" size={20} color={scheme === 'dark' ? '#FFD700' : '#333'} />
-                <Text style={[styles.drawerButtonText, scheme === 'dark' ? styles.darkButtonText : styles.lightButtonText]}>
-                  Bodega+ Pro
-                </Text>
-              </TouchableOpacity>
-              <View style={styles.bodegaBalance}>
-                <FontAwesome name="money" size={20} color={scheme === 'dark' ? '#FFD700' : '#333'} />
-                <Text style={[styles.drawerText, scheme === 'dark' ? styles.darkText : styles.lightText, styles.balanceText]}>
-                  Bodega Balance: ${parseFloat(user.balance).toFixed(2)}
-                </Text>
+                <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+                  <FontAwesome name="arrow-left" size={20} color={scheme === 'dark' ? '#FFD700' : '#333'} />
+                  <Text style={[styles.drawerButtonText, scheme === 'dark' ? styles.darkButtonText : styles.lightButtonText]}>
+                    Go back to login
+                  </Text>
+                </TouchableOpacity>
               </View>
-            </View>
-            
-            <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-              <FontAwesome name="sign-out" size={20} color={scheme === 'dark' ? '#FFD700' : '#333'} />
-              <Text style={[styles.drawerButtonText, scheme === 'dark' ? styles.darkButtonText : styles.lightButtonText]}>
-                Logout
-              </Text>
-            </TouchableOpacity>
+            ) : (
+              <>
+                <View style={styles.drawerSection}>
+                  <TouchableOpacity onPress={() => onNavigate('AccountSettings')} style={styles.drawerButton}>
+                    <FontAwesome name="cog" size={20} color={scheme === 'dark' ? '#FFD700' : '#333'} />
+                    <Text style={[styles.drawerButtonText, scheme === 'dark' ? styles.darkButtonText : styles.lightButtonText]}>
+                      Account Settings
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => onNavigate('MyCoupons')} style={styles.drawerButton}>
+                    <FontAwesome name="ticket" size={20} color={scheme === 'dark' ? '#FFD700' : '#333'} />
+                    <Text style={[styles.drawerButtonText, scheme === 'dark' ? styles.darkButtonText : styles.lightButtonText]}>
+                      My Coupons
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => onNavigate('Contact')} style={styles.drawerButton}>
+                    <FontAwesome name="phone" size={20} color={scheme === 'dark' ? '#FFD700' : '#333'} />
+                    <Text style={[styles.drawerButtonText, scheme === 'dark' ? styles.darkButtonText : styles.lightButtonText]}>
+                      Contact
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => onNavigate('BodegaPro')} style={styles.drawerButton}>
+                    <FontAwesome name="star" size={20} color={scheme === 'dark' ? '#FFD700' : '#333'} />
+                    <Text style={[styles.drawerButtonText, scheme === 'dark' ? styles.darkButtonText : styles.lightButtonText]}>
+                      Bodega+ Pro
+                    </Text>
+                  </TouchableOpacity>
+                  <View style={styles.bodegaBalance}>
+                    <FontAwesome name="money" size={20} color={scheme === 'dark' ? '#FFD700' : '#333'} />
+                    <Text style={[styles.drawerText, scheme === 'dark' ? styles.darkText : styles.lightText, styles.balanceText]}>
+                      Bodega Balance: ${parseFloat(user?.balance).toFixed(2)}
+                    </Text>
+                  </View>
+                </View>
+
+                <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+                  <FontAwesome name="sign-out" size={20} color={scheme === 'dark' ? '#FFD700' : '#333'} />
+                  <Text style={[styles.drawerButtonText, scheme === 'dark' ? styles.darkButtonText : styles.lightButtonText]}>
+                    Logout
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
           </SafeAreaView>
         </Animated.View>
       </View>
@@ -205,6 +227,11 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     borderTopWidth: 1,
     borderTopColor: '#ccc',
+  },
+  guestContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

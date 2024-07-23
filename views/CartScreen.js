@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Image, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, TextInput, Alert, Modal, FlatList, ActivityIndicator, useColorScheme, Switch } from 'react-native';
+import { View, Text, Image, ScrollView, TouchableOpacity, SafeAreaView, TextInput, Alert, Modal, FlatList, ActivityIndicator, useColorScheme, Switch, Keyboard, TouchableWithoutFeedback } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { incrementQuantity, decrementQuantity, clearCart } from '../redux/slices/cart.slice';
 import Axios from 'react-native-axios';
@@ -12,6 +12,7 @@ import { setCurrentOrder, setOrderIn } from '../redux/slices/orders.slice';
 import { setUser } from '../redux/slices/user.slice';
 import CartSkeletonLoader from '../components/SkeletonLoaderCart';
 import { stylesDark, stylesLight } from '../components/themeCart';
+import Toast from 'react-native-toast-message';
 
 const CartScreen = () => {
   const cart = useSelector(state => state.cart.items);
@@ -41,8 +42,10 @@ const CartScreen = () => {
   const [finalPrice, setFinalPrice] = useState(null);
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const { orderType } = route.params;
+  const [loginModalVisible, setLoginModalVisible] = useState(false);
+  const [loginMode, setLoginMode] = useState(true);
 
-  const GOOGLE_API_KEY = 'AIzaSyB8fCVwRXbMe9FAxsrC5CsyfjzpHxowQmE';
+  const GOOGLE_API_KEY = 'YOUR_GOOGLE_API_KEY';
 
   const calculateSubtotal = () => {
     return cart.reduce((total, item) => total + (parseFloat(item.price.replace('$', '')) + (item.selectedExtras ? Object.values(item.selectedExtras).reduce((extraTotal, extra) => extraTotal + extra.price, 0) : 0)) * item.quantity, 0).toFixed(2);
@@ -343,6 +346,7 @@ const CartScreen = () => {
                 <Text style={styles.orderTypeText}>{orderType}</Text>
               </View>
             </TouchableOpacity>
+            <Text style={styles.orderTypeText}>User: {user.name}</Text>
           </View>
 
           {orderType === 'Delivery' && (
@@ -482,7 +486,11 @@ const CartScreen = () => {
               <Text style={styles.adText}>Get free delivery and exclusive promotions</Text>
             </View>
           )}
-          <TouchableOpacity style={styles.checkoutButton} onPress={payment} disabled={isCheckoutLoading}>
+          <TouchableOpacity 
+            style={styles.checkoutButton} 
+            onPress={() => user.role === 'guest' ? setLoginModalVisible(true) : payment()} 
+            disabled={isCheckoutLoading}
+          >
             {isCheckoutLoading ? (
               <ActivityIndicator size="small" color="#fff" />
             ) : (
@@ -546,9 +554,292 @@ const CartScreen = () => {
               </View>
             </View>
           </Modal>
+          <Modal
+            visible={loginModalVisible}
+            animationType="slide"
+            transparent={true}
+            onRequestClose={() => setLoginModalVisible(false)}
+          >
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+              <View style={styles.modalContainer}>
+                <View style={styles.modalContent}>
+                  <Text style={styles.modalTitle}>To continue with the purchase, please log in or sign up</Text>
+                  {loginMode ? (
+                    <LoginForm setLoginMode={setLoginMode} handleLoginSuccess={() => setLoginModalVisible(false)} />
+                  ) : (
+                    <SignUpForm setLoginMode={setLoginMode} handleSignUpSuccess={() => setLoginModalVisible(false)} />
+                  )}
+                  <TouchableOpacity
+                    style={styles.closeButton}
+                    onPress={() => setLoginModalVisible(false)}
+                  >
+                    <Text style={styles.closeButtonText}>Close</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </TouchableWithoutFeedback>
+          </Modal>
         </ScrollView>
       )}
+      <Toast />
     </SafeAreaView>
+  );
+};
+
+const LoginForm = ({ setLoginMode, handleLoginSuccess }) => {
+  const [clientData, setClientData] = useState({ email: "", password: "" });
+  const [errors, setErrors] = useState({ email: false, password: false });
+  const [loading, setLoading] = useState(false);
+  const dispatch = useDispatch();
+  const colorScheme = useColorScheme();
+  const styles = colorScheme === 'dark' ? stylesDark : stylesLight;
+
+  const handleChange = (fieldName, value) => {
+    setClientData(prevState => ({ ...prevState, [fieldName]: value }));
+
+    let emailError = false;
+    let passwordError = false;
+
+    if (fieldName === 'email') {
+      emailError = !value.trim() || !/^\S+@\S+\.\S+$/.test(value);
+    } else if (fieldName === 'password') {
+      passwordError = !value.trim();
+    }
+
+    setErrors({ email: emailError, password: passwordError });
+  };
+
+  const handleLogin = async () => {
+    if (errors.email || errors.password) {
+      Toast.show({
+        type: 'error',
+        text1: 'Validation Error',
+        text2: 'Please fill in all fields correctly.',
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await Axios.post(`${API_URL}/api/auth/loginUser`, { clientData, credentials: true });
+      if (!response.data.error) {
+        const _clientData = response.data;
+        dispatch(setUser(_clientData));
+        handleLoginSuccess();
+      } else {
+        Toast.show({
+          type: 'error',
+          text1: 'Login Error',
+          text2: response.data.message || 'Invalid username or password.',
+        });
+      }
+    } catch (error) {
+      Toast.show({
+        type: 'error',
+        text1: 'Network Error',
+        text2: error.response?.data?.message || error.message || 'Something went wrong. Please try again later.',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <View style={styles.formContainer}>
+      <View style={styles.inputContainer}>
+        <TextInput
+          onChangeText={(value) => handleChange('email', value)}
+          style={[styles.input, { borderColor: errors.email ? 'red' : colorScheme === 'dark' ? '#FFF' : '#ccc' }]}
+          value={clientData.email}
+          placeholder='Email Address'
+          placeholderTextColor={colorScheme === 'dark' ? '#FFF' : '#888'}
+        />
+        <Icon name="mail-outline" size={24} color={colorScheme === 'dark' ? '#fff' : '#000'} />
+      </View>
+      {errors.email && <Text style={styles.errorText}>Valid email is required.</Text>}
+      <View style={styles.inputContainer}>
+        <TextInput
+          onChangeText={(value) => handleChange('password', value)}
+          style={[styles.input, { borderColor: errors.password ? 'red' : colorScheme === 'dark' ? '#FFF' : '#ccc' }]}
+          secureTextEntry={true}
+          value={clientData.password}
+          placeholder='Password'
+          placeholderTextColor={colorScheme === 'dark' ? '#FFF' : '#888'}
+        />
+        <Icon name="lock-closed-outline" size={24} color={colorScheme === 'dark' ? '#fff' : '#000'} />
+      </View>
+      {errors.password && <Text style={styles.errorText}>Password is required.</Text>}
+      <TouchableOpacity onPress={handleLogin} style={styles.button} disabled={loading}>
+        {loading ? (
+          <ActivityIndicator size="small" color="#FFF" />
+        ) : (
+          <Text style={styles.buttonText}>Log In</Text>
+        )}
+      </TouchableOpacity>
+      <TouchableOpacity onPress={() => setLoginMode(false)} style={styles.footerLink}>
+        <Text style={styles.footerText}>Don't have an account? Sign up</Text>
+      </TouchableOpacity>
+    </View>
+  );
+};
+
+const SignUpForm = ({ setLoginMode, handleSignUpSuccess }) => {
+  const [clientData, setClientData] = useState({ name: "", email: "", password: "", confirmPassword: "", phone: "" });
+  const [errors, setErrors] = useState({ name: false, email: false, password: false, confirmPassword: false, phone: false });
+  const [loading, setLoading] = useState(false);
+  const dispatch = useDispatch();
+  const colorScheme = useColorScheme();
+  const styles = colorScheme === 'dark' ? stylesDark : stylesLight;
+
+  const handleChange = (fieldName, value) => {
+    setClientData(prevState => ({ ...prevState, [fieldName]: value }));
+
+    let nameError = false;
+    let emailError = false;
+    let passwordError = false;
+    let confirmPasswordError = false;
+    let phoneError = false;
+
+    if (fieldName === 'name') {
+      nameError = !value.trim() || value.length > 45;
+    } else if (fieldName === 'email') {
+      emailError = !value.trim() || !/^\S+@\S+\.\S+$/.test(value);
+    } else if (fieldName === 'password') {
+      passwordError = !value.trim() || value.length < 6;
+    } else if (fieldName === 'confirmPassword') {
+      confirmPasswordError = value !== clientData.password;
+    } else if (fieldName === 'phone') {
+      phoneError = !value.trim();
+    }
+
+    setErrors({ name: nameError, email: emailError, password: passwordError, confirmPassword: confirmPasswordError, phone: phoneError });
+  };
+
+  const handleSignUp = async () => {
+    const currentErrors = {
+      name: !clientData.name.trim() || clientData.name.length > 45,
+      email: !clientData.email.trim() || !/^\S+@\S+\.\S+$/.test(clientData.email),
+      password: !clientData.password.trim() || clientData.password.length < 6,
+      confirmPassword: clientData.confirmPassword !== clientData.password,
+      phone: !clientData.phone.trim(),
+    };
+
+    setErrors(currentErrors);
+
+    if (Object.values(currentErrors).some(error => error)) {
+      Toast.show({
+        type: 'error',
+        text1: 'Validation Error',
+        text2: 'Please fill in all fields correctly.',
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await Axios.post(`${API_URL}/api/auth/registerUser`, { clientData, credentials: true });
+      if (!response.data.error) {
+        const _clientData = response.data;
+        dispatch(setUser(_clientData));
+        dispatch(fetchCategories());
+        handleSignUpSuccess();
+      } else {
+        Toast.show({
+          type: 'error',
+          text1: 'Sign Up Error',
+          text2: response.data.message || 'Error in server response.',
+        });
+      }
+    } catch (error) {
+      const backendErrors = error.response?.data?.errors || {};
+      setErrors({
+        name: backendErrors.name || currentErrors.name,
+        email: backendErrors.email || currentErrors.email,
+        password: backendErrors.password || currentErrors.password,
+        confirmPassword: backendErrors.confirmPassword || currentErrors.confirmPassword,
+        phone: backendErrors.phone || currentErrors.phone,
+      });
+
+      Toast.show({
+        type: 'error',
+        text1: 'Network Error',
+        text2: error.response?.data?.message || error.message || 'Something went wrong. Please try again later.',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <View style={styles.formContainer}>
+      <View style={styles.inputContainer}>
+        <TextInput
+          onChangeText={(value) => handleChange('name', value)}
+          style={[styles.input, { borderColor: errors.name ? 'red' : colorScheme === 'dark' ? '#FFF' : '#ccc' }]}
+          value={clientData.name}
+          placeholder='Name'
+          placeholderTextColor={colorScheme === 'dark' ? '#FFF' : '#888'}
+        />
+        <Icon name="person-outline" size={24} color={colorScheme === 'dark' ? '#fff' : '#000'} />
+      </View>
+      {errors.name && <Text style={styles.errorText}>Name is required and must be less than 45 characters.</Text>}
+      <View style={styles.inputContainer}>
+        <TextInput
+          onChangeText={(value) => handleChange('email', value)}
+          style={[styles.input, { borderColor: errors.email ? 'red' : colorScheme === 'dark' ? '#FFF' : '#ccc' }]}
+          value={clientData.email}
+          placeholder='Email Address'
+          placeholderTextColor={colorScheme === 'dark' ? '#FFF' : '#888'}
+        />
+        <Icon name="mail-outline" size={24} color={colorScheme === 'dark' ? '#fff' : '#000'} />
+      </View>
+      {errors.email && <Text style={styles.errorText}>Valid email is required.</Text>}
+      <View style={styles.inputContainer}>
+        <TextInput
+          onChangeText={(value) => handleChange('password', value)}
+          style={[styles.input, { borderColor: errors.password ? 'red' : colorScheme === 'dark' ? '#FFF' : '#ccc' }]}
+          secureTextEntry={true}
+          value={clientData.password}
+          placeholder='Password'
+          placeholderTextColor={colorScheme === 'dark' ? '#FFF' : '#888'}
+        />
+        <Icon name="lock-closed-outline" size={24} color={colorScheme === 'dark' ? '#fff' : '#000'} />
+      </View>
+      {errors.password && <Text style={styles.errorText}>Password is required and must be at least 6 characters.</Text>}
+      <View style={styles.inputContainer}>
+        <TextInput
+          onChangeText={(value) => handleChange('confirmPassword', value)}
+          style={[styles.input, { borderColor: errors.confirmPassword ? 'red' : colorScheme === 'dark' ? '#FFF' : '#ccc' }]}
+          secureTextEntry={true}
+          value={clientData.confirmPassword}
+          placeholder='Confirm Password'
+          placeholderTextColor={colorScheme === 'dark' ? '#FFF' : '#888'}
+        />
+        <Icon name="lock-closed-outline" size={24} color={colorScheme === 'dark' ? '#fff' : '#000'} />
+      </View>
+      {errors.confirmPassword && <Text style={styles.errorText}>Passwords do not match.</Text>}
+      <View style={styles.inputContainer}>
+        <TextInput
+          onChangeText={(value) => handleChange('phone', value)}
+          style={[styles.input, { borderColor: errors.phone ? 'red' : colorScheme === 'dark' ? '#FFF' : '#ccc' }]}
+          value={clientData.phone}
+          placeholder='Phone Number'
+          placeholderTextColor={colorScheme === 'dark' ? '#FFF' : '#888'}
+        />
+        <Icon name="call-outline" size={24} color={colorScheme === 'dark' ? '#fff' : '#000'} />
+      </View>
+      {errors.phone && <Text style={styles.errorText}>Valid phone number is required.</Text>}
+      <TouchableOpacity onPress={handleSignUp} style={styles.button} disabled={loading}>
+        {loading ? (
+          <ActivityIndicator size="small" color="#FFF" />
+        ) : (
+          <Text style={styles.buttonText}>Sign Up</Text>
+        )}
+      </TouchableOpacity>
+      <TouchableOpacity onPress={() => setLoginMode(true)} style={styles.footerLink}>
+        <Text style={styles.footerText}>Already have an account? Log in</Text>
+      </TouchableOpacity>
+    </View>
   );
 };
 

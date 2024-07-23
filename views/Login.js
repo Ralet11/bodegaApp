@@ -18,8 +18,8 @@ export default function Login() {
   const colorScheme = useColorScheme();
   const styles = colorScheme === 'dark' ? stylesDark : stylesLight;
   const [clientData, setClientData] = useState({
-    email: "ramiro@gmail.com",
-    password: "123456"
+    email: "",
+    password: ""
   });
 
   const [errors, setErrors] = useState({
@@ -148,6 +148,34 @@ export default function Login() {
     });
   };
 
+  const handleGuestLogin = async () => {
+    setLoading(true);
+    try {
+      const response = await Axios.post(`${API_URL}/api/auth/loginguest`);
+
+      if (response.data.error === false) {
+        const guestData = response.data;
+        dispatch(setUser(guestData));
+        dispatch(fetchCategories());
+        navigation.navigate('Main');
+      } else {
+        Toast.show({
+          type: 'error',
+          text1: 'Login Error',
+          text2: response.data.message || 'Unable to login as guest.',
+        });
+      }
+    } catch (error) {
+      Toast.show({
+        type: 'error',
+        text1: 'Network Error',
+        text2: error.response?.data?.message || error.message || 'Something went wrong. Please try again later.',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <SafeAreaView style={styles.safeArea}>
@@ -221,6 +249,9 @@ export default function Login() {
             </TouchableOpacity>
             <TouchableOpacity onPress={() => navigation.navigate('Signup')} style={styles.footerLink}>
               <Text style={styles.footerText}>Don't have an account? Sign up</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleGuestLogin} style={styles.guestLink}>
+              <Text style={styles.guestText}>Continue as Guest</Text>
             </TouchableOpacity>
           </Animated.View>
         </View>
@@ -310,6 +341,19 @@ const commonStyles = {
   footerText: {
     fontSize: 16,
   },
+  guestLink: {
+    marginTop: 10,
+    alignItems: 'center',
+  },
+  guestText: {
+    fontSize: 16,
+    textDecorationLine: 'underline',
+    shadowColor: '#000',
+    shadowOpacity: 0.4, 
+    shadowOffset: { width: 0, height: 10 }, 
+    shadowRadius: 20, 
+    elevation: 15, 
+  },
 };
 
 const stylesLight = StyleSheet.create({
@@ -334,6 +378,10 @@ const stylesLight = StyleSheet.create({
     ...commonStyles.footerText,
     color: '#333',
   },
+  guestText: {
+    ...commonStyles.guestText,
+    color: '#333',
+  },
 });
 
 const stylesDark = StyleSheet.create({
@@ -356,6 +404,10 @@ const stylesDark = StyleSheet.create({
   },
   footerText: {
     ...commonStyles.footerText,
+    color: '#FFF',
+  },
+  guestText: {
+    ...commonStyles.guestText,
     color: '#FFF',
   },
 });

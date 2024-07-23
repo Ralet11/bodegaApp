@@ -12,6 +12,9 @@ const HorizontalScroll = ({ title, items, scheme, handleItemPress, categoryId}) 
   const styles = scheme === 'dark' ? darkTheme : lightTheme;
   const navigation = useNavigation()
 
+  console.log(address, "addres en horizontal")
+  console.log(items)
+
   const GOOGLE_MAPS_API_KEY = 'AIzaSyB8fCVwRXbMe9FAxsrC5CsyfjzpHxowQmE'
 
   useEffect(() => {
@@ -24,6 +27,7 @@ const HorizontalScroll = ({ title, items, scheme, handleItemPress, categoryId}) 
             const response = await Axios.get(
               `https://maps.googleapis.com/maps/api/distancematrix/json?units=metric&origins=${encodeURIComponent(address)}&destinations=${encodeURIComponent(item.address)}&key=${GOOGLE_MAPS_API_KEY}`
             );
+            console.log(response, "respuestaaaaa")
             const distanceText = response.data.rows[0].elements[0].distance.text;
             const distanceValue = response.data.rows[0].elements[0].distance.value / 1000; // Convert to kilometers
             if (distanceValue <= 20) {

@@ -32,9 +32,11 @@ const Dashboard = () => {
   const navigation = useNavigation();
   const dispatch = useDispatch();
   const user = useSelector((state) => state?.user?.userInfo?.data?.client);
-  const token = useSelector((state) => state?.user?.userInfo.data.token);
-  const ordersIn = useSelector((state) => state?.orders.ordersIn);
+  const token = useSelector((state) => state?.user?.userInfo?.data?.token);
+  const ordersIn = useSelector((state) => state?.orders?.ordersIn);
   const auxShops = useSelector((state) => state?.setUp?.auxShops);
+
+  console.log(address, "address")
 
   const categoryTitles = {
     1: 'Best smoke shops',
@@ -394,6 +396,9 @@ const Dashboard = () => {
               alignItems: 'center',
             }}
           >
+            <TouchableOpacity onPress={() => setAddressModalVisible(false)} style={styles.closeButton}>
+              <FontAwesome name="close" size={24} color={scheme === 'dark' ? '#fff' : '#000'} />
+            </TouchableOpacity>
             <Text style={{ fontSize: 18, marginBottom: 15, color: scheme === 'dark' ? '#fff' : '#333' }}>
               Select Your Address
             </Text>
@@ -446,6 +451,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#ddd',
     width: '100%',
     marginVertical: 10,
+  },
+  closeButton: {
+    alignSelf: 'flex-end',
+    marginBottom: 10,
   },
 });
 
