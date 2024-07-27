@@ -16,7 +16,6 @@ import { stylesDark, stylesLight } from '../components/themeShop';
 import DiscountCard from '../components/DiscountCard';
 import ModalDiscount from '../components/modals/DiscountModal';
 
-
 const ShopScreen = () => {
   const route = useRoute();
   const navigation = useNavigation();
@@ -39,8 +38,9 @@ const ShopScreen = () => {
   const [selectedDiscount, setSelectedDiscount] = useState(false)
   const [discountModalVisible, setDiscountModalVisible] = useState(false)
 
-
   const { shop } = route.params || {};
+
+  console.log(shop)
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -218,16 +218,16 @@ const ShopScreen = () => {
     const productInCart = cart?.find(cartItem => cartItem?.id == product?.id);
 
     const handleIncrementQuantity = () => {
-      if(product.extras.length > 0) {
+      if (product.extras.length > 0) {
         openModal(product)
-      }else {
+      } else {
         if (productInCart) {
           dispatch(incrementQuantity(product?.id));
         } else {
           dispatch(addToCart({ ...product, quantity: 1 }));
         }
       }
-      
+
     };
 
     const handleDecrementQuantity = () => {
@@ -247,15 +247,18 @@ const ShopScreen = () => {
           <TouchableOpacity onPress={() => openModal(product)}>
             <Text style={styles.productName}>{product.name}</Text>
           </TouchableOpacity>
-          <Text style={styles.productPrice}>${product.price}</Text>
-          <View style={styles.productActions}>
-            <TouchableOpacity style={styles.quantityButton} onPress={handleDecrementQuantity}>
-              <FontAwesome name="minus" size={14} color="#000" />
-            </TouchableOpacity>
-            <Text style={styles.quantityText}>{productInCart ? productInCart.quantity : 0}</Text>
-            <TouchableOpacity style={styles.quantityButton} onPress={handleIncrementQuantity}>
-              <FontAwesome name="plus" size={14} color="#000" />
-            </TouchableOpacity>
+          <Text style={styles.productDescription}>{product.description}</Text>
+          <View style={styles.productPriceContainer}>
+            <Text style={styles.productPrice}>${product.price}</Text>
+            <View style={styles.productActions}>
+              <TouchableOpacity style={styles.quantityButton} onPress={handleDecrementQuantity}>
+                <FontAwesome name="minus" size={14} color="#000" />
+              </TouchableOpacity>
+              <Text style={styles.quantityText}>{productInCart ? productInCart.quantity : 0}</Text>
+              <TouchableOpacity style={styles.quantityButton} onPress={handleIncrementQuantity}>
+                <FontAwesome name="plus" size={14} color="#000" />
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </View>
@@ -272,10 +275,10 @@ const ShopScreen = () => {
   const styles = colorScheme == 'dark' ? stylesDark : stylesLight;
 
   const orderTypes = [
-    { type: 'Pick-up', icon: 'shopping-basket' },
-    { type: 'Delivery', icon: 'bicycle' },
-    { type: 'Order-in', icon: 'cutlery' },
-  ];
+    { type: 'Pick-up', icon: 'shopping-basket', available: shop.pickUp },
+    { type: 'Delivery', icon: 'bicycle', available: shop.delivery },
+    { type: 'Order-in', icon: 'cutlery', available: shop.orderIn },
+  ].filter(orderType => orderType.available);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -306,6 +309,21 @@ const ShopScreen = () => {
           </View>
         </Animated.View>
       </Animated.View>
+      <View style={styles.orderTypeContainer}>
+        {orderTypes.map(order => (
+          <TouchableOpacity
+            key={order.type}
+            style={[
+              styles.orderTypeButton,
+              orderType == order.type && styles.selectedOrderTypeButton,
+            ]}
+            onPress={() => handleOrderTypeChange(order.type)}
+          >
+            <FontAwesome name={order.icon} size={15} color={orderType == order.type ? '#8C6D00' : '#333'} />
+            <Text style={styles.orderTypeText}>{order.type}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
       <View style={styles.categoryListContainer}>
         {orderType !== 'Order-in' && (
           <ScrollView
@@ -334,33 +352,22 @@ const ShopScreen = () => {
           )}
           contentContainerStyle={styles.contentContainer}
         >
-          <View style={styles.orderTypeContainer}>
-            {orderTypes.map(order => (
-              <TouchableOpacity
-                key={order.type}
-                style={[
-                  styles.orderTypeButton,
-                  orderType == order.type && styles.selectedOrderTypeButton,
-                ]}
-                onPress={() => handleOrderTypeChange(order.type)}
-              >
-                <FontAwesome name={order.icon} size={15} color={orderType == order.type ? '#8C6D00' : '#333'} />
-                <Text style={styles.orderTypeText}>{order.type}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          <Text style={styles.discountSectionTitle}>Discounts</Text>
+
+
 
           {orderType == 'Order-in' ? (
             discounts.filter(discount => discount.delivery == 1).map(discount => renderDiscount(discount, true))
           ) : (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.discountScrollContainer}
-            >
-              {discounts.filter(discount => discount.delivery == 0).map(discount => renderDiscount(discount, false))}
-            </ScrollView>
+            <View style={{ backgroundColor: 'white', flex: 1, marginBottom: 5 }}>
+              {discounts.length > 0 && <Text style={styles.discountSectionTitle}>Our best</Text>}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.discountScrollContainer}
+              >
+                {discounts.filter(discount => discount.delivery == 0).map(discount => renderDiscount(discount, false))}
+              </ScrollView>
+            </View>
           )}
           {orderType !== 'Order-in' && categories.map(category => renderCategory(category))}
         </Animated.ScrollView>
@@ -372,10 +379,10 @@ const ShopScreen = () => {
         addToCart={handleAddToCartFromModal}
       />
       <ModalDiscount
-      visible={discountModalVisible}
-      onClose={closeDiscountModal}
-      discount={selectedDiscount}
-       />
+        visible={discountModalVisible}
+        onClose={closeDiscountModal}
+        discount={selectedDiscount}
+      />
       {cart.length > 0 && (
         <View style={styles.cartContainer}>
           <Text style={styles.cartText}>{totalItems} Product{totalItems > 1 ? 's' : ''}</Text>

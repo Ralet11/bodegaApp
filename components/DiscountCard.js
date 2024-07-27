@@ -17,7 +17,6 @@ const DiscountCard = ({ discount, isBlockLayout, openDiscountModal }) => {
   const productPrice = parseFloat(discount?.product?.price || 0);
   const discountAmount = productPrice * (discount.percentage / 100);
   const finalPrice = productPrice - discountAmount;
-  
 
   const handleSaveDiscount = async () => {
     try {
@@ -112,7 +111,7 @@ const DiscountCard = ({ discount, isBlockLayout, openDiscountModal }) => {
 
 const styles = StyleSheet.create({
   discountCard: {
-    width: 180,
+    width: 160, // Cambiado de 180 a 160
     backgroundColor: '#fff',
     borderRadius: 10,
     overflow: 'hidden',
@@ -140,11 +139,11 @@ const styles = StyleSheet.create({
   },
   discountImage: {
     width: '100%',
-    height: 120,
+    height: 100, // Cambiado de 120 a 100
   },
   discountBlockImage: {
-    width: 100,
-    height: 100,
+    width: 80, // Cambiado de 100 a 80
+    height: 80, // Cambiado de 100 a 80
     marginRight: 15,
   },
   discountDetails: {
@@ -152,18 +151,18 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   discountTitle: {
-    fontSize: 16,
+    fontSize: 14, // Cambiado de 16 a 14
     fontWeight: 'bold',
     color: '#333',
     marginBottom: 5,
   },
   discountDescription: {
-    fontSize: 12,
+    fontSize: 11, // Cambiado de 12 a 11
     color: '#666',
     marginBottom: 10,
   },
   productFinalPrice: {
-    fontSize: 16,
+    fontSize: 14, // Cambiado de 16 a 14
     fontWeight: 'bold',
     color: '#000',
     marginBottom: 10,

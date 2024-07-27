@@ -214,6 +214,7 @@ export default function Login() {
                   duration: 200,
                   useNativeDriver: true,
                 }).start()}
+                autoCapitalize='none' // Aquí se desactiva la capitalización automática
               />
             </View>
             <View style={styles.inputContainer}>
@@ -235,6 +236,7 @@ export default function Login() {
                   duration: 200,
                   useNativeDriver: true,
                 }).start()}
+                autoCapitalize='none' // Aquí se desactiva la capitalización automática
               />
               <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.showPasswordButton}>
                 <FontAwesome name={showPassword ? "eye-slash" : "eye"} size={20} color={colorScheme === 'dark' ? '#FFF' : '#888'} />

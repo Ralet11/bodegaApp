@@ -6,7 +6,7 @@ const commonStyles = {
     
   },
   contentContainer: {
-    paddingBottom: 80,
+    paddingBottom: 80
   },
   container: {
     flex: 1,
@@ -80,11 +80,13 @@ const commonStyles = {
     paddingHorizontal: 16,
   },
   categoryContainer: {
-    marginBottom: 20,
-    paddingHorizontal: 16,
+    marginBottom: 5,
+    paddingHorizontal: 20,
+    backgroundColor: "white",
+    paddingVertical:20
   },
   categoryTitle: {
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 10,
     fontFamily: 'sans-serif-medium',
@@ -101,27 +103,38 @@ const commonStyles = {
     shadowRadius: 4,
     elevation: 5,
     width: '100%',
+    alignItems: 'center',
   },
   productImage: {
     width: 80,
-    height: 140,
+    height: 80,  // Ajusta el tamaño de la imagen según tus necesidades
     borderRadius: 10,
   },
   productDetails: {
     flex: 1,
     marginLeft: 10,
-    justifyContent: 'space-between',
+    justifyContent: 'center',
   },
   productName: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: 'bold',
     fontFamily: 'sans-serif-medium',
     color: "#000"
   },
-  productPrice: {
+  productDescription: {
     fontSize: 12,
-    marginTop: 4,
-    fontFamily: 'sans-serif',
+    color: '#666',
+  },
+  productPriceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  productPrice: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    fontFamily: 'sans-serif-medium',
   },
   productActions: {
     flexDirection: 'row',
@@ -190,7 +203,7 @@ const commonStyles = {
     elevation: 5,
   },
   categoryScrollContainer: {
-    paddingVertical: 10,
+    paddingVertical: 1,
     paddingLeft: 16,
   },
   categoryButton: {
@@ -206,8 +219,9 @@ const commonStyles = {
     fontFamily: 'sans-serif-medium',
   },
   categoryListContainer: {
-    backgroundColor: '#fff',
-    paddingVertical: 10,
+    
+    paddingVertical: 5,
+  
   },
   loader: {
     flex: 1,
@@ -226,6 +240,7 @@ const commonStyles = {
     paddingVertical: 10,
     paddingLeft: 16,
     marginVertical: 10,
+    backgroundColor: "white"
   },
   discountCard: {
     width: 220,
@@ -606,7 +621,8 @@ const stylesLight = StyleSheet.create({
     backgroundColor: '#FFC107',
   },
   categoryListContainer: {
-    backgroundColor: '#fff',
+    marginTop:20,
+    backgroundColor: "white",
     paddingVertical: 10,
   },
   modalContent: {

@@ -25,9 +25,8 @@ const MapViewComponent = () => {
   const flatListRef = useRef();
 
   const categoryTitles = {
-    2: 'Alcohol',
+    2: 'Markets',
     3: 'Restaurants',
-    5: 'Nightclubs',
   };
 
   useEffect(() => {
@@ -71,8 +70,6 @@ const MapViewComponent = () => {
         setLoading(false);
       }
     };
-
-    console.log(shopsByCategory, "shops");
 
     const fetchAddressLocation = async () => {
       try {
@@ -149,7 +146,7 @@ const MapViewComponent = () => {
   };
 
   const snapToOffsets = useMemo(
-    () => filteredShops.map((_, index) => index * (width * 0.8)),
+    () => filteredShops.map((_, index) => index * width),
     [filteredShops]
   );
 
@@ -237,10 +234,9 @@ const MapViewComponent = () => {
                 data={filteredShops}
                 horizontal
                 pagingEnabled
-                snapToInterval={width * 0.8}
+                snapToInterval={width}
                 snapToAlignment="center"
                 decelerationRate="fast"
-                snapToOffsets={snapToOffsets}
                 renderItem={({ item }) => (
                   <View style={styles.modalContent}>
                     <Image source={{ uri: item.img }} style={styles.modalImage} />
@@ -258,7 +254,7 @@ const MapViewComponent = () => {
                 keyExtractor={(item) => item.id.toString()}
                 initialScrollIndex={selectedLocalIndex}
                 getItemLayout={(data, index) => (
-                  { length: width * 0.8, offset: width * 0.8 * index, index }
+                  { length: width, offset: width * index, index }
                 )}
               />
               <TouchableOpacity style={styles.arrowRight} onPress={handleNext}>
@@ -346,7 +342,7 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     width: width * 0.8,
-    height: 500, // half the modal height
+    height: height * 0.6, // Ajustado para ocupar más espacio en la pantalla
     padding: 20,
     backgroundColor: '#fff',
     borderRadius: 20,
@@ -357,11 +353,11 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 5,
     marginHorizontal: width * 0.1,
-    marginTop: 130,
+    marginTop: 150
   },
   modalImage: {
     width: '100%',
-    height: 250,
+    height: 200,
     borderRadius: 20,
     marginBottom: 10,
     borderWidth: 2,
@@ -372,6 +368,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 10,
     color: '#333',
+    textAlign: 'center',
   },
   ratingContainer: {
     flexDirection: 'row',
@@ -389,7 +386,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 25,
     backgroundColor: '#ffcc00',
     borderRadius: 10,
-    marginBottom: 10,
   },
   navigateButtonText: {
     color: '#000',

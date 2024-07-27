@@ -6,7 +6,7 @@ export const fetchCategories = createAsyncThunk(
   'setUp/fetchCategories',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await Axios.get(`${API_URL}/api/locals_categories/getAll`);
+      const response = await Axios.get(`${API_URL}/api/locals_categories/app/getAll`);
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response.data);

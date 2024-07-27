@@ -47,7 +47,7 @@ const Dashboard = () => {
 
   const fetchShops = async () => {
     try {
-      const response = await Axios.get(`${API_URL}/api/local/getShopsOrderByCat`);
+      const response = await Axios.get(`${API_URL}/api/local/app/getShopsOrderByCat`);
       setShopsByCategory(response.data);
       filterShops(response.data, deliveryMode);
       setLoading(false);
@@ -103,6 +103,8 @@ const Dashboard = () => {
       fetchUserDiscounts();
     }
   }, [user, token]);
+
+  console.log(categories, "categorias")
 
   useEffect(() => {
     fetchShops();
