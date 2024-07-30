@@ -41,49 +41,56 @@ const BodegaPro = ({ navigation }) => {
 
 
   const payment = async () => {
-    const finalPrice = (10.99 * 100);
-    setIsCheckoutLoading(true)
+  const finalPrice = (10.99 * 100);
+  setIsCheckoutLoading(true);
 
-    try {
-      const response = await Axios.post(`${API_URL}/api/payment/bodegaProSub`, {
-        priceId: 'price_1PdJs5CtqRjqS5chUBi4PyDI'
-      }, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      const { clientSecret } = response.data;
+  try {
+    const response = await Axios.post(`${API_URL}/api/payment/bodegaProSub`, {
+      priceId: 'price_1PdJs5CtqRjqS5chUBi4PyDI'
+    }, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
 
-      if (response.error) {
-        Alert.alert('Something went wrong');
-        setIsCheckoutLoading(false)
-        return;
-      }
 
-      const initResponse = await initPaymentSheet({
-        merchantDisplayName: "Example Name",
-        paymentIntentClientSecret: clientSecret,
-      });
 
-      if (initResponse.error) {
-        Alert.alert("Something went wrong");
-        setIsCheckoutLoading(false)
-        return;
-      }
+    const { clientSecret } = response.data;
+    const paymentIntentId = clientSecret.split('_secret')[0];
 
-      const { error } = await presentPaymentSheet();
+    const initResponse = await initPaymentSheet({
+      merchantDisplayName: "Bodega+",
+      paymentIntentClientSecret: clientSecret,
+    });
 
-      if (error) {
-        Alert.alert(`Error code: ${error.code}`, error.message);
-        setIsCheckoutLoading(false)
-      } else {
-        await updateUser();
-      }
-    } catch (error) {
-      Alert.alert('Error', 'There was an error processing your payment. Please try again.');
-      setIsCheckoutLoading(false)
+    if (initResponse.error) {
+      console.log(initResponse.error);
+      Alert.alert("Something went wrong");
+      setIsCheckoutLoading(false);
+      return;
     }
-  };
+  
+
+    if (response.error) {
+      Alert.alert('Something went wrong');
+      setIsCheckoutLoading(false);
+      return;
+    }
+
+    const { error } = await presentPaymentSheet();
+
+    if (error) {
+      Alert.alert(`Error code: ${error.code}`, error.message);
+      setIsCheckoutLoading(false);
+    } else {
+      // Pasa el sessionId a la función updateUser
+      await updateUser();
+    }
+  } catch (error) {
+    Alert.alert('Error', 'There was an error processing your payment. Please try again.');
+    setIsCheckoutLoading(false);
+  }
+};
 
   const handleCancelSubscription = async () => {
     try {

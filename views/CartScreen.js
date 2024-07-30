@@ -162,7 +162,7 @@ const CartScreen = () => {
         const paymentIntentId = clientSecret.split('_secret')[0];
 
         const initResponse = await initPaymentSheet({
-          merchantDisplayName: "Example Name",
+          merchantDisplayName: "Bodega+",
           paymentIntentClientSecret: clientSecret,
         });
 
