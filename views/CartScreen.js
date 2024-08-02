@@ -45,7 +45,7 @@ const CartScreen = () => {
   const [loginModalVisible, setLoginModalVisible] = useState(false);
   const [loginMode, setLoginMode] = useState(true);
 
-  const GOOGLE_API_KEY = 'YOUR_GOOGLE_API_KEY';
+  const GOOGLE_API_KEY = 'AIzaSyB8fCVwRXbMe9FAxsrC5CsyfjzpHxowQmE';
 
   const calculateSubtotal = () => {
     return cart.reduce((total, item) => total + (parseFloat(item.price.replace('$', '')) + (item.selectedExtras ? Object.values(item.selectedExtras).reduce((extraTotal, extra) => extraTotal + extra.price, 0) : 0)) * item.quantity, 0).toFixed(2);

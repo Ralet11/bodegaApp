@@ -56,7 +56,7 @@ const ShopScreen = () => {
 
     const fetchDiscounts = async () => {
       try {
-        const response = await Axios.get(`${API_URL}/api/discounts/getByLocalId/${shop?.id}`, {
+        const response = await Axios.get(`${API_URL}/api/discounts/getByLocalIdApp/${shop?.id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -85,8 +85,9 @@ const ShopScreen = () => {
     setModalVisible(true);
   };
 
-  const openDiscountModal = (Discount) => {
-    setSelectedDiscount(Discount);
+  const openDiscountModal = (discount) => {
+    console.log(discount, "discount")
+    setSelectedDiscount(discount);
     setDiscountModalVisible(true);
   };
 
@@ -205,12 +206,14 @@ const ShopScreen = () => {
 
   const renderDiscount = (discount, isBlockLayout) => {
     return (
-      <DiscountCard
+     <View style={{ width: 300, marginHorizontal: 5 }}>
+       <DiscountCard
         key={discount.id}
         discount={discount}
         openDiscountModal={openDiscountModal}
         isBlockLayout={isBlockLayout}
       />
+     </View>
     );
   };
 
@@ -352,14 +355,11 @@ const ShopScreen = () => {
           )}
           contentContainerStyle={styles.contentContainer}
         >
-
-
-
           {orderType == 'Order-in' ? (
             discounts.filter(discount => discount.delivery == 1).map(discount => renderDiscount(discount, true))
           ) : (
             <View style={{ backgroundColor: 'white', flex: 1, marginBottom: 5 }}>
-              {discounts.length > 0 && <Text style={styles.discountSectionTitle}>Our best</Text>}
+              {discounts.length > 0 && <Text style={styles.discountSectionTitle}>Our best discounts</Text>}
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}

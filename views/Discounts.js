@@ -56,8 +56,6 @@ const MyCoupons = () => {
   const filteredCoupons = filter === 'all' ? coupons : coupons.filter(coupon => coupon.discount.delivery === filter);
   const displayedCoupons = showAll ? filteredCoupons : filteredCoupons.filter(coupon => !coupon.used);
 
-  console.log(coupons, "cupones");
-
   return (
     <SafeAreaView style={[styles.container]}>
       <View style={styles.header}>
@@ -109,7 +107,7 @@ const MyCoupons = () => {
               <TouchableOpacity
                 key={index}
                 style={styles.card}
-                onPress={() => navigation.navigate('DiscountDetail', { shop: coupon.discount.local, discount: coupon.discount })}
+                onPress={() => navigation.navigate('Shop', { shop: coupon.discount.local })}
               >
                 <View style={styles.tagContainer}>
                   <Text style={styles.tagText}>{getDeliveryTag(coupon.discount.delivery)}</Text>
@@ -145,18 +143,19 @@ const MyCoupons = () => {
 const commonStyles = {
   container: {
     flex: 1,
-    marginTop: 30,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 15,
     borderBottomWidth: 1,
+    backgroundColor: "#FFC107"
   },
   headerTitle: {
     marginLeft: 20,
     fontSize: 20,
     fontWeight: 'bold',
+    backgroundColor: "#FFC107"
   },
   filterContainer: {
     flexDirection: 'row',
@@ -320,6 +319,7 @@ const stylesDark = StyleSheet.create({
   },
   headerTitle: {
     ...commonStyles.headerTitle,
+    backgroundColor: '#333',
     color: '#fff',
   },
   noCouponsText: {
@@ -338,6 +338,7 @@ const stylesDark = StyleSheet.create({
   },
   tipText: {
     ...commonStyles.tipText,
+    color: '#ccc',
   },
   card: {
     ...commonStyles.card,
@@ -373,6 +374,7 @@ const stylesDark = StyleSheet.create({
   },
   usedText: {
     ...commonStyles.usedText,
+    color: '#FFD700',
   },
 });
 
@@ -384,8 +386,7 @@ const stylesLight = StyleSheet.create({
   },
   header: {
     ...commonStyles.header,
-    backgroundColor: '#fff',
-    borderBottomColor: '#ddd',
+
   },
   headerTitle: {
     ...commonStyles.headerTitle,

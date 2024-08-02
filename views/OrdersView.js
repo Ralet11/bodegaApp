@@ -8,7 +8,6 @@ import { useNavigation } from '@react-navigation/native';
 import { FontAwesome } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import dayjs from 'dayjs';
-import Loader from '../components/Loader'
 import OrderSkeletonLoader from '../components/SkeletonOrder';
 
 const OrderScreen = () => {
@@ -46,6 +45,8 @@ const OrderScreen = () => {
     return <OrderSkeletonLoader />;  // Show loader while loading
   }
 
+  const sortedOrders = orders ? [...orders].sort((a, b) => new Date(b.date_time) - new Date(a.date_time)) : [];
+
   return (
     <SafeAreaView style={[styles.container, scheme === 'dark' ? styles.darkContainer : styles.lightContainer]}>
       <View style={styles.header}>
@@ -66,8 +67,8 @@ const OrderScreen = () => {
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          {orders && orders.length > 0 ? (
-            orders.map((order) => (
+          {sortedOrders.length > 0 ? (
+            sortedOrders.map((order) => (
               <View key={order.id} style={styles.card}>
                 <Text style={styles.cardHeader}>Order #{order.id}</Text>
                 <Text style={styles.status}>{order.status}</Text>

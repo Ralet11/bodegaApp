@@ -314,65 +314,76 @@ const SetAddressScreen = () => {
       </View>
       {user?.role !== 'guest' && (
         <Modal
-          animationType="slide"
-          transparent={true}
-          visible={modalVisible}
-          onRequestClose={() => setModalVisible(false)}
-        >
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Enter Address Details</Text>
-              <TextInput
-                style={[styles.modalInput, errors.addressName && styles.errorInput]}
-                placeholder="Home Name (e.g. My Home)"
-                value={addressName}
-                onChangeText={(text) => {
-                  setAddressName(text);
-                  if (errors.addressName) setErrors((prev) => ({ ...prev, addressName: false }));
-                }}
-              />
-              <TextInput
-                style={[styles.modalInput, errors.houseNumber && styles.errorInput]}
-                placeholder="House Number (e.g. 123)"
-                value={houseNumber}
-                onChangeText={(text) => {
-                  setHouseNumber(text);
-                  if (errors.houseNumber) setErrors((prev) => ({ ...prev, houseNumber: false }));
-                }}
-              />
-              <TextInput
-                style={[styles.modalInput, errors.streetName && styles.errorInput]}
-                placeholder="Street Name (e.g. Main St)"
-                value={streetName}
-                onChangeText={(text) => {
-                  setStreetName(text);
-                  if (errors.streetName) setErrors((prev) => ({ ...prev, streetName: false }));
-                }}
-              />
-              <TextInput
-                style={styles.modalInput}
-                placeholder="Additional Information (e.g. Apt 1B, Floor 2)"
-                value={additionalDetails}
-                onChangeText={setAdditionalDetails}
-              />
-              <TextInput
-                style={[styles.modalInput, errors.postalCode && styles.errorInput]}
-                placeholder="Postal Code (e.g. 12345)"
-                value={postalCode}
-                onChangeText={(text) => {
-                  setPostalCode(text);
-                  if (errors.postalCode) setErrors((prev) => ({ ...prev, postalCode: false }));
-                }}
-              />
-              <TouchableOpacity
-                style={styles.modalButton}
-                onPress={handleSaveAddress}
-              >
-                <Text style={styles.modalButtonText}>Save</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
+      animationType="slide"
+      transparent={true}
+      visible={modalVisible}
+      onRequestClose={() => setModalVisible(false)}
+    >
+      <View style={styles.modalContainer}>
+        <View style={styles.modalContent}>
+          <Text style={styles.modalTitle}>Enter Address Details</Text>
+          
+          <Text style={styles.label}>Home Name</Text>
+          <TextInput
+            style={[styles.modalInput, errors.addressName && styles.errorInput]}
+            placeholder="Home Name (e.g. My Home)"
+            value={addressName}
+            onChangeText={(text) => {
+              setAddressName(text);
+              if (errors.addressName) setErrors((prev) => ({ ...prev, addressName: false }));
+            }}
+          />
+          
+          <Text style={styles.label}>House Number</Text>
+          <TextInput
+            style={[styles.modalInput, errors.houseNumber && styles.errorInput]}
+            placeholder="House Number (e.g. 123)"
+            value={houseNumber}
+            onChangeText={(text) => {
+              setHouseNumber(text);
+              if (errors.houseNumber) setErrors((prev) => ({ ...prev, houseNumber: false }));
+            }}
+          />
+          
+          <Text style={styles.label}>Street Name</Text>
+          <TextInput
+            style={[styles.modalInput, errors.streetName && styles.errorInput]}
+            placeholder="Street Name (e.g. Main St)"
+            value={streetName}
+            onChangeText={(text) => {
+              setStreetName(text);
+              if (errors.streetName) setErrors((prev) => ({ ...prev, streetName: false }));
+            }}
+          />
+          
+          <Text style={styles.label}>Additional Information</Text>
+          <TextInput
+            style={styles.modalInput}
+            placeholder="Additional Information (e.g. Apt 1B, Floor 2)"
+            value={additionalDetails}
+            onChangeText={setAdditionalDetails}
+          />
+          
+          <Text style={styles.label}>Postal Code</Text>
+          <TextInput
+            style={[styles.modalInput, errors.postalCode && styles.errorInput]}
+            placeholder="Postal Code (e.g. 12345)"
+            value={postalCode}
+            onChangeText={(text) => {
+              setPostalCode(text);
+              if (errors.postalCode) setErrors((prev) => ({ ...prev, postalCode: false }));
+            }}
+          />
+          
+          <TouchableOpacity
+            style={styles.modalButton}
+            onPress={handleSaveAddress}
+          >
+            <Text style={styles.modalButtonText}>Save</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
       )}
       <Toast />
     </SafeAreaView>

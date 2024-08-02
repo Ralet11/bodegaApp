@@ -6,8 +6,8 @@ import { addToCart } from '../../redux/slices/cart.slice';
 
 const combineProductAndDiscount = (product, discount) => {
   const discountedPrice = discount.discountType === 'percentage'
-    ? product.price - (product.price * discount.percentage / 100)
-    : product.price - discount.fixedValue;
+    ? product?.price - (product.price * discount.percentage / 100)
+    : product?.price - discount.fixedValue;
 
   return {
     id: product.id,
@@ -45,7 +45,7 @@ const ModalDiscount = ({ visible, onClose, discount }) => {
   };
 
   const renderExtras = () => {
-    if (!discount.product.extras) return null;
+    if (!discount?.product?.extras) return null;
     return discount.product.extras.map(extra => {
       const validOptions = extra.options.filter(option => option.name !== null);
       return (
@@ -60,13 +60,23 @@ const ModalDiscount = ({ visible, onClose, discount }) => {
           >
             <Picker.Item label="Select an option..." value={null} />
             {validOptions.map((option, index) => (
-              <Picker.Item key={index} label={`${option.name} ($${option.price})`} value={option} />
+              <Picker.Item key={index} label={`${option.name} ($${option?.price})`} value={option} />
             ))}
           </Picker>
         </View>
       );
     });
   };
+
+  if (!discount || !discount.product) {
+    return null;
+  }
+
+  const productPrice = parseFloat(discount.product?.price || 0);
+  const discountAmount = discount.discountType === 'percentage'
+    ? productPrice * (discount.percentage / 100)
+    : discount.fixedValue;
+  const finalPrice = productPrice - discountAmount;
 
   return (
     <Modal
@@ -80,29 +90,33 @@ const ModalDiscount = ({ visible, onClose, discount }) => {
           <TouchableOpacity style={styles.closeIcon} onPress={onClose}>
             <Text style={styles.closeIconText}>×</Text>
           </TouchableOpacity>
-          {discount && discount.product && (
-            <>
-              <Image source={{ uri: discount.product.img }} style={styles.modalImage} />
-              <Text style={styles.modalTitle}>{discount.product.name}</Text>
-              <Text style={styles.modalDescription}>{discount.product.description}</Text>
-              <Text style={styles.modalPrice}>${discount.product.price}</Text>
-              <Text style={styles.modalDiscount}>Discount: {discount.description}</Text>
-              {renderExtras()}
-              <View style={styles.quantityContainer}>
-                <Text style={styles.quantityLabel}>Quantity:</Text>
-                <TouchableOpacity onPress={() => setQuantity(quantity > 1 ? quantity - 1 : 1)} style={styles.quantityButton}>
-                  <Text style={styles.quantityButtonText}>-</Text>
-                </TouchableOpacity>
-                <Text style={styles.quantityValue}>{quantity}</Text>
-                <TouchableOpacity onPress={() => setQuantity(quantity + 1)} style={styles.quantityButton}>
-                  <Text style={styles.quantityButtonText}>+</Text>
-                </TouchableOpacity>
-              </View>
-              <TouchableOpacity onPress={handleAdd} style={styles.addButton}>
-                <Text style={styles.addButtonText}>Add to Cart</Text>
-              </TouchableOpacity>
-            </>
-          )}
+          <Image source={{ uri: discount.product.img }} style={styles.modalImage} />
+          <Text style={styles.modalTitle}>{discount.product.name}</Text>
+          <Text style={styles.modalDescription}>{discount.description}</Text>
+          <View style={styles.priceContainer}>
+            <Text style={styles.finalPrice}>${finalPrice.toFixed(2)}</Text>
+            <View style={styles.discountTag}>
+              <Text style={styles.discountTagText}>
+                {discount.discountType === 'percentage'
+                  ? `-${discount.percentage}%`
+                  : `-$${discount.fixedValue}`}
+              </Text>
+            </View>
+          </View>
+          {renderExtras()}
+          <View style={styles.quantityContainer}>
+            <Text style={styles.quantityLabel}>Quantity:</Text>
+            <TouchableOpacity onPress={() => setQuantity(quantity > 1 ? quantity - 1 : 1)} style={styles.quantityButton}>
+              <Text style={styles.quantityButtonText}>-</Text>
+            </TouchableOpacity>
+            <Text style={styles.quantityValue}>{quantity}</Text>
+            <TouchableOpacity onPress={() => setQuantity(quantity + 1)} style={styles.quantityButton}>
+              <Text style={styles.quantityButtonText}>+</Text>
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity onPress={handleAdd} style={styles.addButton}>
+            <Text style={styles.addButtonText}>Add to Cart</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </Modal>
@@ -117,7 +131,7 @@ const commonStyles = {
     backgroundColor: 'rgba(0,0,0,0.7)',
   },
   modalView: {
-    width: '95%', // Aumentar el tamaño del modal
+    width: '90%',
     backgroundColor: 'white',
     borderRadius: 15,
     padding: 20,
@@ -142,34 +156,43 @@ const commonStyles = {
     fontSize: 24,
   },
   modalImage: {
-    width: 150,
-    height: 150,
+    width: 200,
+    height: 200,
     marginBottom: 20,
-    borderRadius: 10,
+    borderRadius: 15,
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 10,
     textAlign: 'center',
   },
   modalDescription: {
-    fontSize: 14,
+    fontSize: 16,
     marginBottom: 10,
     textAlign: 'center',
     color: '#555',
   },
-  modalPrice: {
-    fontSize: 18,
+  priceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 20,
-    fontWeight: 'bold',
-    textAlign: 'center',
   },
-  modalDiscount: {
-    fontSize: 16,
-    marginBottom: 20,
-    color: '#ff0000',
-    textAlign: 'center',
+  finalPrice: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  discountTag: {
+    backgroundColor: '#28a745',
+    borderRadius: 5,
+    paddingVertical: 2,
+    paddingHorizontal: 5,
+    marginLeft: 10,
+  },
+  discountTagText: {
+    color: '#fff',
+    fontWeight: 'bold',
   },
   quantityContainer: {
     flexDirection: 'row',
@@ -181,9 +204,9 @@ const commonStyles = {
     marginRight: 10,
   },
   quantityButton: {
-    backgroundColor: '#ffcc00',
+    backgroundColor: '#007BFF',
     paddingVertical: 5,
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
     borderRadius: 5,
     marginHorizontal: 5,
   },
@@ -197,7 +220,7 @@ const commonStyles = {
     marginHorizontal: 10,
   },
   addButton: {
-    backgroundColor: '#ffcc00',
+    backgroundColor: '#28a745',
     padding: 10,
     borderRadius: 5,
     marginBottom: 10,
@@ -242,13 +265,9 @@ const stylesLight = StyleSheet.create({
     ...commonStyles.modalDescription,
     color: '#666',
   },
-  modalPrice: {
-    ...commonStyles.modalPrice,
-    color: '#000',
-  },
-  modalDiscount: {
-    ...commonStyles.modalDiscount,
-    color: '#ff0000',
+  finalPrice: {
+    ...commonStyles.finalPrice,
+    color: '#333',
   },
   quantityLabel: {
     ...commonStyles.quantityLabel,
@@ -278,13 +297,9 @@ const stylesDark = StyleSheet.create({
     ...commonStyles.modalDescription,
     color: '#aaa',
   },
-  modalPrice: {
-    ...commonStyles.modalPrice,
+  finalPrice: {
+    ...commonStyles.finalPrice,
     color: '#fff',
-  },
-  modalDiscount: {
-    ...commonStyles.modalDiscount,
-    color: '#ff9999',
   },
   quantityLabel: {
     ...commonStyles.quantityLabel,

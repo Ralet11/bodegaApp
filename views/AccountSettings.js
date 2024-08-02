@@ -193,18 +193,7 @@ const AccountSettings = () => {
                 </Text>
               </TouchableOpacity>
             </View>
-            <View style={[styles.inputContainer]}>
-              <FontAwesome name="lock" size={20} color={colorScheme === 'dark' ? "#fff" : "#333"} />
-              <TextInput
-                ref={(ref) => inputRefs.current.password = ref}
-                style={[styles.input]}
-                placeholder="Password"
-                placeholderTextColor={colorScheme === 'dark' ? "#999" : "#666"}
-                secureTextEntry={true}
-                value={formData.password}
-                onChangeText={(value) => handleInputChange('password', value)}
-              />
-            </View>
+            
             <TouchableOpacity
               onPress={hasChanges ? handleSave : null}
               style={[
@@ -400,7 +389,7 @@ const AccountSettings = () => {
 const commonStyles = {
   safeArea: {
     flex: 1,
-    marginTop: 30,
+   
   },
   container: {
     flex: 1,
@@ -461,13 +450,13 @@ const commonStyles = {
     alignItems: 'center',
   },
   footerLinks: {
-    marginTop: 20,
-    alignItems: 'center',
+    marginTop: 200,
+    alignItems: 'center'
   },
   footerLinkText: {
     fontSize: 16,
     color: '#000',
-    marginBottom: 10,
+    marginBottom: 30,
     textDecorationLine: 'underline', // Subrayado
   },
   modalOverlay: {

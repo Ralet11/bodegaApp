@@ -36,7 +36,6 @@ const Dashboard = () => {
   const ordersIn = useSelector((state) => state?.orders?.ordersIn);
   const auxShops = useSelector((state) => state?.setUp?.auxShops);
 
-  console.log(address, "address")
 
   const categoryTitles = {
     1: 'Best smoke shops',
@@ -85,6 +84,8 @@ const Dashboard = () => {
     }
   };
 
+
+
   useEffect(() => {
     if (user?.id && token) {
       const fetchUserDiscounts = async () => {
@@ -104,7 +105,6 @@ const Dashboard = () => {
     }
   }, [user, token]);
 
-  console.log(categories, "categorias")
 
   useEffect(() => {
     fetchShops();
@@ -344,7 +344,7 @@ const Dashboard = () => {
               alignItems: 'center',
             }}
           >
-            <FontAwesome name="map-marker" size={50} color="yellow" />
+            <FontAwesome name="map-marker" size={50} color="#FFC107" />
             <Text
               style={{
                 marginTop: 15,
@@ -410,6 +410,7 @@ const Dashboard = () => {
               renderItem={({ item }) => (
                 <TouchableOpacity onPress={() => handleAddressSelect(item)}>
                   <View style={styles.addressItem}>
+                  <Text>{item.name}</Text>
                     <Text style={{ color: scheme === 'dark' ? '#fff' : '#333' }}>
                       {item.formatted_address}
                     </Text>

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Dimensions, SafeAreaView, useColorScheme, Animated, Modal, Alert, ActivityIndicator  } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Dimensions, SafeAreaView, useColorScheme, Animated, Modal, Alert, ActivityIndicator } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { useStripe } from '@stripe/stripe-react-native';
@@ -13,6 +13,8 @@ const { width } = Dimensions.get('window');
 
 const BodegaPro = ({ navigation }) => {
   const [isModalVisible, setModalVisible] = useState(false);
+  const [infoModalVisible, setInfoModalVisible] = useState(false);
+  const [confirmCancelModalVisible, setConfirmCancelModalVisible] = useState(false);
   const user = useSelector((state) => state?.user?.userInfo?.data?.client);
   const token = useSelector((state) => state?.user?.userInfo?.data?.token);
   const colorScheme = useColorScheme();
@@ -22,7 +24,7 @@ const BodegaPro = ({ navigation }) => {
   const isSubscribed = user?.subscription === 1;
   const benefits = [
     'Free shipping',
-    'Tax discounts',
+    '50% off on tax',
     'Exclusive promotions',
     // Add more benefits here
   ];
@@ -38,78 +40,70 @@ const BodegaPro = ({ navigation }) => {
     }).start();
   }, [fadeAnim]);
 
-
-
   const payment = async () => {
-  const finalPrice = (10.99 * 100);
-  setIsCheckoutLoading(true);
+    const finalPrice = (9.99 * 100);
+    setIsCheckoutLoading(true);
 
-  try {
-    const response = await Axios.post(`${API_URL}/api/payment/bodegaProSub`, {
-      priceId: 'price_1PdJs5CtqRjqS5chUBi4PyDI'
-    }, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-
-
-    const { clientSecret } = response.data;
-    const paymentIntentId = clientSecret.split('_secret')[0];
-
-    const initResponse = await initPaymentSheet({
-      merchantDisplayName: "Bodega+",
-      paymentIntentClientSecret: clientSecret,
-    });
-
-    if (initResponse.error) {
-      console.log(initResponse.error);
-      Alert.alert("Something went wrong");
-      setIsCheckoutLoading(false);
-      return;
-    }
-  
-
-    if (response.error) {
-      Alert.alert('Something went wrong');
-      setIsCheckoutLoading(false);
-      return;
-    }
-
-    const { error } = await presentPaymentSheet();
-
-    if (error) {
-      Alert.alert(`Error code: ${error.code}`, error.message);
-      setIsCheckoutLoading(false);
-    } else {
-      // Pasa el sessionId a la función updateUser
-      await updateUser();
-    }
-  } catch (error) {
-    Alert.alert('Error', 'There was an error processing your payment. Please try again.');
-    setIsCheckoutLoading(false);
-  }
-};
-
-  const handleCancelSubscription = async () => {
     try {
-      const response = await Axios.post(`${API_URL}/api/payment/cancelBodegaProSub`,{}, {
+      const response = await Axios.post(`${API_URL}/api/payment/bodegaProSub`, {
+        priceId: 'price_1PdJs5CtqRjqS5chUBi4PyDI'
+      }, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
-      console.log(response.status)
-  
+      const { clientSecret } = response.data;
+      const paymentIntentId = clientSecret.split('_secret')[0];
+
+      const initResponse = await initPaymentSheet({
+        merchantDisplayName: "Bodega+",
+        paymentIntentClientSecret: clientSecret,
+      });
+
+      if (initResponse.error) {
+        console.log(initResponse.error);
+        Alert.alert("Something went wrong");
+        setIsCheckoutLoading(false);
+        return;
+      }
+
+      if (response.error) {
+        Alert.alert('Something went wrong');
+        setIsCheckoutLoading(false);
+        return;
+      }
+
+      const { error } = await presentPaymentSheet();
+
+      if (error) {
+        Alert.alert(`Error code: ${error.code}`, error.message);
+        setIsCheckoutLoading(false);
+      } else {
+        await updateUser();
+      }
+    } catch (error) {
+      Alert.alert('Error', 'There was an error processing your payment. Please try again.');
+      setIsCheckoutLoading(false);
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    setIsCheckoutLoading(true);
+    try {
+      const response = await Axios.post(`${API_URL}/api/payment/cancelBodegaProSub`, {}, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
       if (response.status === 200) {
         Toast.show({
           type: 'success',
           text1: 'Subscription Cancelled',
           text2: 'Your subscription has been successfully cancelled.',
         });
-  
-        // Update user info in the redux store
+
         const updatedUser = { ...user, subscription: 0 };
         const info = {
           data: {
@@ -118,8 +112,6 @@ const BodegaPro = ({ navigation }) => {
           },
         };
         dispatch(setUser(info));
-  
-        // Optionally, you can navigate the user to another screen or refresh the current view
       } else {
         Toast.show({
           type: 'error',
@@ -134,6 +126,9 @@ const BodegaPro = ({ navigation }) => {
         text2: 'There was an error processing your request. Please try again.',
       });
       console.error('Error cancelling subscription:', error);
+    } finally {
+      setIsCheckoutLoading(false);
+      setConfirmCancelModalVisible(false);
     }
   };
 
@@ -156,7 +151,6 @@ const BodegaPro = ({ navigation }) => {
         };
         dispatch(setUser(info));
       }
-
     } catch (error) {
       console.log(error);
     }
@@ -196,7 +190,7 @@ const BodegaPro = ({ navigation }) => {
                   </View>
                 ))}
               </View>
-              <TouchableOpacity onPress={handleCancelSubscription}>
+              <TouchableOpacity onPress={() => setConfirmCancelModalVisible(true)} disabled={isCheckoutLoading}>
                 <Text style={styles.cancelLink}>Cancel subscription</Text>
               </TouchableOpacity>
             </>
@@ -204,7 +198,7 @@ const BodegaPro = ({ navigation }) => {
             <>
               <View style={styles.joinCard}>
                 <Text style={styles.joinTitle}>Join Bodega+ Pro</Text>
-                <Text style={styles.joinPrice}>only $10.99</Text>
+                <Text style={styles.joinPrice}>only $9.99</Text>
                 <Text style={styles.joinSubtitle}>Unlock these benefits</Text>
               </View>
               <View style={styles.benefitsContainer}>
@@ -216,14 +210,17 @@ const BodegaPro = ({ navigation }) => {
                 ))}
               </View>
               <TouchableOpacity style={styles.subscribeButton} onPress={payment} disabled={isCheckoutLoading}>
-            {isCheckoutLoading ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Text style={styles.subscribeButtonText}>Start Subscription</Text>
-            )}
-          </TouchableOpacity>
+                {isCheckoutLoading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.subscribeButtonText}>Start Subscription</Text>
+                )}
+              </TouchableOpacity>
             </>
           )}
+          <TouchableOpacity onPress={() => setInfoModalVisible(true)}>
+            <Text style={styles.moreInfo}>More info</Text>
+          </TouchableOpacity>
         </Animated.View>
       </ScrollView>
 
@@ -247,6 +244,64 @@ const BodegaPro = ({ navigation }) => {
           </View>
         </View>
       </Modal>
+
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={infoModalVisible}
+        onRequestClose={() => {
+          setInfoModalVisible(!infoModalVisible);
+        }}
+      >
+        <View style={styles.modalView}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalText}>Subscription Info</Text>
+            <Text style={styles.infoText}>
+              {isSubscribed ? (
+                'You are currently subscribed to Bodega+ Pro. Enjoy benefits such as free shipping, 50% off on tax, and exclusive promotions. You can cancel anytime from the button below or by sending an email to bodegastore@gmail.com.'
+              ) : (
+                'By subscribing to Bodega+ Pro for only $9.99 per month, you will get exclusive benefits such as free shipping, 50% off on tax, and access to exclusive promotions. You can cancel anytime from the button below or by sending an email to bodegastore@gmail.com.'
+              )}
+            </Text>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setInfoModalVisible(!infoModalVisible)}
+            >
+              <Text style={styles.closeButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={confirmCancelModalVisible}
+        onRequestClose={() => {
+          setConfirmCancelModalVisible(!confirmCancelModalVisible);
+        }}
+      >
+        <View style={styles.modalView}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalText}>Confirm Cancellation</Text>
+            <Text style={styles.infoText}>Are you sure you want to cancel your Bodega+ Pro subscription? You will lose all the benefits.</Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => setConfirmCancelModalVisible(!confirmCancelModalVisible)}
+              >
+                <Text style={styles.buttonText}>No, Keep</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.confirmButton}
+                onPress={handleCancelSubscription}
+              >
+                <Text style={styles.buttonText}>Yes, Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -254,8 +309,7 @@ const BodegaPro = ({ navigation }) => {
 const commonStyles = {
   safeArea: {
     flex: 1,
-    paddingTop: 30,
-    paddingHorizontal: 20,
+
   },
   container: {
     flexGrow: 1,
@@ -267,6 +321,9 @@ const commonStyles = {
     top: 40,
     left: 20,
     zIndex: 10,
+  },
+  moreInfo: {
+    marginTop:30
   },
   content: {
     width: '100%',
@@ -297,13 +354,13 @@ const commonStyles = {
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 5,
-    color: '#000', // Change color to black
+    color: '#000',
   },
   headerText: {
     fontSize: 16,
     textAlign: 'center',
     marginTop: 5,
-    color: '#000', // Change color to black
+    color: '#000',
   },
   savingsTag: {
     borderRadius: 10,
@@ -317,9 +374,9 @@ const commonStyles = {
     elevation: 8,
   },
   savingsAmount: {
-    fontSize: 20, // Reduce font size
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#000', // Change color to black
+    color: '#000',
     textAlign: 'center',
   },
   benefitsContainer: {
@@ -331,7 +388,7 @@ const commonStyles = {
     fontWeight: 'bold',
     marginBottom: 10,
     textAlign: 'center',
-    color: '#000', // Change color to black
+    color: '#000',
   },
   benefitItem: {
     flexDirection: 'row',
@@ -352,14 +409,14 @@ const commonStyles = {
     fontSize: 18,
     marginLeft: 15,
     flexShrink: 1,
-    color: '#000', // Change color to black
+    color: '#000',
   },
   cancelLink: {
     fontSize: 18,
     marginTop: 30,
     textDecorationLine: 'underline',
     textAlign: 'center',
-    color: '#000', // Change color to black
+    color: '#000',
   },
   joinCard: {
     padding: 30,
@@ -380,20 +437,27 @@ const commonStyles = {
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 5,
-    color: '#000', // Change color to black
+    color: '#000',
   },
   joinPrice: {
     fontSize: 24,
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 10,
-    color: '#000', // Change color to black
+    color: '#000',
   },
   joinSubtitle: {
     fontSize: 20,
     textAlign: 'center',
     marginTop: 5,
-    color: '#000', // Change color to black
+    color: '#000',
+  },
+  moreInfo: {
+    fontSize: 16,
+    color: '#1E90FF',
+    textAlign: 'center',
+    textDecorationLine: 'underline',
+    marginTop: 100,
   },
   subscribeButton: {
     padding: 15,
@@ -436,11 +500,39 @@ const commonStyles = {
     fontSize: 20,
     marginBottom: 20,
   },
+  infoText: {
+    fontSize: 16,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  cancelButton: {
+    backgroundColor: '#D3D3D3',
+    borderRadius: 10,
+    padding: 10,
+    elevation: 2,
+    marginRight: 10,
+  },
+  confirmButton: {
+    backgroundColor: '#FF5252',
+    borderRadius: 10,
+    padding: 10,
+    elevation: 2,
+  },
   closeButton: {
     backgroundColor: '#2196F3',
     borderRadius: 10,
     padding: 10,
     elevation: 2,
+  },
+  buttonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
   closeButtonText: {
     color: 'white',

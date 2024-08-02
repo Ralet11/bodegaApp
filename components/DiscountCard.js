@@ -5,9 +5,9 @@ import { useDispatch, useSelector } from 'react-redux';
 import Axios from 'react-native-axios';
 import { addToCart, incrementQuantity, decrementQuantity } from '../redux/slices/cart.slice';
 import { API_URL } from '@env';
-import ModalDiscount from '../components/modals/DiscountModal';
+import Toast from 'react-native-toast-message';
 
-const DiscountCard = ({ discount, isBlockLayout, openDiscountModal }) => {
+const DiscountCard = ({ discount, openDiscountModal, isBlockLayout }) => {
   const dispatch = useDispatch();
   const cart = useSelector(state => state.cart.items);
   const token = useSelector(state => state?.user?.userInfo.data.token);
@@ -38,8 +38,6 @@ const DiscountCard = ({ discount, isBlockLayout, openDiscountModal }) => {
       });
     }
   };
-
-  console.log(discount, "disss")
 
   const combineProductAndDiscount = (product, discount) => {
     const discountedPrice = discount.discountType === 'percentage'
@@ -72,38 +70,36 @@ const DiscountCard = ({ discount, isBlockLayout, openDiscountModal }) => {
     }
   };
 
+ 
+
   return (
-    <View key={discount.id} style={isBlockLayout ? styles.discountBlockCard : styles.discountCard}>
-      <TouchableOpacity onPress={() => openModal(discount)}>
-        <Image source={{ uri: discount.image }} style={isBlockLayout ? styles.discountBlockImage : styles.discountImage} />
-      </TouchableOpacity>
+    <View key={discount.id} style={[styles.discountCard, isBlockLayout && styles.blockLayout]}>
+      <View style={styles.imageContainer}>
+        <Image source={{ uri: discount.image }} style={styles.discountImage} />
+      </View>
       <View style={styles.discountDetails}>
-        <Text style={styles.discountTitle}>{discount.productName}</Text>
-        <View style={styles.tagContainer}>
-          <View style={styles.percentageTag}>
-            <Text style={styles.percentageText}>-{discount.percentage}%</Text>
-          </View>
-          <View style={styles.deliveryTag}>
-            <Text style={styles.deliveryText}>{getDeliveryType(discount.delivery)}</Text>
-          </View>
+        <View style={styles.header}>
+          <Text style={styles.discountTitle}>{discount.productName}</Text>
+          <TouchableOpacity style={styles.likeButton} onPress={handleSaveDiscount}>
+            <FontAwesome name="heart" size={16} color={discount.saved ? "#ff6347" : "#ccc"} />
+          </TouchableOpacity>
         </View>
         <Text style={styles.discountDescription}>{discount.productDescription}</Text>
+        <Text style={styles.discountDescription}>{discount.description}</Text>
         <Text style={styles.productFinalPrice}>${finalPrice.toFixed(2)}</Text>
-        <View style={styles.actionsContainer}>
-          <TouchableOpacity style={styles.addButton} onPress={handleIncrementQuantity}>
-            <FontAwesome name="plus" size={14} color="#000" />
+        <View style={styles.tagAndButtonContainer}>
+          <View style={styles.tagContainer}>
+            <View style={styles.percentageTag}>
+              <Text style={styles.percentageText}>-{discount.percentage}%</Text>
+            </View>
+            <View style={styles.deliveryTag}>
+              <Text style={styles.deliveryText}>{getDeliveryType(discount.delivery)}</Text>
+            </View>
+          </View>
+          <TouchableOpacity style={styles.addButton} onPress={() => openDiscountModal(discount)}>
+            <FontAwesome name="plus" size={12} color="#fff" />
           </TouchableOpacity>
-          {!isBlockLayout && (
-            <TouchableOpacity style={styles.likeButton} onPress={handleSaveDiscount}>
-              <FontAwesome name="heart" size={18} color="#888" />
-            </TouchableOpacity>
-          )}
         </View>
-        {isBlockLayout && (
-          <TouchableOpacity style={styles.likeButtonBlock} onPress={handleSaveDiscount}>
-            <FontAwesome name="heart" size={18} color="#888" />
-          </TouchableOpacity>
-        )}
       </View>
     </View>
   );
@@ -111,97 +107,79 @@ const DiscountCard = ({ discount, isBlockLayout, openDiscountModal }) => {
 
 const styles = StyleSheet.create({
   discountCard: {
-    width: 160, // Cambiado de 180 a 160
-    backgroundColor: '#fff',
-    borderRadius: 10,
+    flexDirection: 'row', // Disposición horizontal
+    width: '100%', // Ancho total de la card
+    backgroundColor: '#ffffff',
+    borderRadius: 10, // Radio de borde
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 5,
-    marginBottom: 20,
-    marginRight: 10,
+    shadowRadius: 3,
+    elevation: 3,
+    marginBottom: 15,
+    alignSelf: 'center',
+    marginRight: 50,
+    marginLeft: 50
   },
-  discountBlockCard: {
-    width: '100%',
-    backgroundColor: '#fff',
-    borderRadius: 10,
+  blockLayout: {
+    flexDirection: 'column', // Cambiar a disposición vertical para el diseño de bloque
+    alignItems: 'center',
+  },
+  imageContainer: {
+    width: '40%', // Ancho del contenedor de imagen
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 5,
-    marginBottom: 20,
-    padding: 15,
-    flexDirection: 'row',
   },
   discountImage: {
     width: '100%',
-    height: 100, // Cambiado de 120 a 100
-  },
-  discountBlockImage: {
-    width: 80, // Cambiado de 100 a 80
-    height: 80, // Cambiado de 100 a 80
-    marginRight: 15,
+    height: '100%',
   },
   discountDetails: {
-    flex: 1,
-    padding: 10,
+    width: '60%', // Ancho del contenedor de detalles
+    padding: 8, // Padding
   },
-  discountTitle: {
-    fontSize: 14, // Cambiado de 16 a 14
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 5,
-  },
-  discountDescription: {
-    fontSize: 11, // Cambiado de 12 a 11
-    color: '#666',
-    marginBottom: 10,
-  },
-  productFinalPrice: {
-    fontSize: 14, // Cambiado de 16 a 14
-    fontWeight: 'bold',
-    color: '#000',
-    marginBottom: 10,
-  },
-  actionsContainer: {
+  header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 3,
   },
-  likeButton: {
-    padding: 5,
+  discountTitle: {
+    fontSize: 12, // Tamaño de la fuente
+    fontWeight: 'bold',
+    color: '#333',
   },
-  likeButtonBlock: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
+  discountDescription: {
+    fontSize: 10, // Tamaño de la fuente
+    color: '#666',
+    marginBottom: 3,
   },
-  addButton: {
-    backgroundColor: '#FFD700', // Fondo amarillo cálido
-    borderRadius: 20,
-    width: 30,
-    height: 30,
-    justifyContent: 'center',
+  productFinalPrice: {
+    fontSize: 14, // Tamaño de la fuente
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 8, // Añadir margen inferior para separar del contenedor de tags
+  },
+  tagAndButtonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
   tagContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 5,
+    alignItems: 'center', // Alinea los elementos verticalmente
   },
   percentageTag: {
     backgroundColor: '#e0f7e0',
     paddingHorizontal: 5,
     paddingVertical: 2,
     borderRadius: 5,
+    marginRight: 5,
   },
   percentageText: {
     color: '#006400',
     fontWeight: 'bold',
+    fontSize: 10,
   },
   deliveryTag: {
     backgroundColor: '#f0f0f0',
@@ -211,6 +189,23 @@ const styles = StyleSheet.create({
   },
   deliveryText: {
     color: '#555',
+    fontSize: 10,
+  },
+  actionsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  likeButton: {
+    padding: 2,
+  },
+  addButton: {
+    backgroundColor: '#FF6347',
+    borderRadius: 12,
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

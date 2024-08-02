@@ -12,8 +12,7 @@ const HorizontalScroll = ({ title, items, scheme, handleItemPress, categoryId}) 
   const styles = scheme === 'dark' ? darkTheme : lightTheme;
   const navigation = useNavigation()
 
-  console.log(address, "addres en horizontal")
-  console.log(items)
+
 
   const GOOGLE_MAPS_API_KEY = 'AIzaSyB8fCVwRXbMe9FAxsrC5CsyfjzpHxowQmE'
 

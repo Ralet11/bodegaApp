@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Image, TextInput, useColorScheme } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Image, useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -17,18 +17,12 @@ const CategoryShops = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOrder, setSortOrder] = useState('name');
 
-  console.log(categoryId, categoryName)
-
   useEffect(() => {
     if (shopsByCategory && categoryId) {
       const shops = shopsByCategory[categoryId] || [];
       setFilteredShops(shops);
     }
   }, [shopsByCategory, categoryId]);
-
-  const handleBackPress = () => {
-    navigation.goBack();
-  };
 
   const handleSearch = (query) => {
     setSearchQuery(query);
@@ -46,10 +40,6 @@ const CategoryShops = () => {
     setFilteredShops(sorted);
   };
 
-  const changeAddress = () => {
-    navigation.navigate('SetAddressScreen');
-  };
-
   const changeCategory = (newCategoryId, newCategoryName) => {
     navigation.navigate('CategoryShops', { categoryId: newCategoryId, categoryName: newCategoryName });
   };
@@ -60,14 +50,14 @@ const CategoryShops = () => {
 
   return (
     <SafeAreaView style={scheme === 'dark' ? darkTheme.safeArea : lightTheme.safeArea}>
-      <View style={scheme === 'dark' ? darkTheme.header : lightTheme.header}>
-        <TouchableOpacity onPress={handleBackPress} style={scheme === 'dark' ? darkTheme.iconButton : lightTheme.iconButton}>
+      <View style={[scheme === 'dark' ? darkTheme.header : lightTheme.header, { backgroundColor: '#F2BB26' }]}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={scheme === 'dark' ? darkTheme.iconButton : lightTheme.iconButton}>
           <FontAwesome name="arrow-left" size={24} color={scheme === 'dark' ? '#FFD700' : '#333'} />
         </TouchableOpacity>
-        <Text style={scheme === 'dark' ? darkTheme.headerTitle : lightTheme.headerTitle}>{categoryName}</Text>
-        <TouchableOpacity onPress={changeAddress} style={scheme === 'dark' ? darkTheme.iconButton : lightTheme.iconButton}>
-          <FontAwesome name="map-marker" size={24} color={scheme === 'dark' ? 'white' : '#333'} />
-        </TouchableOpacity>
+        <View style={{ flex: 1, alignItems: 'center' }}>
+          <Text style={scheme === 'dark' ? darkTheme.headerTitle : lightTheme.headerTitle}>{categoryName}</Text>
+        </View>
+        <View style={{ width: 24 }} />
       </View>
       <View style={scheme === 'dark' ? darkTheme.categoryContainer : lightTheme.categoryContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
