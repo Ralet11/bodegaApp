@@ -2,7 +2,7 @@
   "expo": {
     "name": "Bodega+",
     "slug": "augustoApp",
-    "version": "3.0.0",
+    "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -21,7 +21,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.ralet11.augustoApp",
+      "package": "com.khtech.bodega",
       "versionCode": 3,
       "permissions": [
         "ACCESS_FINE_LOCATION",

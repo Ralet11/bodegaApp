@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, TouchableOpacity, Dimensions, useColorScheme, ActivityIndicator, Animated, Modal, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Dimensions, useColorScheme, ActivityIndicator, Animated, Modal, StyleSheet, Image, ScrollView } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
@@ -7,15 +7,12 @@ import Axios from 'react-native-axios';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
 import socketIOClient from "socket.io-client";
-import { emptyCart, setCurrentOrder, setOrderIn, updateOrderIn } from '../redux/slices/orders.slice';
+import { setCurrentOrder, updateOrderIn, setAuxShops } from '../redux/slices/orders.slice';
 import { API_URL } from '@env';
 import { AirbnbRating } from 'react-native-ratings';
 import { setUser } from '../redux/slices/user.slice';
-import { setAuxShops } from '../redux/slices/setUp.slice';
 
 const { width, height } = Dimensions.get('window');
-
-const GOOGLE_MAPS_API_KEY = 'AIzaSyB8fCVwRXbMe9FAxsrC5CsyfjzpHxowQmE';
 
 const AcceptedOrder = () => {
   const colorScheme = useColorScheme();
@@ -33,6 +30,11 @@ const AcceptedOrder = () => {
   const [rating, setRating] = useState(0);
   const [buttonsVisible, setButtonsVisible] = useState(true);
 
+  const GOOGLE_MAPS_API_KEY = 'AIzaSyB8fCVwRXbMe9FAxsrC5CsyfjzpHxowQmE';
+
+  const [showOrderDetailsModal, setShowOrderDetailsModal] = useState(false);
+  const [selectedOrderDetails, setSelectedOrderDetails] = useState([]);
+
   const address = useSelector((state) => state?.user?.address) || '';
   const user = useSelector((state) => state.user.userInfo.data);
   const token = useSelector((state) => state?.user?.userInfo.data.token);
@@ -41,8 +43,6 @@ const AcceptedOrder = () => {
   const currentShop = useSelector((state) => state.currentShop.currentShop);
   const order = useSelector((state) => state.orders.currentOrder);
   const dispatch = useDispatch();
-
-  console.log(user)
 
   const orderRef = useRef(order);
 
@@ -119,6 +119,11 @@ const AcceptedOrder = () => {
   const handleBackPress = () => {
     navigation.navigate('Home');
     return true;
+  };
+
+  const handleViewOrderDetails = (orderDetails) => {
+    setSelectedOrderDetails(orderDetails);
+    setShowOrderDetailsModal(true);
   };
 
   const handleRefund = async () => {
@@ -349,7 +354,7 @@ const AcceptedOrder = () => {
           <Text style={[styles.orderType, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>{order?.type}</Text>
           {order?.type === 'Order-in' ? (
             <>
-            <Text style={[styles.orderNumber, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>Order #{order?.id}</Text>
+              <Text style={[styles.orderNumber, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>Order #{order?.id}</Text>
               <Text style={[styles.orderMessage, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>
                 Acércate al local para reclamar tu orden
               </Text>
@@ -399,9 +404,12 @@ const AcceptedOrder = () => {
             <Text style={[styles.orderDetailText, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>{duration}</Text>
           </View>
         </View>
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
-            <Text style={styles.buttonText}>BACK TO HOME</Text>
+        <View style={styles.smallButtonContainer}>
+          <TouchableOpacity style={styles.smallButton} onPress={handleBackPress}>
+            <Text style={styles.smallButtonText}>BACK TO HOME</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.smallButton} onPress={() => handleViewOrderDetails(order.order_details)}>
+            <Text style={styles.smallButtonText}>VIEW ORDER DETAILS</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -436,13 +444,13 @@ const AcceptedOrder = () => {
                 <>
                   {buttonsVisible && order.pi !== 'bodegaBalance' && (
                     <TouchableOpacity style={styles.modalButton} onPress={handleRefund}>
-                    <Text style={styles.modalButtonText}>Refund</Text>
-                  </TouchableOpacity>
+                      <Text style={styles.modalButtonText2}>Refund</Text>
+                    </TouchableOpacity>
                   )}
                   {buttonsVisible && (
                     <TouchableOpacity style={styles.modalButton} onPress={handleBalance}>
-                    <Text style={styles.modalButtonText}>Credit to Bodega Balance</Text>
-                  </TouchableOpacity>
+                      <Text style={styles.modalButtonText2}>Credit to Bodega Balance</Text>
+                    </TouchableOpacity>
                   )}
                 </>
               )}
@@ -472,7 +480,7 @@ const AcceptedOrder = () => {
                   size={20}
                   onFinishRating={(rating) => setRating(rating)}
                 />
-                <TouchableOpacity style={styles.modalButton} onPress={handleRating}>
+                <TouchableOpacity  onPress={handleRating}>
                   <Text style={styles.modalButtonText}>Confirm</Text>
                 </TouchableOpacity>
               </>
@@ -483,14 +491,50 @@ const AcceptedOrder = () => {
                 </Text>
                 <View style={styles.modalButtons}>
                   <TouchableOpacity style={styles.modalButton} onPress={() => setShowStars(true)}>
-                    <Text style={styles.modalButtonText}>Yes</Text>
+                    <Text style={styles.modalButtonText2}>Yes</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.modalButton} onPress={handleRefund}>
-                    <Text style={styles.modalButtonText}>Contact Support</Text>
+                    <Text style={styles.modalButtonText2}>Contact Support</Text>
                   </TouchableOpacity>
                 </View>
               </>
             )}
+          </View>
+        </View>
+      </Modal>
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={showOrderDetailsModal}
+        onRequestClose={() => setShowOrderDetailsModal(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={[styles.modalContent, colorScheme === 'dark' ? styles.darkModalContent : styles.lightModalContent]}>
+            <Text style={[styles.modalTitle, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>Order Details</Text>
+            <ScrollView contentContainerStyle={styles.modalScrollContent}>
+              {selectedOrderDetails.map((item) => (
+                <View key={item.id} style={styles.detailCard}>
+                  <Image source={{ uri: item.image }} style={styles.detailImage} />
+                  <View style={styles.detailInfo}>
+                    <Text style={styles.detailName}>{item.name}</Text>
+                    <Text style={styles.detailDescription}>{item.description}</Text>
+                    <Text style={styles.detailPrice}>Price: ${item.price}</Text>
+                    <Text style={styles.detailQuantity}>Quantity: {item.quantity}</Text>
+                  </View>
+                </View>
+              ))}
+              <View style={styles.totalContainer}>
+                <Text style={[styles.totalText, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>
+                  Total Price: ${order.total_price}
+                </Text>
+                <Text style={[styles.totalText, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>
+                  Delivery Address: {order.deliveryAddress || 'Pick-Up'}
+                </Text>
+              </View>
+            </ScrollView>
+            <TouchableOpacity  onPress={() => setShowOrderDetailsModal(false)}>
+              <Text>Close</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -587,21 +631,29 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 5,
   },
-  buttonContainer: {
+  smallButtonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 15,
   },
-  backButton: {
+  smallButton: {
     backgroundColor: '#ff9900',
-    paddingVertical: 10,
+    paddingVertical: 8,
     paddingHorizontal: 15,
-    borderRadius: 10,
+    borderRadius: 20,
     flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
   },
-  buttonText: {
-    fontSize: 14,
-    textAlign: 'center',
+  smallButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
     color: '#000',
   },
   progressBarContainer: {
@@ -622,6 +674,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    padding: 20,  // Agrega un poco de padding para evitar que el contenido toque los bordes
   },
   modalContent: {
     width: '85%',
@@ -629,6 +682,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     elevation: 10,
+    maxHeight: '70%',  // Limitar la altura máxima del contenido modal
   },
   lightModalContent: {
     backgroundColor: '#fff',
@@ -655,7 +709,7 @@ const styles = StyleSheet.create({
   },
   modalButton: {
     flex: 1,
-    paddingVertical: 5,
+    paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 25,
     marginHorizontal: 10,
@@ -663,16 +717,81 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     elevation: 2,
   },
+  closeButton: {
+    marginTop: 20,
+    backgroundColor: '#FFEB3B', // Cambiar el color de fondo para que contraste mejor
+  },
+  closeButtonText: {
+    color: '#000', // Asegurar que el texto sea legible
+  },
   modalButtonText: {
-    fontSize: 12,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ff9900',
+    paddingTop: 20
+  },
+  modalButtonText2: {
+    fontSize: 16,
     fontWeight: '600',
     color: '#000',
+    paddingTop: 20
   },
   centeredLoader: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
+  detailCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,  // Ajustado para mayor separación entre items
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+    paddingBottom: 15,
+    width: '100%',  // Asegura que cada detalle ocupe el ancho completo
+  },
+  detailImage: {
+    width: 60,  // Tamaño ajustado para mejor visibilidad
+    height: 60,  // Tamaño ajustado para mejor visibilidad
+    borderRadius: 10,
+    marginRight: 15,
+  },
+  detailInfo: {
+    flex: 1,
+  },
+  detailName: {
+    fontSize: 16,  // Tamaño de fuente ajustado
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  detailDescription: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 5,
+  },
+  detailPrice: {
+    fontSize: 16,
+    color: '#333',
+    marginBottom: 5,
+  },
+  detailQuantity: {
+    fontSize: 16,
+    color: '#333',
+  },
+  totalContainer: {
+    marginTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#ddd',
+    paddingTop: 10,
+  },
+  totalText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  modalScrollContent: {
+    paddingBottom: 20,
+    width: '100%',
+  }
 });
 
 export default AcceptedOrder;

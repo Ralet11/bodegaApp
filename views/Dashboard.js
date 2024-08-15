@@ -37,6 +37,8 @@ const Dashboard = () => {
   const auxShops = useSelector((state) => state?.setUp?.auxShops);
 
 
+  console.log(shopsByCategory[0], "shop")
+
   const categoryTitles = {
     1: 'Best smoke shops',
     2: 'Drinks',
@@ -192,9 +194,23 @@ const Dashboard = () => {
   };
 
   const filterShops = (shops, mode) => {
+    const currentDateTime = new Date();
+    const currentDay = currentDateTime.toLocaleString('en-US', { weekday: 'short' }).toLowerCase();
+    const currentTime = currentDateTime.toTimeString().slice(0, 8); // Obtener la hora actual en formato HH:MM:SS
+  
     const filtered = {};
     Object.keys(shops).forEach((categoryId) => {
-      filtered[categoryId] = shops[categoryId].filter(shop => (mode === 'Delivery' ? shop.delivery : shop.pickUp));
+      filtered[categoryId] = shops[categoryId].filter((shop) => {
+        const isModeMatch = mode === 'Delivery' ? shop.delivery : shop.pickUp;
+        const isOpen = shop.openingHours.some((hour) => {
+          return (
+            hour.day === currentDay &&
+            hour.open_hour <= currentTime &&
+            hour.close_hour >= currentTime
+          );
+        });
+        return isModeMatch && isOpen;
+      });
     });
     setFilteredShopsByCategory(filtered);
   };

@@ -23,6 +23,7 @@ const CartScreen = () => {
   const address = useSelector((state) => state?.user?.address) || '';
   const colorScheme = useColorScheme();
   const route = useRoute();
+  console.log(cart, "carrito")
 
   const [tip, setTip] = useState(0);
   const [customTip, setCustomTip] = useState('');
@@ -33,6 +34,7 @@ const CartScreen = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [confirmationModalVisible, setConfirmationModalVisible] = useState(false);
+  const [checkoutModalVisible, setCheckoutModalVisible] = useState(false); // Nuevo estado para el modal de checkout
   const [newOrderType, setNewOrderType] = useState(orderType);
   const userAddresses = useSelector((state) => state?.user?.addresses) || [];
   const shops = useSelector((state) => state?.setUp?.shops);
@@ -44,8 +46,13 @@ const CartScreen = () => {
   const { orderType } = route.params;
   const [loginModalVisible, setLoginModalVisible] = useState(false);
   const [loginMode, setLoginMode] = useState(true);
+  const [serviceFee, setServiceFee] = useState(null);
+
+  const [deliveryInstructions, setDeliveryInstructions] = useState(''); // Nuevo estado para las instrucciones
 
   const GOOGLE_API_KEY = 'AIzaSyB8fCVwRXbMe9FAxsrC5CsyfjzpHxowQmE';
+
+  console.log(originalDeliveryFee, "original deliveyr fee");
 
   const calculateSubtotal = () => {
     return cart.reduce((total, item) => total + (parseFloat(item.price.replace('$', '')) + (item.selectedExtras ? Object.values(item.selectedExtras).reduce((extraTotal, extra) => extraTotal + extra.price, 0) : 0)) * item.quantity, 0).toFixed(2);
@@ -98,21 +105,54 @@ const CartScreen = () => {
       };
 
       const currentShopDetails = findCurrentShop();
+      const calculateAdjustedDeliveryFee = (orderTotal, calculatedDeliveryFee) => {
+        const restaurantShare = orderTotal * 0.80;
+        const companyShare = orderTotal * 0.20;
+
+        const percentage1 = companyShare * 0.25;
+
+        const serviceFee = orderTotal * 0.05;
+
+        const totalFromBoth5 = percentage1 + serviceFee;
+
+        let adjustedDeliveryFee = calculatedDeliveryFee - totalFromBoth5;
+
+        if (adjustedDeliveryFee < 0) {
+          adjustedDeliveryFee = 0;
+        }
+
+        return {
+          adjustedDeliveryFee: adjustedDeliveryFee.toFixed(2),
+          serviceFee: serviceFee.toFixed(2),
+          percentage1: percentage1.toFixed(2),
+        };
+      };
 
       if (address && currentShopDetails && currentShopDetails.address) {
         const calculateDeliveryFee = async () => {
           try {
             const response = await Axios.get(`https://maps.googleapis.com/maps/api/distancematrix/json?units=imperial&origins=${encodeURIComponent(address)}&destinations=${encodeURIComponent(currentShopDetails.address)}&key=${GOOGLE_API_KEY}`);
             if (response.data.status === "OK") {
-              const distance = response.data.rows[0].elements[0].distance.value / 1609.34;
+              const distance = response.data.rows[0].elements[0].distance.value / 1609.34; 
               let fee = 0;
-              if (distance <= 4) {
+
+              if (distance <= 1.5) {
                 fee = 3;
-              } else if (distance > 4 && distance <= 10) {
-                fee = 6;
+              } else if (distance > 1.5 && distance <= 3) {
+                fee = 5;
+              } else if (distance > 3 && distance <= 7) {
+                fee = 8;
+              } else if (distance > 7 && distance <= 10) {
+                fee = 10;
               }
+
               setOriginalDeliveryFee(fee);
-              setDeliveryFee(user.subscription === 1 ? 0 : fee);
+
+              const { adjustedDeliveryFee, serviceFee, percentage1 } = calculateAdjustedDeliveryFee(parseFloat(calculateSubtotal()), fee);
+              
+              setServiceFee(serviceFee);
+
+              setDeliveryFee(user.subscription === 1 ? 0 : parseFloat(adjustedDeliveryFee));
             } else {
               console.error("Error fetching distance from Google Maps API:", response.data);
               Alert.alert("Error", "Failed to calculate delivery fee. Please try again.");
@@ -126,6 +166,7 @@ const CartScreen = () => {
         };
 
         calculateDeliveryFee();
+        
       } else {
         setIsLoading(false);
         Alert.alert('Error', 'No se encontró la tienda seleccionada o la dirección está vacía.');
@@ -136,45 +177,55 @@ const CartScreen = () => {
   }, [address, currentShop, user.subscription, shops]);
 
   const payment = async () => {
+    setCheckoutModalVisible(true);
+  };
+
+  const confirmPayment = async () => {
     if (isLoading || isCheckoutLoading) {
       Alert.alert("Please wait", "Calculating delivery fee...");
       return;
     }
-
+  
     setIsCheckoutLoading(true);
-
+  
     const total_price = calculateTotal();
     const finalPrice = Math.floor(total_price * 100);
-
+  
     try {
       if (finalPrice > 0) {
         const response = await Axios.post(`${API_URL}/api/payment/intent`, {
           finalPrice: finalPrice
         });
         const { clientSecret } = response.data;
-
+  
         if (response.error) {
           Alert.alert('Something went wrong');
           setIsCheckoutLoading(false);
           return;
         }
-
+  
         const paymentIntentId = clientSecret.split('_secret')[0];
-
+  
         const initResponse = await initPaymentSheet({
           merchantDisplayName: "Bodega+",
           paymentIntentClientSecret: clientSecret,
+          // Habilitar Apple Pay y Google Pay
+          applePay: true, // Apple Pay
+          googlePay: true, // Google Pay
+          style: 'automatic', // o 'alwaysDark', 'alwaysLight'
+          testEnv: true, // Solo en desarrollo, quítalo en producción
+          allowsDelayedPaymentMethods: true,
         });
-
+  
         if (initResponse.error) {
           console.log(initResponse.error);
           Alert.alert("Something went wrong");
           setIsCheckoutLoading(false);
           return;
         }
-
+  
         const { error } = await presentPaymentSheet();
-
+  
         if (error) {
           console.log(error);
           Alert.alert(`Error code: ${error.code}`, error.message);
@@ -194,6 +245,11 @@ const CartScreen = () => {
 
   const handleOrder = async (pi) => {
     const total_price = calculateTotal();
+    const deliveryAddress = {
+      address: orderType === "Delivery" ? address : "",
+      instructions: deliveryInstructions
+    };
+
     const data = {
       delivery_fee: deliveryFee,
       total_price: total_price,
@@ -203,7 +259,11 @@ const CartScreen = () => {
       date_time: new Date().toISOString().slice(0, -5),
       pi: pi,
       type: orderType,
-      savings: calculateSavings()
+      savings: calculateSavings(),
+      deliveryAddressAndInstructions: deliveryAddress,
+      originalDeliveryFee,
+      serviceFee,
+      tip: calculateTipAmount(parseFloat(calculateSubtotal()))
     };
 
     try {
@@ -263,10 +323,8 @@ const CartScreen = () => {
       dispatch(setCurrentOrder(response.data.newOrder));
       navigation.navigate('AcceptedOrder');
 
-      // Mark discounts as used
       for (const item of cart) {
-       
-         if (item.discount) {
+        if (item.discount) {
           try {
             const id = { id: item.discountId };
             const response = await Axios.post(`${API_URL}/api/discounts/useDiscount`, id, {
@@ -288,30 +346,14 @@ const CartScreen = () => {
     }
   };
 
-  const makeCall = async (to, orderId) => {
-    try {
-      await Axios.post(`${API_URL}/api/twilio/make-call`, { to, orderId });
-    } catch (error) {
-      console.error('Error making call:', error);
-    }
-  };
-
-  const handleBalanceChange = async (value) => {
-    setPrevBalance(user.balance);
-    const total_price = calculateTotal();
-    setFinalPrice(total_price);
-    setUseBalance(value);
-    const newBalance = user.balance >= total_price ? user.balance - total_price : 0;
-    if (value === true) {
-      setBalance(newBalance);
-    } else {
-      setBalance(prevBalance);
-    }
-  };
-
   const selectAddress = (address) => {
     dispatch(setAddress(address.formatted_address));
     setModalVisible(false);
+  };
+
+  const confirmCheckout = () => {
+    confirmPayment();
+    setCheckoutModalVisible(false);
   };
 
   const toggleOrderType = (type) => {
@@ -449,6 +491,7 @@ const CartScreen = () => {
           </View>
           <View style={styles.summaryContainer}>
             <Text style={styles.summaryText}>Subtotal: ${calculateSubtotal()}</Text>
+            {orderType === 'Delivery' && <Text style={styles.summaryText}>Service Fee: ${serviceFee}</Text>}
             {orderType === 'Delivery' && (
               <Text style={styles.summaryText}>
                 Delivery Fee:
@@ -497,6 +540,105 @@ const CartScreen = () => {
               <Text style={styles.checkoutButtonText}>Checkout</Text>
             )}
           </TouchableOpacity>
+          {/* Modal de confirmación de checkout */}
+          <Modal
+  visible={checkoutModalVisible}
+  animationType="slide"
+  transparent={true}
+  onRequestClose={() => setCheckoutModalVisible(false)}
+>
+  <View style={styles.modalOverlay}>
+    <View style={styles.largeModalContent}>
+      <Text style={styles.modalTitle}>Confirm Your Order</Text>
+      <ScrollView style={styles.modalScrollView}>
+        <View style={styles.modalSection}>
+          <Text style={styles.modalSectionTitle}>Delivery Address</Text>
+          <Text style={styles.modalText}>{address}</Text>
+        </View>
+        <View style={styles.modalSection}>
+          <Text style={styles.modalSectionTitle}>Enter Delivery Instructions</Text>
+          <TextInput
+            style={styles.instructionsInput}
+            placeholder="Enter delivery instructions"
+            placeholderTextColor="#A9A9A9"
+            value={deliveryInstructions}
+            onChangeText={setDeliveryInstructions}
+            multiline
+          />
+        </View>
+        <View style={styles.modalSection}>
+          <Text style={styles.modalSectionTitle}>Order Summary</Text>
+          {cart.map((item) => (
+            <View key={item.id} style={styles.modalCartItem}>
+              <Image source={{ uri: item.image }} style={styles.modalCartItemImage} />
+              <View style={styles.modalCartItemDetails}>
+                <Text style={styles.modalCartItemName}>{item.name}</Text>
+                {item.selectedExtras && Object.keys(item.selectedExtras).length > 0 && (
+                  <View style={styles.modalCartItemExtras}>
+                    {Object.keys(item.selectedExtras).map((extraName) => (
+                      <Text key={extraName} style={styles.modalCartItemExtraText}>
+                        {extraName}: {item.selectedExtras[extraName].name} (${item.selectedExtras[extraName].price})
+                      </Text>
+                    ))}
+                  </View>
+                )}
+                <View style={styles.row}>
+                  <Text style={styles.modalCartItemPrice}>${(parseFloat(item.price.replace('$', '')) + (item.selectedExtras ? Object.values(item.selectedExtras).reduce((extraTotal, extra) => extraTotal + extra.price, 0) : 0)).toFixed(2)}</Text>
+                  <Text style={styles.modalCartItemQuantity}>Qty: {item.quantity}</Text>
+                </View>
+              </View>
+            </View>
+          ))}
+        </View>
+        <View style={styles.modalSummaryContainer}>
+          <Text style={styles.summaryText}>Subtotal: ${calculateSubtotal()}</Text>
+          {orderType === 'Delivery' && <Text style={styles.summaryText}>Service Fee: ${serviceFee}</Text>}
+          {orderType === 'Delivery' && (
+            <Text style={styles.summaryText}>
+              Delivery Fee:
+              {user.subscription === 1 ? (
+                <>
+                  <Text style={styles.strikethrough}>${originalDeliveryFee}</Text> <Text style={styles.freeText}>Free</Text>
+                </>
+              ) : (
+                `$${deliveryFee}`
+              )}
+            </Text>
+          )}
+          <Text style={styles.summaryText}>
+            Tax:
+            {user.subscription === 1 ? (
+              <>
+                <Text style={styles.strikethrough}>${(calculateTax(parseFloat(calculateSubtotal())) * 2).toFixed(2)}</Text> ${(calculateTax(parseFloat(calculateSubtotal()))).toFixed(2)}
+              </>
+            ) : (
+              `$${calculateTax(parseFloat(calculateSubtotal())).toFixed(2)}`
+            )}
+          </Text>
+          <Text style={styles.summaryText}>
+            Tip: ${calculateTipAmount(parseFloat(calculateSubtotal()))}
+          </Text>
+          <Text style={styles.totalText}>Total: ${calculateTotal()}</Text>
+        </View>
+      </ScrollView>
+      <View style={styles.modalButtons}>
+        <TouchableOpacity
+          style={styles.confirmButton}
+          onPress={confirmCheckout}
+        >
+          <Text style={styles.confirmButtonText}>Confirm</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.cancelButton}
+          onPress={() => setCheckoutModalVisible(false)}
+        >
+          <Text style={styles.cancelButtonText}>Cancel</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  </View>
+</Modal>
+          {/* Fin del modal de confirmación de checkout */}
           <Modal
             visible={modalVisible}
             animationType="slide"

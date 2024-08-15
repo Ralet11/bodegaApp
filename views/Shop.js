@@ -7,7 +7,6 @@ import { FontAwesome } from '@expo/vector-icons';
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
 import Axios from 'react-native-axios';
 import { API_URL } from '@env';
-import ModalProduct from '../components/modals/ProductModal';
 import { useDispatch, useSelector } from 'react-redux';
 import { addToCart, incrementQuantity, decrementQuantity, clearCart } from '../redux/slices/cart.slice';
 import { setCurrentShop } from '../redux/slices/currentShop.slice';
@@ -15,6 +14,7 @@ import CartSkeletonLoader from '../components/SkeletonLoaderCart';
 import { stylesDark, stylesLight } from '../components/themeShop';
 import DiscountCard from '../components/DiscountCard';
 import ModalDiscount from '../components/modals/DiscountModal';
+import ProductDetail from '../components/ProductDetail'; // Importamos el nuevo componente
 
 const ShopScreen = () => {
   const route = useRoute();
@@ -25,7 +25,7 @@ const ShopScreen = () => {
   const token = useSelector((state) => state?.user?.userInfo.data.token);
   const [categories, setCategories] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedOptions, setSelectedOptions] = useState({});
   const [confirmationModalVisible, setConfirmationModalVisible] = useState(false);
   const [orderTypeModalVisible, setOrderTypeModalVisible] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -39,8 +39,6 @@ const ShopScreen = () => {
   const [discountModalVisible, setDiscountModalVisible] = useState(false)
 
   const { shop } = route.params || {};
-
-  console.log(shop)
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -80,20 +78,18 @@ const ShopScreen = () => {
     }
   }, [dispatch, shop?.id]);
 
-  const openModal = (product) => {
+  const openProductDetail = (product) => {
     setSelectedProduct(product);
-    setModalVisible(true);
+  };
+
+  const closeProductDetail = () => {
+    setSelectedProduct(null);
+    setSelectedOptions({});
   };
 
   const openDiscountModal = (discount) => {
-    console.log(discount, "discount")
     setSelectedDiscount(discount);
     setDiscountModalVisible(true);
-  };
-
-  const closeModal = () => {
-    setModalVisible(false);
-    setSelectedProduct(null);
   };
 
   const closeDiscountModal = () => {
@@ -101,28 +97,24 @@ const ShopScreen = () => {
     setSelectedDiscount(null);
   };
 
-  const handleAddToCart = (product, quantity, selectedExtras = []) => {
-    if (product.extras && product.extras.length > 0) {
-      setSelectedProduct(product);
-      setModalVisible(true);
+  const handleSelectOption = (extraId, option) => {
+    setSelectedOptions((prev) => ({
+      ...prev,
+      [extraId]: option,
+    }));
+  };
+
+  const handleAddToCart = (product, quantity) => {
+    const selectedExtras = Object.values(selectedOptions);
+    if (orderType == 'Order-in' && product.delivery == 0) {
+      alertCannotAddProduct();
+    } else if ((orderType == 'Pick-up' || orderType == 'Delivery') && product.delivery == 1) {
+      alertCannotAddProduct();
     } else {
-      if (orderType == 'Order-in' && product.delivery == 0) {
-        alertCannotAddProduct();
-      } else if ((orderType == 'Pick-up' || orderType == 'Delivery') && product.delivery == 1) {
-        alertCannotAddProduct();
-      } else {
-        dispatch(addToCart({ ...product, quantity, extras: selectedExtras }));
-        closeModal();
-      }
+      dispatch(addToCart({ ...product, quantity, extras: selectedExtras }));
+      closeProductDetail();
     }
   };
-
-  const handleAddToCartFromModal = (product, quantity, selectedExtras) => {
-    dispatch(addToCart({ ...product, quantity, extras: selectedExtras }));
-    closeModal();
-  };
-
-  console.log(cart)
 
   const totalAmount = cart.reduce((sum, item) => {
     const price = item.price || 0;
@@ -155,6 +147,10 @@ const ShopScreen = () => {
   useFocusEffect(
     React.useCallback(() => {
       const onBackPress = () => {
+        if (selectedProduct) {
+          closeProductDetail();
+          return true;
+        }
         if (cart.length > 0) {
           setConfirmationModalVisible(true);
           return true;
@@ -167,7 +163,7 @@ const ShopScreen = () => {
 
       return () =>
         BackHandler.removeEventListener('hardwareBackPress', onBackPress);
-    }, [cart])
+    }, [cart, selectedProduct])
   );
 
   const handleConfirmExit = () => {
@@ -222,7 +218,7 @@ const ShopScreen = () => {
 
     const handleIncrementQuantity = () => {
       if (product.extras.length > 0) {
-        openModal(product)
+        openProductDetail(product);
       } else {
         if (productInCart) {
           dispatch(incrementQuantity(product?.id));
@@ -230,7 +226,6 @@ const ShopScreen = () => {
           dispatch(addToCart({ ...product, quantity: 1 }));
         }
       }
-
     };
 
     const handleDecrementQuantity = () => {
@@ -243,11 +238,11 @@ const ShopScreen = () => {
 
     return (
       <View key={product.id} style={styles.productCard}>
-        <TouchableOpacity onPress={() => openModal(product)}>
+        <TouchableOpacity onPress={() => openProductDetail(product)}>
           <Image source={{ uri: product.image }} style={styles.productImage} />
         </TouchableOpacity>
         <View style={styles.productDetails}>
-          <TouchableOpacity onPress={() => openModal(product)}>
+          <TouchableOpacity onPress={() => openProductDetail(product)}>
             <Text style={styles.productName}>{product.name}</Text>
           </TouchableOpacity>
           <Text style={styles.productDescription}>{product.description}</Text>
@@ -294,7 +289,13 @@ const ShopScreen = () => {
           })
         }]} />
         <View style={styles.overlay} />
-        <TouchableOpacity onPress={() => cart.length > 0 ? setConfirmationModalVisible(true) : navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => {
+          if (selectedProduct) {
+            closeProductDetail();
+          } else {
+            navigation.goBack();
+          }
+        }} style={styles.backButton}>
           <FontAwesome name="arrow-left" size={24} color="#fff" />
         </TouchableOpacity>
         <Animated.View style={[styles.headerTextContainer, {
@@ -312,36 +313,40 @@ const ShopScreen = () => {
           </View>
         </Animated.View>
       </Animated.View>
-      <View style={styles.orderTypeContainer}>
-        {orderTypes.map(order => (
-          <TouchableOpacity
-            key={order.type}
-            style={[
-              styles.orderTypeButton,
-              orderType == order.type && styles.selectedOrderTypeButton,
-            ]}
-            onPress={() => handleOrderTypeChange(order.type)}
-          >
-            <FontAwesome name={order.icon} size={15} color={orderType == order.type ? '#8C6D00' : '#333'} />
-            <Text style={styles.orderTypeText}>{order.type}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-      <View style={styles.categoryListContainer}>
-        {orderType !== 'Order-in' && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.categoryScrollContainer}
-          >
-            {categories.map((item, index) => (
-              <TouchableOpacity key={item.id} onPress={() => scrollToCategory(index)} style={styles.categoryButton}>
-                <Text style={styles.categoryButtonText}>{item.name}</Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        )}
-      </View>
+      {!selectedProduct && (
+        <View style={styles.orderTypeContainer}>
+          {orderTypes.map(order => (
+            <TouchableOpacity
+              key={order.type}
+              style={[
+                styles.orderTypeButton,
+                orderType == order.type && styles.selectedOrderTypeButton,
+              ]}
+              onPress={() => handleOrderTypeChange(order.type)}
+            >
+              <FontAwesome name={order.icon} size={15} color={orderType == order.type ? '#8C6D00' : '#333'} />
+              <Text style={styles.orderTypeText}>{order.type}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+      {!selectedProduct && (
+        <View style={styles.categoryListContainer}>
+          {orderType !== 'Order-in' && (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.categoryScrollContainer}
+            >
+              {categories.map((item, index) => (
+                <TouchableOpacity key={item.id} onPress={() => scrollToCategory(index)} style={styles.categoryButton}>
+                  <Text style={styles.categoryButtonText}>{item.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )}
+        </View>
+      )}
       {loading ? (
         <CartSkeletonLoader />
       ) : (
@@ -355,29 +360,33 @@ const ShopScreen = () => {
           )}
           contentContainerStyle={styles.contentContainer}
         >
-          {orderType == 'Order-in' ? (
+          {orderType == 'Order-in' && !selectedProduct ? (
             discounts.filter(discount => discount.delivery == 1).map(discount => renderDiscount(discount, true))
           ) : (
-            <View style={{ backgroundColor: 'white', flex: 1, marginBottom: 5 }}>
-              {discounts.length > 0 && <Text style={styles.discountSectionTitle}>Our best discounts</Text>}
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.discountScrollContainer}
-              >
-                {discounts.filter(discount => discount.delivery == 0).map(discount => renderDiscount(discount, false))}
-              </ScrollView>
-            </View>
+            !selectedProduct && (
+              <View style={{ backgroundColor: 'white', flex: 1, marginBottom: 5 }}>
+                {discounts.length > 0 && <Text style={styles.discountSectionTitle}>Our best discounts</Text>}
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.discountScrollContainer}
+                >
+                  {discounts.filter(discount => discount.delivery == 0).map(discount => renderDiscount(discount, false))}
+                </ScrollView>
+              </View>
+            )
           )}
-          {orderType !== 'Order-in' && categories.map(category => renderCategory(category))}
+          {orderType !== 'Order-in' && selectedProduct ? (
+            <ProductDetail
+              product={selectedProduct}
+              onAddToCart={handleAddToCart}
+              onBack={closeProductDetail}
+            />
+          ) : (
+            categories.map(category => renderCategory(category))
+          )}
         </Animated.ScrollView>
       )}
-      <ModalProduct
-        visible={modalVisible}
-        onClose={closeModal}
-        product={selectedProduct}
-        addToCart={handleAddToCartFromModal}
-      />
       <ModalDiscount
         visible={discountModalVisible}
         onClose={closeDiscountModal}
