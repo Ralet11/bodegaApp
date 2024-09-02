@@ -86,12 +86,12 @@ const AccountDrawer = ({ user, visible, onClose, onNavigate, scheme }) => {
                       Account Settings
                     </Text>
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={() => onNavigate('MyCoupons')} style={styles.drawerButton}>
+                 {/*  <TouchableOpacity onPress={() => onNavigate('MyCoupons')} style={styles.drawerButton}>
                     <FontAwesome name="ticket" size={20} color={scheme === 'dark' ? '#FFD700' : '#333'} />
                     <Text style={[styles.drawerButtonText, scheme === 'dark' ? styles.darkButtonText : styles.lightButtonText]}>
                       My Coupons
                     </Text>
-                  </TouchableOpacity>
+                  </TouchableOpacity> */}
                   <TouchableOpacity onPress={() => onNavigate('Contact')} style={styles.drawerButton}>
                     <FontAwesome name="phone" size={20} color={scheme === 'dark' ? '#FFD700' : '#333'} />
                     <Text style={[styles.drawerButtonText, scheme === 'dark' ? styles.darkButtonText : styles.lightButtonText]}>
@@ -106,7 +106,7 @@ const AccountDrawer = ({ user, visible, onClose, onNavigate, scheme }) => {
                   </TouchableOpacity>
                   <View style={styles.bodegaBalance}>
                     <FontAwesome name="money" size={20} color={scheme === 'dark' ? '#FFD700' : '#333'} />
-                    <Text style={[styles.drawerText, scheme === 'dark' ? styles.darkText : styles.lightText, styles.balanceText]}>
+                    <Text style={[styles.drawerText, scheme === 'dark' ? styles.darkButtonText : styles.lightButtonText]}>
                       Bodega Balance: ${parseFloat(user?.balance).toFixed(2)}
                     </Text>
                   </View>

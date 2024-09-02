@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux'; 
 import { clearUser } from '../redux/slices/user.slice';
 import { setUserDiscounts } from '../redux/slices/setUp.slice';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
 const LogoScreen = () => {
@@ -11,11 +12,27 @@ const LogoScreen = () => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const isAuthenticated = useSelector(state => state.user.isAuthenticated); 
   const dispatch = useDispatch();
+  const token = useSelector(state => state?.user?.userInfo?.data?.token);
 
+useEffect(() => {
+  const checkStorage = async () => {
+    try {
+      const userData = await AsyncStorage.getItem('persist:user');
+      const themeData = await AsyncStorage.getItem('persist:theme');
+      console.log('User Data:', userData);
+      console.log('Theme Data:', themeData);
+    } catch (error) {
+      console.error('Error reading AsyncStorage:', error);
+    }
+  };
+
+  checkStorage()
+},[])
 
   useEffect(() => {
+    console.log(token, "token")
     const redirectTimeout = setTimeout(() => {
-      if (isAuthenticated) {
+      if (token) {
         navigation.navigate('Main');
       } else {
         navigation.navigate('Login');
@@ -24,7 +41,7 @@ const LogoScreen = () => {
     }, 3000);
 
     return () => clearTimeout(redirectTimeout);
-  }, [isAuthenticated, navigation, dispatch]);
+  }, [token, navigation, dispatch]);
 
   
 

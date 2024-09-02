@@ -5,16 +5,18 @@ import { useSelector } from 'react-redux';
 import Axios from 'react-native-axios';
 import { useNavigation } from '@react-navigation/native';
 
-const HorizontalScroll = ({ title, items, scheme, handleItemPress, categoryId}) => {
+const HorizontalScroll = ({ title, items, scheme, handleItemPress, categoryId, orderTypeParam}) => {
   const [distances, setDistances] = useState({});
   const [isLoading, setIsLoading] = useState(true);
-  const address = useSelector((state) => state?.user?.address);
+  const address = useSelector((state) => state?.user?.address?.formatted_address);
   const styles = scheme === 'dark' ? darkTheme : lightTheme;
   const navigation = useNavigation()
 
+  console.log(orderTypeParam, "type")
 
 
-  const GOOGLE_MAPS_API_KEY = 'AIzaSyB8fCVwRXbMe9FAxsrC5CsyfjzpHxowQmE'
+
+  const GOOGLE_MAPS_API_KEY = 'AIzaSyAvritMA-llcdIPnOpudxQ4aZ1b5WsHHUc'
 
   useEffect(() => {
     const fetchDistances = async () => {

@@ -25,8 +25,26 @@ const commonStyles = {
     marginRight: 10,
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 26,  // Aumentado para mayor impacto
     fontWeight: 'bold',
+    color: '#333', // Color más oscuro para contraste
+  },
+  orderTypeContainer: {
+    marginBottom: 15,
+    padding: 15,
+    borderRadius: 15,
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  orderTypeText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+    textAlign: 'center',
   },
   addressContainer: {
     marginBottom: 20,
@@ -38,16 +56,16 @@ const commonStyles = {
     shadowOpacity: 0.3,
     shadowRadius: 6,
     elevation: 5,
-    marginTop: 20,
   },
   addressLabel: {
-    fontSize: 16,
-    marginBottom: 5,
+    fontSize: 18,  // Aumentado para mejor legibilidad
     fontWeight: '600',
+    color: '#333',
   },
   addressInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginTop: 10,  // Añadido para separar del label
   },
   addressInput: {
     flex: 1,
@@ -59,14 +77,14 @@ const commonStyles = {
     backgroundColor: '#f9f9f9',
   },
   cartItemsContainer: {
-    marginBottom: 10,
+    marginBottom: 20,
     marginTop: 10,
   },
   cartItem: {
     flexDirection: 'row',
     backgroundColor: '#fff',
     borderRadius: 15,
-    marginBottom: 10,
+    marginBottom: 15,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -78,8 +96,8 @@ const commonStyles = {
     position: 'relative',
   },
   cartItemImage: {
-    width: 60,
-    height: 60,
+    width: 70,  // Ajustado para mayor visibilidad
+    height: 70,
     borderRadius: 10,
   },
   discountLabel: {
@@ -93,19 +111,21 @@ const commonStyles = {
   discountLabelText: {
     color: '#000',
     fontWeight: 'bold',
-    fontSize: 7,
+    fontSize: 8,  // Ajustado para mayor visibilidad
   },
   cartItemDetails: {
     flex: 1,
     paddingHorizontal: 10,
   },
   cartItemName: {
-    fontSize: 16,
+    fontSize: 18,  // Aumentado para mejor legibilidad
     fontWeight: '600',
+    color: '#333',
   },
   cartItemPrice: {
-    fontSize: 14,
+    fontSize: 16,
     marginTop: 4,
+    color: '#666',  // Color más suave para contraste
   },
   row: {
     flexDirection: 'row',
@@ -118,24 +138,25 @@ const commonStyles = {
     marginLeft: 10,
   },
   quantityButton: {
-    backgroundColor: '#333',
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 5,
+    backgroundColor: '#ff9900',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
   },
   quantityButtonText: {
     fontSize: 16,
     color: '#fff',
   },
   quantityText: {
-    fontSize: 16,
+    fontSize: 18,  // Aumentado para mejor visibilidad
     marginHorizontal: 10,
+    color: '#333',
   },
   tipContainer: {
     backgroundColor: '#fff',
     borderRadius: 15,
     padding: 15,
-    marginBottom: 10,
+    marginBottom: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
@@ -143,9 +164,10 @@ const commonStyles = {
     elevation: 5,
   },
   tipLabel: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
     marginBottom: 10,
+    color: '#333',
   },
   tipOptions: {
     flexDirection: 'row',
@@ -154,7 +176,7 @@ const commonStyles = {
   tipButton: {
     backgroundColor: '#f2f2f2',
     paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
     borderRadius: 10,
   },
   tipButtonSelected: {
@@ -176,17 +198,18 @@ const commonStyles = {
   summaryContainer: {
     backgroundColor: '#fff',
     borderRadius: 15,
-    padding: 15,
+    padding: 20,  // Aumentado para un diseño más espacioso
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 6,
     elevation: 5,
-    marginBottom: 10,
+    marginBottom: 20,
   },
   summaryText: {
-    fontSize: 16,
-    marginBottom: 5,
+    fontSize: 18,  // Aumentado para mejorar la legibilidad
+    marginBottom: 8,
+    color: '#333',
   },
   strikethrough: {
     textDecorationLine: 'line-through',
@@ -198,14 +221,15 @@ const commonStyles = {
     fontWeight: 'bold',
   },
   totalText: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginTop: 10,
+    fontSize: 20,  // Aumentado para destacar el total
+    fontWeight: 'bold',
+    color: '#333',
     textAlign: 'right',
+    marginTop: 10,
   },
   checkoutButton: {
     backgroundColor: '#ff9900',
-    paddingVertical: 12,
+    paddingVertical: 14,  // Ajustado para mayor confort
     borderRadius: 25,
     justifyContent: 'center',
     alignItems: 'center',
@@ -217,48 +241,43 @@ const commonStyles = {
   },
   checkoutButtonText: {
     color: '#1a1a1a',
-    fontSize: 18,
+    fontSize: 20,  // Aumentado para mayor impacto
     fontWeight: 'bold',
   },
   savingsContainer: {
     backgroundColor: '#fffbec',
     borderRadius: 15,
     padding: 15,
-    marginBottom: 10,
+    marginBottom: 20,
     alignItems: 'center',
     justifyContent: 'center',
     borderColor: '#ffcc00',
     borderWidth: 1,
   },
   savingsText: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
     color: '#ff6600',
   },
   adContainer: {
     backgroundColor: '#fff',
     borderRadius: 15,
-    padding: 15,
-    marginBottom: 10,
+    padding: 20,  // Aumentado para mejor presencia
+    marginBottom: 20,
     alignItems: 'center',
     justifyContent: 'center',
     borderColor: '#007bff',
     borderWidth: 1,
   },
   adTitle: {
-    fontSize: 18,
+    fontSize: 20,  // Aumentado para mayor impacto
     fontWeight: '700',
-    marginBottom: 5,
+    marginBottom: 10,
+    color: '#333',
   },
   adText: {
     fontSize: 16,
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',  // Fondo oscuro para el overlay
-    padding: 20,
-    marginTop:200
+    color: '#333',
   },
   modalOverlay: {
     flex: 1,
@@ -275,20 +294,22 @@ const commonStyles = {
     shadowOpacity: 0.3,
     shadowRadius: 6,
     elevation: 5,
-    width: '100%',
-    maxWidth: 500,
+    width: '95%',
+    height: '95%', // Ocupa el 95% de la altura disponible
     alignSelf: 'center',
+    justifyContent: 'space-between', // Distribuye el espacio entre el contenido y los botones
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 22,  // Aumenta ligeramente el tamaño del título
     fontWeight: 'bold',
-    marginBottom: 20,
+    marginBottom: 15, // Espacio generoso debajo del título
+    textAlign: 'center', // Centra el título
   },
   modalScrollView: {
-    maxHeight: 400,
+    flex: 1, // Deja que el contenido use todo el espacio disponible
   },
   modalSection: {
-    marginBottom: 20,
+    marginBottom: 20, // Mantén un buen espacio entre secciones
   },
   modalSectionTitle: {
     fontSize: 16,
@@ -296,63 +317,146 @@ const commonStyles = {
     marginBottom: 8,
   },
   modalText: {
-    fontSize: 14,
+    fontSize: 15,  // Aumenta ligeramente el tamaño de texto para mejor legibilidad
     color: '#333',
   },
   instructionsInput: {
     borderColor: '#ccc',
     borderWidth: 1,
-    borderRadius: 4,
-    padding: 8,
-    height: 100,
-    textAlignVertical: 'top',  // Para alinear el texto en la parte superior
+    borderRadius: 8, // Ajusta para un diseño más suave
+    padding: 10, // Aumenta el padding para mayor confort de escritura
+    height: 100, // Ajusta la altura del campo de instrucciones
+    textAlignVertical: 'top',
     backgroundColor: '#f9f9f9',
     color: '#333',
   },
   modalSummaryContainer: {
-    marginTop: 20,
-  },
-  summaryText: {
-    fontSize: 16,
-    color: '#333',
-  },
-  totalText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginTop: 10,
-    color: '#333',
+    marginTop: 15,
+    borderTopWidth: 1, // Añade una línea para separar el resumen
+    borderTopColor: '#eee',
+    paddingTop: 15,
   },
   modalButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 20,
+    paddingTop: 20, // Aumenta el padding para darle más espacio y separar mejor del contenido
+    paddingBottom: 10, // Espacio adicional para los botones
   },
   confirmButton: {
     flex: 1,
     backgroundColor: '#ff9900',
-    padding: 16,
-    borderRadius: 8,
+    padding: 18, // Aumenta el tamaño de los botones para hacerlos más cómodos
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
   },
   confirmButtonText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 18, // Aumenta el tamaño del texto para mayor legibilidad
     fontWeight: 'bold',
   },
   cancelButton: {
     flex: 1,
     backgroundColor: '#cccccc',
-    padding: 16,
-    borderRadius: 8,
+    padding: 18, // Aumenta el tamaño de los botones para hacerlos más cómodos
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Fondo oscuro translúcido para el modal
+  },
+  modalContent: {
+    width: '90%',
+    borderRadius: 15,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  addressItem: {
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  addressText: {
+    fontSize: 16,
+  },
+  closeButton: {
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
   cancelButtonText: {
     color: '#333',
-    fontSize: 16,
+    fontSize: 18, // Aumenta el tamaño del texto para mayor legibilidad
     fontWeight: 'bold',
+  },
+  balanceContainer: {
+    flexDirection: 'column', // Cambiado para que los elementos estén en columna
+    alignItems: 'flex-start', // Alineación a la izquierda
+    backgroundColor: '#f2f2f2', // Fondo suave
+    padding: 15, // Mayor padding para espaciamiento
+    borderRadius: 15, // Borde redondeado
+    marginVertical: 10, // Margen vertical
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  balanceText: {
+    fontSize: 18, // Tamaño de fuente mayor para resaltar el balance
+    fontWeight: 'bold', // Negrita para énfasis
+    color: '#333', // Color de texto
+    marginBottom: 10, // Espaciado debajo del texto
+  },
+  useBalanceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between', // Alinea el switch y el texto en los extremos
+    width: '100%',
+    paddingVertical: 5, // Pequeño padding vertical
+  },
+  useBalanceLabel: {
+    fontSize: 16, // Tamaño de fuente más pequeño para contraste
+    fontWeight: '600', // Peso medio para el texto
+    color: '#666', // Color gris para un look más sutil
+  },
+  balanceSwitch: {
+    transform: [{ scale: 1.1 }], // Aumenta ligeramente el tamaño del switch
+    marginLeft: 'auto', // Alinea el switch al final
+  },
+  modalOrderTypeContainer: {
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  modalOrderTypeText: {
+    fontSize: 18,
+    color: '#333',
+    textAlign: 'center',
+    marginBottom: 15,
   },
 };
 
@@ -366,6 +470,25 @@ const stylesDark = StyleSheet.create({
     ...commonStyles.loaderContainer,
     backgroundColor: '#1c1c1c',
   },
+  cartItemExtraText: {
+    color: 'white'
+  },
+  modalSectionTitle: {
+    ...commonStyles.modalSectionTitle,
+    color: "white"
+  },
+  modalCartItemName: {
+     color: "white"
+  },
+  modalCartItemExtraText: {
+    color: "white"
+  },
+  modalCartItemQuantity: {
+     color: "white"
+  },
+  modalCartItemPrice: {
+color: "white"
+  },
   container: {
     ...commonStyles.container,
     backgroundColor: '#1c1c1c',
@@ -373,6 +496,19 @@ const stylesDark = StyleSheet.create({
   headerTitle: {
     ...commonStyles.headerTitle,
     color: '#fff',
+  },
+  balanceContainer: {
+    ...commonStyles.balanceContainer,
+    backgroundColor: '#333', // Fondo claro para el modo claro
+    color: '#fff'
+  },
+  balanceText: {
+    ...commonStyles.balanceText,
+    color: 'white', // Texto oscuro para contraste en modo claro
+  },
+  useBalanceLabel: {
+    ...commonStyles.useBalanceLabel,
+    color: '#666', // Color gris en modo claro
   },
   addressContainer: {
     ...commonStyles.addressContainer,
@@ -471,8 +607,8 @@ const stylesDark = StyleSheet.create({
     ...commonStyles.orderTypeText,
     color: '#fff',
   },
-  modalContent: {
-    ...commonStyles.modalContent,
+  largeModalContent: {
+    ...commonStyles.largeModalContent,
     backgroundColor: '#333',
   },
   modalTitle: {
@@ -499,20 +635,21 @@ const stylesDark = StyleSheet.create({
     ...commonStyles.cancelButtonText,
     color: '#fff',
   },
-  balanceContainer: {
-    ...commonStyles.balanceContainer,
+  modalOrderTypeContainer: {
     backgroundColor: '#333',
+    padding: 20,
+    borderRadius: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 10,
   },
-  balanceText: {
-    ...commonStyles.balanceText,
+  modalOrderTypeText: {
+    fontSize: 18,
     color: '#fff',
-  },
-  useBalanceContainer: {
-    ...commonStyles.useBalanceContainer,
-  },
-  useBalanceLabel: {
-    ...commonStyles.useBalanceLabel,
-    color: '#fff',
+    textAlign: 'center',
+    marginBottom: 15,
   },
 });
 
@@ -521,6 +658,18 @@ const stylesLight = StyleSheet.create({
   container: {
     ...commonStyles.container,
     backgroundColor: '#fff',
+  },
+  balanceContainer: {
+    ...commonStyles.balanceContainer,
+    backgroundColor: '#f9f9f9', // Fondo claro para el modo claro
+  },
+  balanceText: {
+    ...commonStyles.balanceText,
+    color: '#333', // Texto oscuro para contraste en modo claro
+  },
+  useBalanceLabel: {
+    ...commonStyles.useBalanceLabel,
+    color: '#666', // Color gris en modo claro
   },
   loaderContainer: {
     ...commonStyles.loaderContainer,
@@ -575,9 +724,6 @@ const stylesLight = StyleSheet.create({
     ...commonStyles.tipButtonText,
     color: '#333',
   },
-  closeButtonText: {
-    paddingTop: 30
-  },
   customTipInput: {
     ...commonStyles.customTipInput,
     backgroundColor: '#f9f9f9',
@@ -626,8 +772,8 @@ const stylesLight = StyleSheet.create({
     ...commonStyles.orderTypeText,
     color: '#333',
   },
-  modalContent: {
-    ...commonStyles.modalContent,
+  largeModalContent: {
+    ...commonStyles.largeModalContent,
     backgroundColor: '#fff',
   },
   modalTitle: {
@@ -648,23 +794,27 @@ const stylesLight = StyleSheet.create({
   },
   cancelButton: {
     ...commonStyles.cancelButton,
-    backgroundColor: '#ccc',
+    backgroundColor: '#cccccc',
   },
   cancelButtonText: {
     ...commonStyles.cancelButtonText,
     color: '#1a1a1a',
   },
-  balanceContainer: {
-    ...commonStyles.balanceContainer,
+  modalOrderTypeContainer: {
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 10,
   },
-  balanceText: {
-    ...commonStyles.balanceText,
-  },
-  useBalanceContainer: {
-    ...commonStyles.useBalanceContainer,
-  },
-  useBalanceLabel: {
-    ...commonStyles.useBalanceLabel,
+  modalOrderTypeText: {
+    fontSize: 18,
+    color: '#333',
+    textAlign: 'center',
+    marginBottom: 15,
   },
 });
 

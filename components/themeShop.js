@@ -80,9 +80,16 @@ const commonStyles = {
   },
   categoryContainer: {
     marginBottom: 5,
+    marginTop: 1,
     paddingHorizontal: 20,
     backgroundColor: 'white',
     paddingVertical: 20,
+    borderRadius: 10,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   categoryTitle: {
     fontSize: 20,
@@ -225,124 +232,78 @@ const commonStyles = {
     justifyContent: 'center',
     alignItems: 'center',
   },
+  discountSectionContainer: {
+    marginBottom: 20,
+    paddingHorizontal: 20,
+    backgroundColor: 'white',
+    paddingVertical: 20,
+    borderRadius: 10,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
   discountSectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginLeft: 16,
-    marginTop: 10,
     marginBottom: 10,
     fontFamily: 'sans-serif-medium',
-  },
-  discountScrollContainer: {
-    paddingVertical: 10,
-    paddingLeft: 16,
-    marginVertical: 10,
-    backgroundColor: 'white',
   },
   discountCard: {
-    width: 220,
-    height: 320,
-    marginRight: 20,
-    backgroundColor: '#fff',
-    borderRadius: 15,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 5,
-    padding: 15,
-    position: 'relative',
-  },
-  discountImage: {
-    width: '100%',
-    height: 120,
-    borderRadius: 10,
-    marginBottom: 15,
-  },
-  discountTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    fontFamily: 'sans-serif-medium',
-    color: '#000',
-    textAlign: 'center',
-    marginBottom: 10,
-  },
-  discountDescription: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 10,
-  },
-  discountValidity: {
-    fontSize: 12,
-    color: '#999',
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  discountType: {
-    fontSize: 12,
-    color: '#999',
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  discountBlockCard: {
-    flexDirection: 'row',
-    padding: 15,
-    marginBottom: 15,
-    borderRadius: 15,
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 5,
-    width: '100%',
-    alignItems: 'center',
-    position: 'relative',
-  },
-  discountBlockImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 10,
-    marginRight: 15,
-  },
-  firstContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 10,
-    gap: 20,
+    marginVertical: 5,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    borderWidth: 1,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
-  priceContainer: {
-    flexDirection: 'column',
-    alignItems: 'center',
-    marginTop: 5,
-    marginBottom: 5,
+  discountImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 10,
   },
-  productInitPrice: {
-    color: '#8B0000',
-    textDecorationLine: 'line-through',
-    fontSize: 14,
-    marginRight: 5,
-  },
-  productFinalPrice: {
-    color: '#006400',
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  tag: {
-    backgroundColor: '#e0f7e0',
-    padding: 6,
-    borderRadius: 5,
+  discountDetails: {
+    flex: 1,
+    marginLeft: 10,
   },
   discountPercentage: {
     color: '#006400',
     fontWeight: 'bold',
-    fontSize: 12,
-    textAlign: 'center',
+    fontSize: 16,
   },
-  discountDetails: {
+  discountProduct: {
+    fontSize: 14,
+    color: '#333',
+    fontWeight: 'bold',
+  },
+  discountDescription: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2,
+  },
+  discountPrice: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginTop: 5,
+  },
+  addButton: {
+    backgroundColor: '#FFC107',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 5,
+    justifyContent: 'center',
     alignItems: 'center',
+  },
+  addButtonText: {
+    color: '#000',
+    fontWeight: 'bold',
   },
   modalContainer: {
     flex: 1,
@@ -393,6 +354,7 @@ const commonStyles = {
     justifyContent: 'center',
     marginVertical: 1,
     marginTop: 20,
+    marginBottom:10,
   },
   orderTypeButton: {
     flexDirection: 'row',
@@ -462,22 +424,29 @@ const commonStyles = {
   },
   productDetailImage: {
     width: '100%',
-    height: 200,
+    height: 120,
     borderRadius: 10,
     marginBottom: 20,
+    alignSelf: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
   productDetailName: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
     fontFamily: 'sans-serif-medium',
     color: '#333',
-    marginBottom: 10,
+    marginBottom: 8,
+    textAlign: 'center',
   },
   productDetailDescription: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#666',
     fontFamily: 'sans-serif',
-    marginBottom: 20,
+    marginBottom: 16,
+    textAlign: 'center',
   },
   productDetailActions: {
     flexDirection: 'row',
@@ -541,7 +510,7 @@ const commonStyles = {
     alignItems: 'center',
   },
   selectedOptionButton: {
-    backgroundColor: '#D1C4E9',
+    backgroundColor: '#D4B048',
   },
   optionText: {
     fontSize: 14,
@@ -557,64 +526,83 @@ const stylesDark = StyleSheet.create({
   ...commonStyles,
   container: {
     ...commonStyles.container,
-    backgroundColor: '#1c1c1c',
+    backgroundColor: '#1a1a1a', // Fondo oscuro
+  },
+  productDetailPrice: {color: "white"},
+  orderTypeContainer: {
+    ...commonStyles.orderTypeContainer,
+  },
+  discountProduct: {
+    color: "white"
+  },
+  discountPrice: {
+ color: "white"
+  },
+  discountSectionContainer: {
+    ...commonStyles.discountSectionContainer,
+    backgroundColor: '#000',
+
+  },
+  categoryContainer: {
+    ...commonStyles.container,
   },
   sectionTitle: {
     ...commonStyles.sectionTitle,
-    color: '#fff',
+    color: '#E5E5E5', // Letras claras para contraste
   },
   offerCard: {
     ...commonStyles.offerCard,
-    backgroundColor: '#444',
+    backgroundColor: '#2b2b2b', // Tarjetas en un tono oscuro
   },
   categoryTitle: {
     ...commonStyles.categoryTitle,
-    color: '#fff',
+    color: '#E5E5E5', // Letras claras
   },
   productCard: {
     ...commonStyles.productCard,
-    backgroundColor: '#333',
+    backgroundColor: '#2b2b2b',
   },
   productName: {
     ...commonStyles.productName,
-    color: '#fff',
+    color: '#E5E5E5', // Letras claras
   },
   productPrice: {
     ...commonStyles.productPrice,
-    color: '#fff',
+    color: '#E5E5E5', // Letras claras
   },
   quantityText: {
     ...commonStyles.quantityText,
-    color: '#fff',
+    color: '#E5E5E5',
   },
   cartContainer: {
     ...commonStyles.cartContainer,
-    backgroundColor: '#333',
-    borderTopColor: '#444',
+    backgroundColor: '#2b2b2b',
+    borderTopColor: '#3d3d3d', // Ligeramente más oscuro para diferenciación
   },
   cartText: {
     ...commonStyles.cartText,
-    color: '#fff',
+    color: '#E5E5E5',
   },
   cartButton: {
     ...commonStyles.cartButton,
     backgroundColor: '#FFC107',
+// Botón oscuro
   },
   cartButtonText: {
     ...commonStyles.cartButtonText,
-    color: '#333',
+    color: '#000', // Letras claras en el botón
   },
   fab: {
     ...commonStyles.fab,
-    backgroundColor: '#FFC107',
+    backgroundColor: '#3d3d3d', // Botón oscuro
   },
   categoryListContainer: {
-    backgroundColor: '#1c1c1c',
+    backgroundColor: '#1a1a1a',
     paddingVertical: 10,
   },
   modalContent: {
-    backgroundColor: '#444',
-    shadowColor: '#fff',
+    backgroundColor: '#2b2b2b',
+    shadowColor: '#000000', // Sombra negra para mantener la oscuridad
     padding: 20,
     borderRadius: 15,
     width: '85%',
@@ -625,94 +613,94 @@ const stylesDark = StyleSheet.create({
     elevation: 10,
   },
   modalText: {
-    color: '#fff',
+    color: '#E5E5E5', // Letras claras
   },
   modalButtonText: {
-    color: '#fff',
+    color: '#000', // Letras claras en el botón del modal
   },
   discountSectionTitle: {
     ...commonStyles.discountSectionTitle,
-    color: '#fff',
+    color: '#E5E5E5',
   },
   discountCard: {
     ...commonStyles.discountCard,
-    backgroundColor: '#333',
+    backgroundColor: '#2b2b2b',
   },
   discountTitle: {
     ...commonStyles.discountTitle,
-    color: '#fff',
+    color: '#E5E5E5',
   },
   discountDescription: {
     ...commonStyles.discountDescription,
-    color: '#ccc',
+    color: '#B0BEC5', // Letras en un gris claro para menor contraste
   },
   discountValidity: {
     ...commonStyles.discountValidity,
-    color: '#999',
+    color: '#B0BEC5', // Letras en gris claro
   },
   discountType: {
     ...commonStyles.discountType,
-    color: '#999',
+    color: '#B0BEC5', // Letras en gris claro
   },
   discountBlockCard: {
     ...commonStyles.discountBlockCard,
-    backgroundColor: '#333',
+    backgroundColor: '#2b2b2b',
   },
 
   // Estilos específicos para el detalle del producto en modo oscuro
   productDetailContainer: {
     ...commonStyles.productDetailContainer,
-    backgroundColor: '#333',
+    backgroundColor: '#1a1a1a',
   },
   productDetailName: {
     ...commonStyles.productDetailName,
-    color: '#fff',
+    color: '#E5E5E5',
   },
   productDetailDescription: {
     ...commonStyles.productDetailDescription,
-    color: '#ccc',
+    color: '#B0BEC5',
   },
   addToCartButton: {
     ...commonStyles.addToCartButton,
-    backgroundColor: '#FFC107',
+    backgroundColor: '#FFC107', // Fondo oscuro para el botón
   },
   addToCartButtonText: {
     ...commonStyles.addToCartButtonText,
-    color: '#333',
+    color: '#000', // Letras claras en el botón
   },
   backToProducts: {
     ...commonStyles.backToProducts,
-    color: '#FFC107',
+    color: '#E5E5E5', // Letras claras para volver a productos
   },
 
   // Estilos para extras en modo oscuro
   extrasContainer: {
     ...commonStyles.extrasContainer,
-    backgroundColor: '#444',
+    backgroundColor: '#2b2b2b',
   },
   extraTitle: {
     ...commonStyles.extraTitle,
-    color: '#fff',
+    color: '#E5E5E5',
   },
   optionButton: {
     ...commonStyles.optionButton,
-    backgroundColor: '#555',
+    backgroundColor: '#3d3d3d', // Fondo oscuro para los botones de opciones
   },
   selectedOptionButton: {
     ...commonStyles.selectedOptionButton,
-    backgroundColor: '#6A1B9A',
+    backgroundColor: '#D4B048', // Fondo ligeramente más claro para opción seleccionada
   },
   optionText: {
     ...commonStyles.optionText,
-    color: '#fff',
+    color: '#E5E5E5',
   },
   selectedOptionText: {
     ...commonStyles.selectedOptionText,
-    color: '#EDE7F6',
+    color: '#000',
   },
   requiredText: {
     ...commonStyles.requiredText,
-    color: '#ccc',
+    color: '#B0BEC5', // Letras en gris claro
   },
 });
 
@@ -721,6 +709,9 @@ const stylesLight = StyleSheet.create({
   container: {
     ...commonStyles.container,
     backgroundColor: '#fff',
+  },
+  orderTypeContainer: {
+    ...commonStyles.orderTypeContainer
   },
   sectionTitle: {
     ...commonStyles.sectionTitle,
@@ -836,7 +827,7 @@ const stylesLight = StyleSheet.create({
   },
   selectedOptionButton: {
     ...commonStyles.selectedOptionButton,
-    backgroundColor: '#D1C4E9',
+    backgroundColor: '#D4B048',
   },
   optionText: {
     ...commonStyles.optionText,
@@ -848,7 +839,7 @@ const stylesLight = StyleSheet.create({
   },
   requiredText: {
     ...commonStyles.requiredText,
-    color: 'red',
+    color: 'black',
   },
 });
 

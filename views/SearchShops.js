@@ -5,18 +5,14 @@ import { FontAwesome } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 
-
 const SearchShops = () => {
     const scheme = useColorScheme();
     const route = useRoute();
     const navigation = useNavigation();
     const { categoryId, categoryName, filteredShops: initialFilteredShops, searchQuery: initialSearchQuery } = route.params || {};
     const shopsByCategory = useSelector((state) => state.setUp.shops);
-    const categories = useSelector((state) => state.setUp.categories);
     const [filteredShops, setFilteredShops] = useState(initialFilteredShops || []);
     const [searchQuery, setSearchQuery] = useState(initialSearchQuery || '');
-    const [sortOrder, setSortOrder] = useState('name');
-    const [drawerVisible, setDrawerVisible] = useState(false);
 
     useEffect(() => {
         if (shopsByCategory && categoryId && !initialFilteredShops) {
@@ -39,26 +35,8 @@ const SearchShops = () => {
         }
     };
 
-    const handleSortChange = (order) => {
-        setSortOrder(order);
-        const sorted = [...filteredShops].sort((a, b) => a[order].localeCompare(b[order]));
-        setFilteredShops(sorted);
-    };
-
-    const changeAddress = () => {
-        navigation.navigate('SetAddressScreen');
-    };
-
-    const changeCategory = (newCategoryId, newCategoryName) => {
-        navigation.navigate('CategoryShops', { categoryId: newCategoryId, categoryName: newCategoryName });
-    };
-
     const handleShopPress = (shop) => {
         navigation.navigate('Shop', { shop });
-    };
-
-    const toggleDrawer = () => {
-        setDrawerVisible(!drawerVisible);
     };
 
     const handleSearchSubmit = () => {
@@ -78,7 +56,7 @@ const SearchShops = () => {
                 <TextInput
                     style={styles.searchInput}
                     placeholder="Search places, foods..."
-                    placeholderTextColor="#aaa"
+                    placeholderTextColor={scheme === 'dark' ? '#888' : '#aaa'}
                     value={searchQuery}
                     onChangeText={setSearchQuery}
                     onSubmitEditing={handleSearchSubmit}
@@ -86,6 +64,9 @@ const SearchShops = () => {
             </View>
             <View style={styles.categoryContainer}>
                 <Text style={styles.headerTitle}>{categoryName}</Text>
+            </View>
+            <View style={styles.resultsContainer}>
+                <Text style={styles.resultsTitle}>Found Shops</Text>
             </View>
             <ScrollView contentContainerStyle={styles.contentContainer}>
                 {filteredShops.length > 0 ? (
@@ -111,15 +92,15 @@ const SearchShops = () => {
 const commonStyles = {
     safeArea: {
         flex: 1,
-        backgroundColor: '#fff',
+        backgroundColor: '#F5F5F5',
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         padding: 10,
-        backgroundColor: '#fff',
+        backgroundColor: '#F2BB26',
         borderBottomWidth: 1,
-        borderBottomColor: '#ccc',
+        borderBottomColor: '#E0E0E0',
     },
     iconButton: {
         padding: 10,
@@ -127,58 +108,76 @@ const commonStyles = {
     searchInput: {
         flex: 1,
         height: 40,
-        backgroundColor: '#f0f0f0',
+        backgroundColor: '#FFF',
         borderRadius: 20,
         paddingHorizontal: 15,
         marginHorizontal: 10,
         color: '#000',
     },
     categoryContainer: {
-        padding: 15,
+        paddingVertical: 15,
+        paddingHorizontal: 20,
+        backgroundColor: '#FFF',
+        borderBottomWidth: 1,
+        borderBottomColor: '#E0E0E0',
     },
     headerTitle: {
-        fontSize: 18,
+        fontSize: 20,
         fontWeight: 'bold',
         color: '#333',
     },
+    resultsContainer: {
+        paddingHorizontal: 20,
+        paddingVertical: 15,
+        backgroundColor: '#FFF',
+    },
+    resultsTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#777',
+    },
     contentContainer: {
-        padding: 10,
+        paddingHorizontal: 20,
+        paddingTop: 10,
+        paddingBottom: 20, // Added padding to ensure content doesn't get cut off
     },
     card: {
         flexDirection: 'row',
         marginBottom: 15,
-        backgroundColor: '#fff',
+        backgroundColor: '#FFF',
         borderRadius: 10,
         overflow: 'hidden',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 5,
-        elevation: 5,
+        elevation: 3,
     },
     shopImage: {
-        width: 100,
-        height: 100,
+        width: 80,
+        height: 80,
+        borderRadius: 10,
+        margin: 10, // Added margin for better spacing
     },
     cardContent: {
         flex: 1,
-        padding: 10,
         justifyContent: 'center',
     },
     cardTitle: {
         fontSize: 16,
         fontWeight: 'bold',
         color: '#333',
+        marginBottom: 5, // Added margin for better text spacing
     },
     cardSubtitle: {
         fontSize: 14,
-        color: '#666',
+        color: '#777',
     },
     noShopsText: {
         textAlign: 'center',
         marginTop: 20,
         fontSize: 16,
-        color: '#666',
+        color: '#777',
     },
 };
 
@@ -190,38 +189,50 @@ const darkTheme = StyleSheet.create({
     },
     header: {
         ...commonStyles.header,
-        backgroundColor: '#1f1f1f',
-        borderBottomColor: '#333',
+        backgroundColor: '#333',
+        borderBottomColor: '#444',
     },
     searchInput: {
         ...commonStyles.searchInput,
-        backgroundColor: '#333',
-        color: '#fff',
+        backgroundColor: '#222',
+        color: '#FFF',
     },
     iconButton: {
         ...commonStyles.iconButton,
-        color: '#fff',
+        color: '#FFF',
+    },
+    categoryContainer: {
+        ...commonStyles.categoryContainer,
+        backgroundColor: '#1E1E1E',
+        borderBottomColor: '#444',
     },
     headerTitle: {
         ...commonStyles.headerTitle,
-        color: '#fff',
+        color: '#FFF',
+    },
+    resultsContainer: {
+        ...commonStyles.resultsContainer,
+        backgroundColor: '#1E1E1E',
+    },
+    resultsTitle: {
+        ...commonStyles.resultsTitle,
+        color: '#FFF',
     },
     card: {
         ...commonStyles.card,
-        backgroundColor: '#1f1f1f',
-        borderColor: '#333',
+        backgroundColor: '#1E1E1E',
     },
     cardTitle: {
         ...commonStyles.cardTitle,
-        color: '#fff',
+        color: '#FFF',
     },
     cardSubtitle: {
         ...commonStyles.cardSubtitle,
-        color: '#ccc',
+        color: '#AAA',
     },
     noShopsText: {
         ...commonStyles.noShopsText,
-        color: '#ccc',
+        color: '#AAA',
     },
 });
 
@@ -229,41 +240,52 @@ const lightTheme = StyleSheet.create({
     ...commonStyles,
     safeArea: {
         ...commonStyles.safeArea,
-        backgroundColor: '#f9f9f9',
+        backgroundColor: '#FFF',
     },
     header: {
         ...commonStyles.header,
-        backgroundColor: '#fff',
-        borderBottomColor: '#ccc',
+        backgroundColor: '#F2BB26',
     },
     searchInput: {
         ...commonStyles.searchInput,
-        backgroundColor: '#eee',
+        backgroundColor: '#FFF',
         color: '#000',
     },
     iconButton: {
         ...commonStyles.iconButton,
         color: '#000',
     },
+    categoryContainer: {
+        ...commonStyles.categoryContainer,
+        backgroundColor: '#FFF',
+    },
     headerTitle: {
         ...commonStyles.headerTitle,
-        color: '#000',
+        color: '#333',
+    },
+    resultsContainer: {
+        ...commonStyles.resultsContainer,
+        backgroundColor: '#FFF',
+    },
+    resultsTitle: {
+        ...commonStyles.resultsTitle,
+        color: '#555',
     },
     card: {
         ...commonStyles.card,
-        backgroundColor: '#fff',
+        backgroundColor: '#FFF',
     },
     cardTitle: {
         ...commonStyles.cardTitle,
-        color: '#000',
+        color: '#333',
     },
     cardSubtitle: {
         ...commonStyles.cardSubtitle,
-        color: '#666',
+        color: '#777',
     },
     noShopsText: {
         ...commonStyles.noShopsText,
-        color: '#666',
+        color: '#777',
     },
 });
 

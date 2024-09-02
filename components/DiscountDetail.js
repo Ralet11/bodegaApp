@@ -1,53 +1,46 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, Image, TouchableOpacity, Alert, useColorScheme } from 'react-native';
-import { stylesDark, stylesLight } from '../components/themeShop';
 import { useDispatch, useSelector } from 'react-redux';
 import { addToCart, incrementQuantity } from '../redux/slices/cart.slice';
+import { stylesDark, stylesLight } from '../components/themeShop';
 
-const ProductDetail = ({ product, onAddToCart, onBack }) => {
+const DiscountDetail = ({ discount, onAddToCart, onBack }) => {
   const styles = useColorScheme() === 'dark' ? stylesDark : stylesLight;
   const [selectedOptions, setSelectedOptions] = useState({});
-  const [currentPrice, setCurrentPrice] = useState(product.price);
+  const [currentPrice, setCurrentPrice] = useState('0');
   const cart = useSelector(state => state.cart.items);
   const dispatch = useDispatch();
 
+  const calculateDiscountedPrice = (price, percentage) => {
+    const discountAmount = (price * percentage) / 100;
+    return (price - discountAmount).toFixed(2).toString(); // Convertir a string
+  };
+
   useEffect(() => {
     setSelectedOptions({});
-    setCurrentPrice(product.price);
-  }, [product]);
+    setCurrentPrice(calculateDiscountedPrice(discount.product.price, discount.percentage));
+  }, [discount]);
+
   const handleSelectOption = (extraId, option) => {
-    // Si la opción ya está seleccionada, deseleccionarla
+    let newOptions = { ...selectedOptions };
+
     if (selectedOptions[extraId] === option) {
-      const newOptions = { ...selectedOptions };
       delete newOptions[extraId];
-      setSelectedOptions(newOptions);
-  
-      // Recalcular el precio total
-      const extrasTotalPrice = Object.values(newOptions).reduce(
-        (total, opt) => total + (opt ? parseFloat(opt.price) : 0),
-        0
-      );
-  
-      setCurrentPrice((parseFloat(product.price) + extrasTotalPrice).toFixed(2).toString());
     } else {
-      // Si no está seleccionada, seleccionarla como antes
-      setSelectedOptions((prevState) => ({
-        ...prevState,
-        [extraId]: option,
-      }));
-  
-      const extrasTotalPrice = Object.values({ ...selectedOptions, [extraId]: option }).reduce(
-        (total, opt) => total + (opt ? parseFloat(opt.price) : 0),
-        0
-      );
-  
-      setCurrentPrice((parseFloat(product.price) + extrasTotalPrice).toFixed(2).toString());
+      newOptions[extraId] = option;
     }
+
+    setSelectedOptions(newOptions);
+
+    const extrasTotalPrice = Object.values(newOptions).reduce(
+      (total, opt) => total + (opt ? parseFloat(opt.price) : 0),
+      0
+    );
+
+    setCurrentPrice((parseFloat(calculateDiscountedPrice(discount.product.price, discount.percentage)) + extrasTotalPrice).toFixed(2).toString());
   };
 
   const areExtrasEqual = (extras1, extras2) => {
-    console.log(extras1, "extras1")
-    console.log(extras2, "extras2")
     if (!extras1 || !extras2) return false;
     const keys1 = Object.keys(extras1);
     const keys2 = Object.keys(extras2);
@@ -65,41 +58,45 @@ const ProductDetail = ({ product, onAddToCart, onBack }) => {
 
   const handleAddToCart = () => {
     const selectedExtras = selectedOptions;
-  
+
     // Verificar si todos los extras requeridos están seleccionados
-    const requiredExtras = product.extras.filter(extra => extra.required);
+    const requiredExtras = discount.product.extras.filter(extra => extra.required);
     for (const extra of requiredExtras) {
       if (!selectedExtras[extra.id]) {
         Alert.alert("Required Option", `Please select an option for "${extra.name}" before adding to the cart.`);
         return; // Detiene la ejecución si falta seleccionar un extra requerido
       }
     }
-  
-    // Verificar si un producto con los mismos extras ya está en el carrito
+
     const existingProduct = cart.find(item => {
-      return item.id === product.id && areExtrasEqual(item.selectedExtras, selectedExtras);
+      return item.id === discount.product.id && areExtrasEqual(item.selectedExtras, selectedExtras);
     });
-  
+
     if (existingProduct) {
-      // Si el producto con los mismos extras ya está en el carrito, incrementar la cantidad
       dispatch(incrementQuantity(existingProduct.id));
     } else {
-      // Si no, agregarlo como un nuevo producto en el carrito
-      dispatch(addToCart({ ...product, quantity: 1, selectedExtras }));
+      dispatch(addToCart({ 
+        ...discount.product, 
+        quantity: 1, 
+        selectedExtras, 
+        price: calculateDiscountedPrice(discount.product.price, discount.percentage), 
+        currentPrice,
+        discount: true // Añadir este parámetro
+      }));
     }
-  
+
     onBack();
   };
 
   return (
-    <View key={product.id} style={styles.productDetailContainer}>
-      <Image source={{ uri: product.image }} style={styles.productDetailImage} />
-      <Text style={styles.productDetailName}>{product.name}</Text>
-      <Text style={styles.productDetailDescription}>{product.description}</Text>
+    <View key={discount.id} style={styles.productDetailContainer}>
+      <Image source={{ uri: discount.product.img || discount.product.image }} style={styles.productDetailImage} />
+      <Text style={styles.productDetailName}>{discount.product.name}</Text>
+      <Text style={styles.productDetailDescription}>{discount.product.description}</Text>
 
-      {product.extras && product.extras.length > 0 && (
+      {discount.product.extras && discount.product.extras.length > 0 && (
         <View style={styles.extrasContainer}>
-          {product.extras.map((extra) => (
+          {discount.product.extras.map((extra) => (
             <View key={extra.id} style={styles.extraSection}>
               <View style={styles.extraTitleContainer}>
                 <Text style={styles.extraTitle}>{extra.name}</Text>
@@ -139,4 +136,4 @@ const ProductDetail = ({ product, onAddToCart, onBack }) => {
   );
 };
 
-export default ProductDetail;
+export default DiscountDetail;

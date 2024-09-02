@@ -13,6 +13,8 @@ import { setUser } from '../redux/slices/user.slice';
 import CartSkeletonLoader from '../components/SkeletonLoaderCart';
 import { stylesDark, stylesLight } from '../components/themeCart';
 import Toast from 'react-native-toast-message';
+import productDetails from '../components/DiscountDetail';
+import SelectAddressModal from '../components/modals/SelectYourAddressModal';
 
 const CartScreen = () => {
   const cart = useSelector(state => state.cart.items);
@@ -20,13 +22,10 @@ const CartScreen = () => {
   const user = useSelector((state) => state.user.userInfo.data.client);
   const dispatch = useDispatch();
   const navigation = useNavigation();
-  const address = useSelector((state) => state?.user?.address) || '';
+  const address = useSelector((state) => state?.user?.address?.formatted_address) || '';
+  const addressInfo = useSelector((state) => state?.user?.address) || '';
   const colorScheme = useColorScheme();
   const route = useRoute();
-  console.log(cart, "carrito")
-
-  const [tip, setTip] = useState(0);
-  const [customTip, setCustomTip] = useState('');
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const token = useSelector((state) => state.user.userInfo.data.token);
   const [deliveryFee, setDeliveryFee] = useState(0);
@@ -34,28 +33,48 @@ const CartScreen = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [confirmationModalVisible, setConfirmationModalVisible] = useState(false);
-  const [checkoutModalVisible, setCheckoutModalVisible] = useState(false); // Nuevo estado para el modal de checkout
-  const [newOrderType, setNewOrderType] = useState(orderType);
+  const [checkoutModalVisible, setCheckoutModalVisible] = useState(false);
+  const [newOrderType, setNewOrderType] = useState(route.params.orderType);
   const userAddresses = useSelector((state) => state?.user?.addresses) || [];
   const shops = useSelector((state) => state?.setUp?.shops);
   const [useBalance, setUseBalance] = useState(false);
   const [balance, setBalance] = useState(user?.balance);
-  const [prevBalance, setPrevBalance] = useState(user?.balance);
+  const [prevBalance, setPrevBalance] = useState(user?.balance); // Mantenemos el valor anterior del balance
   const [finalPrice, setFinalPrice] = useState(null);
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const { orderType } = route.params;
   const [loginModalVisible, setLoginModalVisible] = useState(false);
   const [loginMode, setLoginMode] = useState(true);
   const [serviceFee, setServiceFee] = useState(null);
+  const [tip, setTip] = useState(0);
+  const [customTip, setCustomTip] = useState('');
+  const [deliveryInstructions, setDeliveryInstructions] = useState(addressInfo.additionalDetails || '');
 
-  const [deliveryInstructions, setDeliveryInstructions] = useState(''); // Nuevo estado para las instrucciones
+  const GOOGLE_API_KEY = 'AIzaSyAvritMA-llcdIPnOpudxQ4aZ1b5WsHHUc';
 
-  const GOOGLE_API_KEY = 'AIzaSyB8fCVwRXbMe9FAxsrC5CsyfjzpHxowQmE';
+  const shop = Object.values(shops).flat().find(shop => shop.id === currentShop);
 
-  console.log(originalDeliveryFee, "original deliveyr fee");
+
+
+
+  const handleBalanceChange = (value) => {
+    setUseBalance(value);
+    if (value) {
+      setPrevBalance(balance); // Guarda el balance actual cuando se decide usar el balance
+    } else {
+      setBalance(prevBalance); // Restaura el balance si el usuario decide no usarlo
+    }
+  };
 
   const calculateSubtotal = () => {
-    return cart.reduce((total, item) => total + (parseFloat(item.price.replace('$', '')) + (item.selectedExtras ? Object.values(item.selectedExtras).reduce((extraTotal, extra) => extraTotal + extra.price, 0) : 0)) * item.quantity, 0).toFixed(2);
+    return cart.reduce((total, item) => {
+      console.log(item.price, "consologsito")
+      const price = item.price ? parseFloat(String(item.price).replace('$', '')) : 0;
+      const extrasTotal = item.selectedExtras
+        ? Object.values(item.selectedExtras).reduce((extraTotal, extra) => extraTotal + extra.price, 0)
+        : 0;
+      return total + (price + extrasTotal) * item.quantity;
+    }, 0).toFixed(2);
   };
 
   const calculateTax = (subtotal) => {
@@ -69,21 +88,46 @@ const CartScreen = () => {
     return (subtotal * tipPercentage / 100).toFixed(2);
   };
 
-  const calculateTotal = () => {
-    const subtotal = parseFloat(calculateSubtotal());
-    const tax = calculateTax(subtotal);
-    const tipAmount = parseFloat(calculateTipAmount(subtotal));
+  const calculateRealTotal = () => {
+    const subtotal = parseFloat(calculateSubtotal()) || 0;
+    const tax = calculateTax(subtotal) || 0;
+    const tipAmount = parseFloat(calculateTipAmount(subtotal)) || 0;
     const total = subtotal + tax + tipAmount + (orderType === 'Delivery' ? deliveryFee : 0);
 
+    return total.toFixed(2);
+  };
+
+  const calculateTotalAfterBalance = (realTotal) => {
+    let finalTotal = realTotal;
+
     if (useBalance) {
-      if (user.balance >= total) {
-        return 0;
+      if (user.balance >= finalTotal) {
+        finalTotal = 0;  // El usuario paga $0, pero el valor real se mantiene en `realTotal`
       } else {
-        return (total - user.balance).toFixed(2);
+        finalTotal = Math.max(0, finalTotal - user.balance);
       }
     }
 
-    return total.toFixed(2);
+    return finalTotal.toFixed(2);
+  };
+
+  const calculateTotal = () => {
+    const subtotal = parseFloat(calculateSubtotal()) || 0;
+    const tax = calculateTax(subtotal) || 0;
+    const tipAmount = parseFloat(calculateTipAmount(subtotal)) || 0;
+    const total = subtotal + tax + tipAmount + (orderType === 'Delivery' ? deliveryFee : 0);
+
+    let finalTotal = total;
+
+    if (useBalance) {
+      if (user.balance >= finalTotal) {
+        finalTotal = 0;
+      } else {
+        finalTotal = Math.max(0, finalTotal - user.balance); // Asegúrate de que `finalTotal` nunca sea negativo.
+      }
+    }
+
+    return finalTotal.toFixed(2);
   };
 
   const calculateSavings = () => {
@@ -133,7 +177,7 @@ const CartScreen = () => {
           try {
             const response = await Axios.get(`https://maps.googleapis.com/maps/api/distancematrix/json?units=imperial&origins=${encodeURIComponent(address)}&destinations=${encodeURIComponent(currentShopDetails.address)}&key=${GOOGLE_API_KEY}`);
             if (response.data.status === "OK") {
-              const distance = response.data.rows[0].elements[0].distance.value / 1609.34; 
+              const distance = response.data.rows[0].elements[0].distance.value / 1609.34;
               let fee = 0;
 
               if (distance <= 1.5) {
@@ -149,7 +193,7 @@ const CartScreen = () => {
               setOriginalDeliveryFee(fee);
 
               const { adjustedDeliveryFee, serviceFee, percentage1 } = calculateAdjustedDeliveryFee(parseFloat(calculateSubtotal()), fee);
-              
+
               setServiceFee(serviceFee);
 
               setDeliveryFee(user.subscription === 1 ? 0 : parseFloat(adjustedDeliveryFee));
@@ -166,7 +210,7 @@ const CartScreen = () => {
         };
 
         calculateDeliveryFee();
-        
+
       } else {
         setIsLoading(false);
         Alert.alert('Error', 'No se encontró la tienda seleccionada o la dirección está vacía.');
@@ -176,75 +220,88 @@ const CartScreen = () => {
     }
   }, [address, currentShop, user.subscription, shops]);
 
+  const handleIncrement = (item) => {
+    if (item.extras && Object.keys(item.extras).length > 0) {
+      navigation.navigate('ProductDetail', { product: item });
+    } else if (item.discount) {
+      navigation.navigate('DiscountDetail', { discount: item });
+    } else {
+      dispatch(incrementQuantity(item.id));
+    }
+  };
+
   const payment = async () => {
     setCheckoutModalVisible(true);
   };
+
+  console.log(shops, "shops en cart")
 
   const confirmPayment = async () => {
     if (isLoading || isCheckoutLoading) {
       Alert.alert("Please wait", "Calculating delivery fee...");
       return;
     }
-  
+
     setIsCheckoutLoading(true);
-  
-    const total_price = calculateTotal();
-    const finalPrice = Math.floor(total_price * 100);
-  
+
+    const total_price = parseFloat(calculateTotal());
+
     try {
-      if (finalPrice > 0) {
+      if (total_price > 0) {
         const response = await Axios.post(`${API_URL}/api/payment/intent`, {
-          finalPrice: finalPrice
+          finalPrice: Math.floor(total_price * 100)
         });
         const { clientSecret } = response.data;
-  
+
         if (response.error) {
           Alert.alert('Something went wrong');
           setIsCheckoutLoading(false);
           return;
         }
-  
+
         const paymentIntentId = clientSecret.split('_secret')[0];
-  
+
         const initResponse = await initPaymentSheet({
           merchantDisplayName: "Bodega+",
           paymentIntentClientSecret: clientSecret,
-          // Habilitar Apple Pay y Google Pay
-          applePay: true, // Apple Pay
-          googlePay: true, // Google Pay
-          style: 'automatic', // o 'alwaysDark', 'alwaysLight'
-          testEnv: true, // Solo en desarrollo, quítalo en producción
+          applePay: true,
+          googlePay: true,
+          style: 'automatic',
+          testEnv: true,
           allowsDelayedPaymentMethods: true,
         });
-  
+
         if (initResponse.error) {
           console.log(initResponse.error);
           Alert.alert("Something went wrong");
           setIsCheckoutLoading(false);
           return;
         }
-  
+
         const { error } = await presentPaymentSheet();
-  
+
         if (error) {
           console.log(error);
           Alert.alert(`Error code: ${error.code}`, error.message);
         } else {
           handleOrder(paymentIntentId);
+          setIsCheckoutLoading(true);  // Asegura que el botón permanezca deshabilitado después del pago
         }
       } else {
         handleOrder('bodegaBalance');
+        setIsCheckoutLoading(true);  // Asegura que el botón permanezca deshabilitado después del pago
       }
     } catch (error) {
       console.error("Error during payment request:", error);
       Alert.alert('Error', 'There was an error processing your payment. Please try again.');
-    } finally {
-      setIsCheckoutLoading(false);
+      setIsCheckoutLoading(false);  // Permite al usuario intentar nuevamente si falla el pago
     }
   };
 
   const handleOrder = async (pi) => {
-    const total_price = calculateTotal();
+    const realTotalPrice = parseFloat(calculateRealTotal()); // El precio real antes de aplicar el balance
+    const totalPriceAfterBalance = parseFloat(calculateTotalAfterBalance(realTotalPrice)); // El precio después de aplicar el balance
+
     const deliveryAddress = {
       address: orderType === "Delivery" ? address : "",
       instructions: deliveryInstructions
@@ -252,8 +309,9 @@ const CartScreen = () => {
 
     const data = {
       delivery_fee: deliveryFee,
-      total_price: total_price,
-      oder_details: cart,
+      total_price: realTotalPrice,  // Guardas el precio real en la orden
+      amount_paid: totalPriceAfterBalance,  // Guardas cuánto paga realmente el usuario
+      order_details: cart,
       local_id: currentShop,
       status: "new order",
       date_time: new Date().toISOString().slice(0, -5),
@@ -274,7 +332,9 @@ const CartScreen = () => {
 
       const response = await Axios.post(`${API_URL}/api/orders/add`, data, { headers });
 
+      // Actualiza la información del pedido en el estado global
       dispatch(setOrderIn(response.data.newOrder));
+
       const info = {
         data: {
           client: response.data.userUpdate,
@@ -282,69 +342,62 @@ const CartScreen = () => {
         },
       };
 
+      // Actualiza la información del usuario en el estado global
       dispatch(setUser(info));
       dispatch(clearCart());
 
       if (useBalance) {
-        const newBalance = user.balance >= finalPrice ? user.balance - finalPrice : 0;
-        const headers = {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        };
+        const newBalance = Math.max(user.balance - realTotalPrice, 0);
 
         const data = { newBalance };
 
         await Axios.put(`${API_URL}/api/users/removeUserBalance`, data, { headers });
 
-        const info = {
-          data: {
-            client: { ...user, balance: newBalance },
-            token,
-          },
+        const updatedUser = {
+          ...user,
+          balance: newBalance,
         };
 
-        dispatch(setUser(info));
+        dispatch(setUser({ data: { client: updatedUser, token } }));
+        setBalance(newBalance); // Actualiza el balance en el estado local
       }
 
-      const findCurrentShop = () => {
-        for (const categoryId in shops) {
-          const shop = shops[categoryId].find(shop => shop.id === currentShop);
-          if (shop) {
-            return shop;
-          }
-        }
-        return null;
-      };
-
-      const currentShopDetails = findCurrentShop();
-      const randomPhoneNumber = `+${currentShopDetails.phone}`;
-
-      dispatch(clearCart());
+      // Establece la orden actual en el estado global
       dispatch(setCurrentOrder(response.data.newOrder));
       navigation.navigate('AcceptedOrder');
 
+      // Si hay descuentos, los aplicamos
       for (const item of cart) {
         if (item.discount) {
           try {
             const id = { id: item.discountId };
-            const response = await Axios.post(`${API_URL}/api/discounts/useDiscount`, id, {
+            await Axios.post(`${API_URL}/api/discounts/useDiscount`, id, {
               headers: {
                 Authorization: `Bearer ${token}`,
               },
             });
-
-            console.log(response.data, "Discount used");
           } catch (error) {
-            console.log("error al usar descuento")
-            console.log(error);
+            console.log("Error al usar descuento", error);
           }
         }
       }
+
+
+
+      // Llamada a la API de Twilio para hacer una llamada al restaurante
+      await Axios.post(`${API_URL}/api/twilio/make-call`, { to: shop.phone, orderId: response.data.newOrder }, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
     } catch (error) {
-      console.log(error.message);
+      console.error(error.message);
       console.error(error);
     }
   };
+
+  console.log(cart, "cart")
 
   const selectAddress = (address) => {
     dispatch(setAddress(address.formatted_address));
@@ -380,7 +433,7 @@ const CartScreen = () => {
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Your Cart</Text>
           </View>
-          
+
           <View style={styles.orderTypeContainer}>
             <TouchableOpacity onPress={() => toggleOrderType(orderType === 'Delivery' ? 'Pick-up' : 'Delivery')} disabled={orderType === 'Order-in'}>
               <View style={styles.orderType}>
@@ -412,7 +465,7 @@ const CartScreen = () => {
           <View style={styles.cartItemsContainer}>
             {cart.map((item) => (
               <View key={item.id} style={styles.cartItem}>
-                <Image source={{ uri: item.image }} style={styles.cartItemImage} />
+                {item.discount ? <Image source={{ uri: item.img }} style={styles.cartItemImage} /> : <Image source={{ uri: item.image }} style={styles.cartItemImage} />}
                 {item.discount && (
                   <View style={styles.discountLabel}>
                     <Text style={styles.discountLabelText}>Discount</Text>
@@ -422,9 +475,9 @@ const CartScreen = () => {
                   <Text style={styles.cartItemName}>{item.name}</Text>
                   {item.selectedExtras && Object.keys(item.selectedExtras).length > 0 && (
                     <View style={styles.cartItemExtras}>
-                      {Object.keys(item.selectedExtras).map((extraName) => (
-                        <Text key={extraName} style={styles.cartItemExtraText}>
-                          {extraName}: {item.selectedExtras[extraName].name} (${item.selectedExtras[extraName].price})
+                      {Object.values(item.selectedExtras).map((extra, index) => (
+                        <Text key={index} style={styles.cartItemExtraText}>
+                          {extra.name} (${extra.price})
                         </Text>
                       ))}
                     </View>
@@ -432,15 +485,18 @@ const CartScreen = () => {
                   <View style={styles.row}>
                     <Text style={styles.cartItemPrice}>${(parseFloat(item.price.replace('$', '')) + (item.selectedExtras ? Object.values(item.selectedExtras).reduce((extraTotal, extra) => extraTotal + extra.price, 0) : 0)).toFixed(2)}</Text>
                     <View style={styles.quantityContainer}>
-                      <TouchableOpacity style={styles.quantityButton} onPress={() => dispatch(decrementQuantity(item.id))}>
+                      {/*     <TouchableOpacity style={styles.quantityButton} onPress={() => dispatch(decrementQuantity(item.id))}>
                         <Text style={styles.quantityButtonText}>-</Text>
-                      </TouchableOpacity>
+                      </TouchableOpacity> */}
                       <Text style={[styles.quantityText, { color: colorScheme === 'dark' ? '#fff' : '#000' }]}>
                         {item.quantity}
                       </Text>
-                      <TouchableOpacity style={styles.quantityButton} onPress={() => dispatch(incrementQuantity(item.id))}>
+                      {/* <TouchableOpacity
+                        style={styles.quantityButton}
+                        onPress={() => handleIncrement(item)}
+                      >
                         <Text style={styles.quantityButtonText}>+</Text>
-                      </TouchableOpacity>
+                      </TouchableOpacity> */}
                     </View>
                   </View>
                 </View>
@@ -450,7 +506,7 @@ const CartScreen = () => {
           <View style={styles.tipContainer}>
             <Text style={styles.tipLabel}>Tip:</Text>
             <View style={styles.tipOptions}>
-              {[5, 10, 15, 20].map(percentage => (
+              {[0, 5, 10, 15, 20].map(percentage => (
                 <TouchableOpacity
                   key={percentage}
                   style={[styles.tipButton, tip === percentage && styles.tipButtonSelected]}
@@ -529,10 +585,10 @@ const CartScreen = () => {
               <Text style={styles.adText}>Get free delivery and exclusive promotions</Text>
             </View>
           )}
-          <TouchableOpacity 
-            style={styles.checkoutButton} 
-            onPress={() => user.role === 'guest' ? setLoginModalVisible(true) : payment()} 
-            disabled={isCheckoutLoading}
+          <TouchableOpacity
+            style={styles.checkoutButton}
+            onPress={() => user.role === 'guest' ? setLoginModalVisible(true) : payment()}
+            disabled={isCheckoutLoading || isLoading} // Deshabilita el botón si isCheckoutLoading o isLoading es true
           >
             {isCheckoutLoading ? (
               <ActivityIndicator size="small" color="#fff" />
@@ -542,143 +598,127 @@ const CartScreen = () => {
           </TouchableOpacity>
           {/* Modal de confirmación de checkout */}
           <Modal
-  visible={checkoutModalVisible}
-  animationType="slide"
-  transparent={true}
-  onRequestClose={() => setCheckoutModalVisible(false)}
->
-  <View style={styles.modalOverlay}>
-    <View style={styles.largeModalContent}>
-      <Text style={styles.modalTitle}>Confirm Your Order</Text>
-      <ScrollView style={styles.modalScrollView}>
-        <View style={styles.modalSection}>
-          <Text style={styles.modalSectionTitle}>Delivery Address</Text>
-          <Text style={styles.modalText}>{address}</Text>
-        </View>
-        <View style={styles.modalSection}>
-          <Text style={styles.modalSectionTitle}>Enter Delivery Instructions</Text>
-          <TextInput
-            style={styles.instructionsInput}
-            placeholder="Enter delivery instructions"
-            placeholderTextColor="#A9A9A9"
-            value={deliveryInstructions}
-            onChangeText={setDeliveryInstructions}
-            multiline
-          />
-        </View>
-        <View style={styles.modalSection}>
-          <Text style={styles.modalSectionTitle}>Order Summary</Text>
-          {cart.map((item) => (
-            <View key={item.id} style={styles.modalCartItem}>
-              <Image source={{ uri: item.image }} style={styles.modalCartItemImage} />
-              <View style={styles.modalCartItemDetails}>
-                <Text style={styles.modalCartItemName}>{item.name}</Text>
-                {item.selectedExtras && Object.keys(item.selectedExtras).length > 0 && (
-                  <View style={styles.modalCartItemExtras}>
-                    {Object.keys(item.selectedExtras).map((extraName) => (
-                      <Text key={extraName} style={styles.modalCartItemExtraText}>
-                        {extraName}: {item.selectedExtras[extraName].name} (${item.selectedExtras[extraName].price})
-                      </Text>
+            visible={checkoutModalVisible}
+            animationType="slide"
+            transparent={true}
+            onRequestClose={() => setCheckoutModalVisible(false)}
+          >
+            <View style={styles.modalOverlay}>
+              <View style={styles.largeModalContent}>
+                <Text style={styles.modalTitle}>Confirm Your Order</Text>
+                <ScrollView style={styles.modalScrollView}>
+                  <View style={styles.modalSection}>
+                    <Text style={styles.modalSectionTitle}>
+                      {orderType === 'Delivery' ? 'Delivery Address' : 'Order Type'}
+                    </Text>
+                    <Text style={styles.modalText}>
+                      {orderType === 'Delivery' ? address : `${orderType}`}
+                    </Text>
+                  </View>
+                  {orderType === 'Delivery' && (
+                    <View style={styles.modalSection}>
+                      <Text style={styles.modalSectionTitle}>Enter Delivery Instructions</Text>
+                      <TextInput
+                        style={styles.instructionsInput}
+                        placeholder="Enter delivery instructions"
+                        placeholderTextColor="#A9A9A9"
+                        value={deliveryInstructions || addressInfo?.deliveryInstructions}
+                        onChangeText={setDeliveryInstructions}
+                        multiline
+                      />
+                    </View>
+                  )}
+                  <View style={styles.modalSection}>
+                    <Text style={styles.modalSectionTitle}>Order Summary</Text>
+                    {cart.map((item) => (
+                      <View key={item.id} style={styles.modalCartItem}>
+                        <Image source={{ uri: item.image }} style={styles.modalCartItemImage} />
+                        <View style={styles.modalCartItemDetails}>
+                          <Text style={styles.modalCartItemName}>{item.name}</Text>
+                          {item.selectedExtras && Object.keys(item.selectedExtras).length > 0 && (
+                            <View style={styles.modalCartItemExtras}>
+                              {Object.keys(item.selectedExtras).map((extraName) => (
+                                <Text key={extraName} style={styles.modalCartItemExtraText}>
+                                  {item.selectedExtras[extraName].name} (${item.selectedExtras[extraName].price})
+                                </Text>
+                              ))}
+                            </View>
+                          )}
+                          <View style={styles.row}>
+                            <Text style={styles.modalCartItemPrice}>${(parseFloat(item.price.replace('$', '')) + (item.selectedExtras ? Object.values(item.selectedExtras).reduce((extraTotal, extra) => extraTotal + extra.price, 0) : 0)).toFixed(2)}</Text>
+                            <Text style={styles.modalCartItemQuantity}>Qty: {item.quantity}</Text>
+                          </View>
+                        </View>
+                      </View>
                     ))}
                   </View>
-                )}
-                <View style={styles.row}>
-                  <Text style={styles.modalCartItemPrice}>${(parseFloat(item.price.replace('$', '')) + (item.selectedExtras ? Object.values(item.selectedExtras).reduce((extraTotal, extra) => extraTotal + extra.price, 0) : 0)).toFixed(2)}</Text>
-                  <Text style={styles.modalCartItemQuantity}>Qty: {item.quantity}</Text>
+                  <View style={styles.modalSummaryContainer}>
+                    <Text style={styles.summaryText}>Subtotal: ${calculateSubtotal()}</Text>
+                    {orderType === 'Delivery' && <Text style={styles.summaryText}>Service Fee: ${serviceFee}</Text>}
+                    {orderType === 'Delivery' && (
+                      <Text style={styles.summaryText}>
+                        Delivery Fee:
+                        {user.subscription === 1 ? (
+                          <>
+                            <Text style={styles.strikethrough}>${originalDeliveryFee}</Text> <Text style={styles.freeText}>Free</Text>
+                          </>
+                        ) : (
+                          `$${deliveryFee}`
+                        )}
+                      </Text>
+                    )}
+                    <Text style={styles.summaryText}>
+                      Tax:
+                      {user.subscription === 1 ? (
+                        <>
+                          <Text style={styles.strikethrough}>${(calculateTax(parseFloat(calculateSubtotal())) * 2).toFixed(2)}</Text> ${(calculateTax(parseFloat(calculateSubtotal()))).toFixed(2)}
+                        </>
+                      ) : (
+                        `$${calculateTax(parseFloat(calculateSubtotal())).toFixed(2)}`
+                      )}
+                    </Text>
+                    <Text style={styles.summaryText}>
+                      Tip: ${calculateTipAmount(parseFloat(calculateSubtotal()))}
+                    </Text>
+                    <Text style={styles.totalText}>Total: ${calculateTotal()}</Text>
+                  </View>
+                </ScrollView>
+                <View style={styles.modalButtons}>
+                  <TouchableOpacity
+                    style={styles.confirmButton}
+                    onPress={confirmCheckout}
+                  >
+                    <Text style={styles.confirmButtonText}>Confirm</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.cancelButton}
+                    onPress={() => setCheckoutModalVisible(false)}
+                  >
+                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+
                 </View>
               </View>
             </View>
-          ))}
-        </View>
-        <View style={styles.modalSummaryContainer}>
-          <Text style={styles.summaryText}>Subtotal: ${calculateSubtotal()}</Text>
-          {orderType === 'Delivery' && <Text style={styles.summaryText}>Service Fee: ${serviceFee}</Text>}
-          {orderType === 'Delivery' && (
-            <Text style={styles.summaryText}>
-              Delivery Fee:
-              {user.subscription === 1 ? (
-                <>
-                  <Text style={styles.strikethrough}>${originalDeliveryFee}</Text> <Text style={styles.freeText}>Free</Text>
-                </>
-              ) : (
-                `$${deliveryFee}`
-              )}
-            </Text>
-          )}
-          <Text style={styles.summaryText}>
-            Tax:
-            {user.subscription === 1 ? (
-              <>
-                <Text style={styles.strikethrough}>${(calculateTax(parseFloat(calculateSubtotal())) * 2).toFixed(2)}</Text> ${(calculateTax(parseFloat(calculateSubtotal()))).toFixed(2)}
-              </>
-            ) : (
-              `$${calculateTax(parseFloat(calculateSubtotal())).toFixed(2)}`
-            )}
-          </Text>
-          <Text style={styles.summaryText}>
-            Tip: ${calculateTipAmount(parseFloat(calculateSubtotal()))}
-          </Text>
-          <Text style={styles.totalText}>Total: ${calculateTotal()}</Text>
-        </View>
-      </ScrollView>
-      <View style={styles.modalButtons}>
-        <TouchableOpacity
-          style={styles.confirmButton}
-          onPress={confirmCheckout}
-        >
-          <Text style={styles.confirmButtonText}>Confirm</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.cancelButton}
-          onPress={() => setCheckoutModalVisible(false)}
-        >
-          <Text style={styles.cancelButtonText}>Cancel</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  </View>
-</Modal>
-          {/* Fin del modal de confirmación de checkout */}
-          <Modal
-            visible={modalVisible}
-            animationType="slide"
-            transparent={true}
-            onRequestClose={() => setModalVisible(false)}
-          >
-            <View style={styles.modalContainer}>
-              <View style={styles.modalContent}>
-                <Text style={styles.modalTitle}>Select Delivery Address</Text>
-                <FlatList
-                  data={userAddresses}
-                  keyExtractor={(item) => item.adressID?.toString() || item.id?.toString()}
-                  renderItem={({ item }) => (
-                    <TouchableOpacity
-                      style={styles.addressItem}
-                      onPress={() => selectAddress(item)}
-                    >
-                      <Text style={styles.addressText}>{item.formatted_address}</Text>
-                    </TouchableOpacity>
-                  )}
-                />
-                <TouchableOpacity
-                  style={styles.closeButton}
-                  onPress={() => setModalVisible(false)}
-                >
-                  <Text style={styles.closeButtonText}>Close</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
           </Modal>
+          {/* Fin del modal de confirmación de checkout */}
+          <SelectAddressModal
+            visible={modalVisible}
+            onClose={() => setModalVisible(false)}
+            addresses={userAddresses}
+            onSelectAddress={selectAddress}
+            styles={styles} // Asegúrate de pasar los estilos correctos dependiendo del modo (light/dark)
+          />
           <Modal
             visible={confirmationModalVisible}
             animationType="slide"
             transparent={true}
             onRequestClose={() => setConfirmationModalVisible(false)}
           >
-            <View style={styles.modalContainer}>
-              <View style={styles.modalContent}>
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalOrderTypeContainer}>
                 <Text style={styles.modalTitle}>Confirm Order Type Change</Text>
-                <Text style={styles.modalText}>Are you sure you want to change the order type to {newOrderType}?</Text>
+                <Text style={styles.modalOrderTypeText}>Are you sure you want to change the order type to {newOrderType}?</Text>
                 <View style={styles.modalButtons}>
                   <TouchableOpacity
                     style={styles.confirmButton}

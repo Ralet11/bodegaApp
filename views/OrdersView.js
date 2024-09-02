@@ -1,5 +1,3 @@
-// screens/OrderScreen.js
-
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Text, ScrollView, TouchableOpacity, useColorScheme, Image, Modal } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
@@ -41,6 +39,21 @@ const OrderScreen = () => {
     setModalVisible(true);
   };
 
+  const getStatusStyle = (status) => {
+    switch (status) {
+      case 'completed':
+        return styles.completedStatus;
+      case 'pending':
+        return styles.pendingStatus;
+      case 'cancelled':
+        return styles.cancelledStatus;
+      case 'in-progress':
+        return styles.inProgressStatus;
+      default:
+        return styles.defaultStatus;
+    }
+  };
+
   if (loading) {
     return <OrderSkeletonLoader />;  // Show loader while loading
   }
@@ -66,12 +79,12 @@ const OrderScreen = () => {
           </TouchableOpacity>
         </View>
       ) : (
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: 40 }]}>
           {sortedOrders.length > 0 ? (
             sortedOrders.map((order) => (
               <View key={order.id} style={styles.card}>
                 <Text style={styles.cardHeader}>Order #{order.id}</Text>
-                <Text style={styles.status}>{order.status}</Text>
+                <Text style={[styles.status, getStatusStyle(order.status)]}>{order.status}</Text>
                 <Text style={styles.date}>{formatDateTime(order.date_time)}</Text>
                 <Text style={styles.total}>Total Price: ${order.total_price}</Text>
                 <Text style={styles.localInfo}>{order.local.name}</Text>
@@ -112,7 +125,7 @@ const OrderScreen = () => {
                   <Image source={{ uri: item.image }} style={styles.detailImage} />
                   <View style={styles.detailInfo}>
                     <Text style={styles.detailName}>{item.name}</Text>
-                    <Text style={styles.detailDescription}>{item.description}</Text>
+            
                     <Text style={styles.detailPrice}>Price: {item.price}</Text>
                     <Text style={styles.detailQuantity}>Quantity: {item.quantity}</Text>
                   </View>
@@ -147,8 +160,9 @@ const commonStyles = {
     fontWeight: 'bold',
   },
   scrollContent: {
-    paddingVertical: 20,
+    paddingVertical: 10,
     paddingHorizontal: 20,
+    flexGrow: 1, // Asegura que el contenido crezca para llenar la vista
   },
   card: {
     padding: 16,
@@ -333,6 +347,21 @@ const commonStyles = {
     textAlign: 'center',
     marginBottom: 20,
   },
+  completedStatus: {
+    color: '#4caf50',  // Verde para órdenes completadas
+  },
+  pendingStatus: {
+    color: '#ffa500',  // Naranja para órdenes pendientes
+  },
+  cancelledStatus: {
+    color: '#ff0000',  // Rojo para órdenes canceladas
+  },
+  inProgressStatus: {
+    color: '#2196f3',  // Azul para órdenes en progreso
+  },
+  defaultStatus: {
+    color: '#000',  // Negro para cualquier otro estado
+  },
 };
 
 const lightStyles = StyleSheet.create({
@@ -363,10 +392,6 @@ const lightStyles = StyleSheet.create({
   cardHeader: {
     ...commonStyles.cardHeader,
     color: '#000',
-  },
-  status: {
-    ...commonStyles.status,
-    color: '#4caf50',
   },
   date: {
     ...commonStyles.date,
@@ -421,6 +446,22 @@ const darkStyles = StyleSheet.create({
     backgroundColor: '#333',
     borderBottomColor: '#555',
   },
+  detailName: {
+    ...commonStyles.detailName,
+    color: '#fff',  // Asegúrate de que el nombre sea blanco
+  },
+  detailDescription: {
+    ...commonStyles.detailDescription,
+    color: '#fff',  // Asegúrate de que la descripción sea blanca
+  },
+  detailPrice: {
+    ...commonStyles.detailPrice,
+    color: '#fff',  // Asegúrate de que el precio sea blanco
+  },
+  detailQuantity: {
+    ...commonStyles.detailQuantity,
+    color: '#fff',  // Asegúrate de que la cantidad sea blanca
+  },
   headerTitle: {
     ...commonStyles.headerTitle,
     color: '#fff',
@@ -438,10 +479,6 @@ const darkStyles = StyleSheet.create({
   cardHeader: {
     ...commonStyles.cardHeader,
     color: '#fff',
-  },
-  status: {
-    ...commonStyles.status,
-    color: '#4caf50',
   },
   date: {
     ...commonStyles.date,

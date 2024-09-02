@@ -72,8 +72,9 @@ const OrderStatus = () => {
           progress = 1;
           break;
         case 'rejected':
-          mainText = 'Order rejected';
-          progress = 0;
+          // No mostrar status ni barra de progreso
+          mainText = '';
+          showProgressBar = false;
           break;
         case 'finished':
           mainText = 'Order delivered';
@@ -107,11 +108,15 @@ const OrderStatus = () => {
             <Text style={[styles.seeOrderText, { color: '#ff9900' }]}>See Order</Text>
           </TouchableOpacity>
         </View>
-        <Text style={[styles.orderStatus, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>{mainText}</Text>
-        {showProgressBar && (
-          <View style={styles.progressBarContainer}>
-            <View style={[styles.progressBar, { width: `${progress * 100}%` }]} />
-          </View>
+        {mainText !== '' && (
+          <>
+            <Text style={[styles.orderStatus, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>{mainText}</Text>
+            {showProgressBar && (
+              <View style={styles.progressBarContainer}>
+                <View style={[styles.progressBar, { width: `${progress * 100}%` }]} />
+              </View>
+            )}
+          </>
         )}
       </View>
     );
@@ -120,7 +125,7 @@ const OrderStatus = () => {
   return (
     <SafeAreaView style={styles.container}>
       <FlatList
-        data={ordersIn}
+        data={ordersIn.filter(order => order.status !== 'cancelled')}
         renderItem={renderItem}
         keyExtractor={(item) => item.id.toString()}
       />

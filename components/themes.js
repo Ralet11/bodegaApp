@@ -45,7 +45,7 @@ const lightTheme = StyleSheet.create({
     fontSize: 14,
     color: '#333',
     marginRight: 10,
-    maxWidth: 150, // Adjusted maxWidth to fit the screen
+    maxWidth: 150, // Ajustado maxWidth para que encaje en la pantalla
   },
   deliveryToggleContainer: {
     flexDirection: 'row',
@@ -57,7 +57,7 @@ const lightTheme = StyleSheet.create({
     paddingVertical: 3,
     paddingHorizontal: 10,
     borderRadius: 15,
-    marginHorizontal: 3, // Added margin between toggle buttons
+    marginHorizontal: 3, // Agregado margen entre los botones de alternancia
   },
   deliveryToggleText: {
     fontSize: 14,
@@ -201,6 +201,67 @@ const lightTheme = StyleSheet.create({
     color: '#333',
     textAlign: 'center',
   },
+
+  // Modal styles
+  modalBackground: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  modalContainer: {
+    width: '80%',
+    maxHeight: '80%',
+    padding: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    backgroundColor: '#fff',  // Fondo para modo claro
+  },
+  closeButton: {
+    alignSelf: 'flex-end',
+    marginBottom: 10,
+  },
+  modalTitle: {
+    fontSize: 18,
+    marginBottom: 15,
+    color: '#333',
+  },
+  addressItem: {
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 5,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    marginBottom: 10,
+  },
+  addressName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  addressTextModal: {
+    fontSize: 14,
+    color: '#666',
+  },
+  separator: {
+    height: 1,
+    backgroundColor: '#ddd',
+    width: '100%',
+    marginVertical: 10,
+  },
+  flatListContent: {
+    paddingBottom: 20,
+  },
+  addButton: {
+    marginTop: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: '#FFC300',
+    borderRadius: 5,
+  },
+  addButtonText: {
+    color: 'black',
+    fontSize: 16,
+  },
 });
 
 const darkTheme = StyleSheet.create({
@@ -248,7 +309,7 @@ const darkTheme = StyleSheet.create({
     fontSize: 14,
     color: '#fff',
     marginRight: 10,
-    maxWidth: 150, // Adjusted maxWidth to fit the screen
+    maxWidth: 150, // Ajustado maxWidth para que encaje en la pantalla
   },
   deliveryToggleContainer: {
     flexDirection: 'row',
@@ -260,7 +321,7 @@ const darkTheme = StyleSheet.create({
     paddingVertical: 3,
     paddingHorizontal: 10,
     borderRadius: 15,
-    marginHorizontal: 3, // Added margin between toggle buttons
+    marginHorizontal: 3, // Agregado margen entre los botones de alternancia
   },
   deliveryToggleText: {
     fontSize: 14,
@@ -403,6 +464,67 @@ const darkTheme = StyleSheet.create({
     fontSize: 14,
     color: '#fff',
     textAlign: 'center',
+  },
+
+  // Modal styles
+  modalBackground: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  modalContainer: {
+    width: '80%',
+    maxHeight: '80%',
+    padding: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    backgroundColor: '#333',  // Fondo para modo oscuro
+  },
+  closeButton: {
+    alignSelf: 'flex-end',
+    marginBottom: 10,
+  },
+  modalTitle: {
+    fontSize: 18,
+    marginBottom: 15,
+    color: '#fff',
+  },
+  addressItem: {
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 5,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    marginBottom: 10,
+  },
+  addressName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  addressTextModal: {
+    fontSize: 14,
+    color: '#aaa',
+  },
+  separator: {
+    height: 1,
+    backgroundColor: '#555',
+    width: '100%',
+    marginVertical: 10,
+  },
+  flatListContent: {
+    paddingBottom: 20,
+  },
+  addButton: {
+    marginTop: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: '#FFC300',
+    borderRadius: 5,
+  },
+  addButtonText: {
+    color: 'black',
+    fontSize: 16,
   },
 });
 

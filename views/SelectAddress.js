@@ -12,7 +12,7 @@ import { addAddress, setAddress } from '../redux/slices/user.slice';
 import { API_URL } from '@env';
 import { Ionicons } from '@expo/vector-icons';
 
-const GOOGLE_API_KEY = 'AIzaSyB8fCVwRXbMe9FAxsrC5CsyfjzpHxowQmE';
+const GOOGLE_API_KEY = 'AIzaSyAvritMA-llcdIPnOpudxQ4aZ1b5WsHHUc';
 
 const SetAddressScreen = () => {
   const dispatch = useDispatch();
@@ -24,9 +24,7 @@ const SetAddressScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [addressName, setAddressName] = useState('');
   const [houseNumber, setHouseNumber] = useState('');
-  const [streetName, setStreetName] = useState('');
   const [additionalDetails, setAdditionalDetails] = useState('');
-  const [postalCode, setPostalCode] = useState('');
   const [addressesState, setAddressesState] = useState(null);
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState({});
@@ -170,37 +168,13 @@ const SetAddressScreen = () => {
   }, []);
 
   const handleSaveAddress = useCallback(async () => {
-    if (user?.role === 'guest') {
-      dispatch(setAddress(addressState));
-      navigation.navigate('Home');
-      return;
-    }
-
-    const newErrors = {};
-    if (!addressName) newErrors.addressName = true;
-    if (!houseNumber) newErrors.houseNumber = true;
-    if (!streetName) newErrors.streetName = true;
-    if (!postalCode) newErrors.postalCode = true;
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      Toast.show({
-        type: 'error',
-        text1: 'Address required',
-        text2: 'Please fill all required fields.',
-      });
-      return;
-    }
-
     try {
       const response = await Axios.post(
         `${API_URL}/api/addresses/addToUser`,
         {
           name: addressName,
           houseNumber,
-          streetName,
           additionalDetails,
-          postalCode,
           formatted_address: addressState,
         },
         {
@@ -212,7 +186,7 @@ const SetAddressScreen = () => {
 
       if (response.status === 200) {
         console.log(response.data, "chequeando address")
-        dispatch(setAddress(response.data.formatted_address));
+        dispatch(setAddress(response.data));
         dispatch(addAddress(response.data));
         setModalVisible(false);
         navigation.navigate('Home');
@@ -220,7 +194,7 @@ const SetAddressScreen = () => {
     } catch (error) {
       console.error('Error saving address:', error);
     }
-  }, [addressName, houseNumber, streetName, additionalDetails, postalCode, addressState, dispatch, navigation, token, user]);
+  }, [addressName, houseNumber, additionalDetails, addressState, dispatch, navigation, token]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -325,54 +299,26 @@ const SetAddressScreen = () => {
           
           <Text style={styles.label}>Home Name</Text>
           <TextInput
-            style={[styles.modalInput, errors.addressName && styles.errorInput]}
+            style={styles.modalInput}
             placeholder="Home Name (e.g. My Home)"
             value={addressName}
-            onChangeText={(text) => {
-              setAddressName(text);
-              if (errors.addressName) setErrors((prev) => ({ ...prev, addressName: false }));
-            }}
+            onChangeText={setAddressName}
           />
           
           <Text style={styles.label}>House Number</Text>
           <TextInput
-            style={[styles.modalInput, errors.houseNumber && styles.errorInput]}
+            style={styles.modalInput}
             placeholder="House Number (e.g. 123)"
             value={houseNumber}
-            onChangeText={(text) => {
-              setHouseNumber(text);
-              if (errors.houseNumber) setErrors((prev) => ({ ...prev, houseNumber: false }));
-            }}
+            onChangeText={setHouseNumber}
           />
           
-          <Text style={styles.label}>Street Name</Text>
-          <TextInput
-            style={[styles.modalInput, errors.streetName && styles.errorInput]}
-            placeholder="Street Name (e.g. Main St)"
-            value={streetName}
-            onChangeText={(text) => {
-              setStreetName(text);
-              if (errors.streetName) setErrors((prev) => ({ ...prev, streetName: false }));
-            }}
-          />
-          
-          <Text style={styles.label}>Additional Information</Text>
+          <Text style={styles.label}>Delivery Information</Text>
           <TextInput
             style={styles.modalInput}
-            placeholder="Additional Information (e.g. Apt 1B, Floor 2)"
+            placeholder="Delivery Information (e.g. Apt 1B, Floor 2)"
             value={additionalDetails}
             onChangeText={setAdditionalDetails}
-          />
-          
-          <Text style={styles.label}>Postal Code</Text>
-          <TextInput
-            style={[styles.modalInput, errors.postalCode && styles.errorInput]}
-            placeholder="Postal Code (e.g. 12345)"
-            value={postalCode}
-            onChangeText={(text) => {
-              setPostalCode(text);
-              if (errors.postalCode) setErrors((prev) => ({ ...prev, postalCode: false }));
-            }}
           />
           
           <TouchableOpacity
@@ -486,9 +432,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     marginBottom: 10,
     backgroundColor: '#f9f9f9',
-  },
-  errorInput: {
-    borderColor: 'red',
   },
   modalButton: {
     width: '100%',

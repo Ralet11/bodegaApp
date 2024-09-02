@@ -1,20 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, Image, Animated,
-  SafeAreaView, useColorScheme, ScrollView, ActivityIndicator, Modal, BackHandler
+  View, Text, TouchableOpacity, Image, Animated,
+  SafeAreaView, ScrollView, Modal, BackHandler, useColorScheme
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
 import Axios from 'react-native-axios';
 import { API_URL } from '@env';
 import { useDispatch, useSelector } from 'react-redux';
-import { addToCart, incrementQuantity, decrementQuantity, clearCart } from '../redux/slices/cart.slice';
+import { addToCart, incrementQuantity, clearCart, decrementQuantity } from '../redux/slices/cart.slice';
 import { setCurrentShop } from '../redux/slices/currentShop.slice';
 import CartSkeletonLoader from '../components/SkeletonLoaderCart';
+import ProductDetail from '../components/ProductDetail';
+import DiscountDetail from '../components/DiscountDetail';
 import { stylesDark, stylesLight } from '../components/themeShop';
-import DiscountCard from '../components/DiscountCard';
-import ModalDiscount from '../components/modals/DiscountModal';
-import ProductDetail from '../components/ProductDetail'; // Importamos el nuevo componente
 
 const ShopScreen = () => {
   const route = useRoute();
@@ -25,20 +24,39 @@ const ShopScreen = () => {
   const token = useSelector((state) => state?.user?.userInfo.data.token);
   const [categories, setCategories] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [selectedDiscount, setSelectedDiscount] = useState(null); // Nuevo estado para DiscountDetail
   const [selectedOptions, setSelectedOptions] = useState({});
   const [confirmationModalVisible, setConfirmationModalVisible] = useState(false);
   const [orderTypeModalVisible, setOrderTypeModalVisible] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [discounts, setDiscounts] = useState([]);
   const [orderType, setOrderType] = useState('Pick-up');
   const [pendingOrderType, setPendingOrderType] = useState(null);
+  const [discounts, setDiscounts] = useState([]);
   const headerHeight = useRef(new Animated.Value(250)).current;
   const scrollY = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef(null);
-  const [selectedDiscount, setSelectedDiscount] = useState(false)
-  const [discountModalVisible, setDiscountModalVisible] = useState(false)
 
-  const { shop } = route.params || {};
+  const { shop, orderTypeParam } = route.params || {};
+  const styles = colorScheme === 'dark' ? stylesDark : stylesLight;
+
+  useEffect(() => {
+    if (orderTypeParam !== undefined) {
+      switch (orderTypeParam) {
+        case 0:
+          setOrderType('Order-in');
+          break;
+        case 1:
+          setOrderType('Pick-up');
+          break;
+        case 2:
+          setOrderType('Delivery');
+          break;
+        default:
+          setOrderType('Pick-up'); // Valor predeterminado
+          break;
+      }
+    }
+  }, [orderTypeParam]);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -59,7 +77,6 @@ const ShopScreen = () => {
             Authorization: `Bearer ${token}`,
           },
         });
-
         setDiscounts(response.data);
       } catch (error) {
         console.log(error);
@@ -87,14 +104,13 @@ const ShopScreen = () => {
     setSelectedOptions({});
   };
 
-  const openDiscountModal = (discount) => {
+  const openDiscountDetail = (discount) => {
     setSelectedDiscount(discount);
-    setDiscountModalVisible(true);
   };
 
-  const closeDiscountModal = () => {
-    setDiscountModalVisible(false);
+  const closeDiscountDetail = () => {
     setSelectedDiscount(null);
+    setSelectedOptions({});
   };
 
   const handleSelectOption = (extraId, option) => {
@@ -106,15 +122,32 @@ const ShopScreen = () => {
 
   const handleAddToCart = (product, quantity) => {
     const selectedExtras = Object.values(selectedOptions);
-    if (orderType == 'Order-in' && product.delivery == 0) {
+    if (orderType === 'Order-in' && product.delivery === 0) {
       alertCannotAddProduct();
-    } else if ((orderType == 'Pick-up' || orderType == 'Delivery') && product.delivery == 1) {
+    } else if ((orderType === 'Pick-up' || orderType === 'Delivery') && product.delivery === 1) {
       alertCannotAddProduct();
     } else {
       dispatch(addToCart({ ...product, quantity, extras: selectedExtras }));
       closeProductDetail();
     }
   };
+
+  const handleAddDiscountToCart = (discount) => {
+    const discountedPrice = ((discount.product.price * (100 - discount.percentage)) / 100).toFixed(2);
+  
+    if (discount.product.extras && discount.product.extras.length > 0) {
+      openDiscountDetail(discount);
+    } else {
+      dispatch(addToCart({
+        ...discount.product,
+        quantity: 1,
+        currentPrice: discountedPrice, // Agregar el precio descontado como string
+        price: discountedPrice, // Asegurar que el precio también esté descontado
+        discount: true // Agregar la propiedad discount: true
+      }));
+    }
+  };
+  
 
   const totalAmount = cart.reduce((sum, item) => {
     const price = item.price || 0;
@@ -151,6 +184,10 @@ const ShopScreen = () => {
           closeProductDetail();
           return true;
         }
+        if (selectedDiscount) {
+          closeDiscountDetail();
+          return true;
+        }
         if (cart.length > 0) {
           setConfirmationModalVisible(true);
           return true;
@@ -163,7 +200,7 @@ const ShopScreen = () => {
 
       return () =>
         BackHandler.removeEventListener('hardwareBackPress', onBackPress);
-    }, [cart, selectedProduct])
+    }, [cart, selectedProduct, selectedDiscount])
   );
 
   const handleConfirmExit = () => {
@@ -172,18 +209,14 @@ const ShopScreen = () => {
     navigation.goBack();
   };
 
-  const navigateToDiscount = (discount) => {
-    navigation.navigate('DiscountDetail', { shop, discount });
-  };
-
   const alertCannotAddProduct = () => {
     alert('You cannot add this product to your cart for the current order type.');
   };
 
   const handleOrderTypeChange = (type) => {
-    const hasIncompatibleItems = type == 'Order-in'
-      ? cart.some(item => item.discountType != 1)
-      : cart.some(item => item.discountType == 1);
+    const hasIncompatibleItems = type === 'Order-in'
+      ? cart.some(item => item.delivery !== 1)
+      : cart.some(item => item.delivery === 1);
 
     if (hasIncompatibleItems) {
       setPendingOrderType(type);
@@ -200,21 +233,41 @@ const ShopScreen = () => {
     setOrderTypeModalVisible(false);
   };
 
-  const renderDiscount = (discount, isBlockLayout) => {
+  const renderDiscount = (discount) => (
+    <View key={discount.id} style={styles.discountCard}>
+      <Image source={{ uri: discount.product.img }} style={styles.discountImage} />
+      <View style={styles.discountDetails}>
+        <Text style={styles.discountProduct}>{discount.productName}</Text>
+        <Text style={styles.discountDescription}>{discount.product.description}</Text>
+        <Text style={styles.discountPrice}>
+          ${(discount.product.price * (100 - discount.percentage) / 100).toFixed(2)}{' '}
+          <Text style={{ textDecorationLine: 'line-through', color: '#999' }}>
+            ${discount.product.price.toFixed(2)}
+          </Text>
+        </Text>
+        <Text style={styles.discountPercentage}>{discount.percentage}% OFF</Text>
+      </View>
+      <TouchableOpacity style={styles.addButton} onPress={() => handleAddDiscountToCart(discount)}>
+        <Text style={styles.addButtonText}>Add</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  const renderDiscounts = () => {
+    const filteredDiscounts = discounts.filter(discount => discount.delivery === (orderType === 'Order-in' ? 0 : orderType === 'Pick-up' ? 1 : 2));
+
+    if (filteredDiscounts.length === 0) return null;
+
     return (
-     <View style={{ width: 300, marginHorizontal: 5 }}>
-       <DiscountCard
-        key={discount.id}
-        discount={discount}
-        openDiscountModal={openDiscountModal}
-        isBlockLayout={isBlockLayout}
-      />
-     </View>
+      <View style={styles.discountSectionContainer}>
+        <Text style={styles.discountSectionTitle}>Discounts</Text>
+        {filteredDiscounts.map(discount => renderDiscount(discount))}
+      </View>
     );
   };
 
   const renderProduct = (product) => {
-    const productInCart = cart?.find(cartItem => cartItem?.id == product?.id);
+    const productInCart = cart?.find(cartItem => cartItem?.id === product?.id);
 
     const handleIncrementQuantity = () => {
       if (product.extras.length > 0) {
@@ -231,7 +284,7 @@ const ShopScreen = () => {
     const handleDecrementQuantity = () => {
       if (productInCart && productInCart.quantity > 1) {
         dispatch(decrementQuantity(product?.id));
-      } else if (productInCart && productInCart.quantity == 1) {
+      } else if (productInCart && productInCart.quantity === 1) {
         dispatch(decrementQuantity(product?.id));
       }
     };
@@ -270,8 +323,6 @@ const ShopScreen = () => {
     </View>
   );
 
-  const styles = colorScheme == 'dark' ? stylesDark : stylesLight;
-
   const orderTypes = [
     { type: 'Pick-up', icon: 'shopping-basket', available: shop.pickUp },
     { type: 'Delivery', icon: 'bicycle', available: shop.delivery },
@@ -292,6 +343,8 @@ const ShopScreen = () => {
         <TouchableOpacity onPress={() => {
           if (selectedProduct) {
             closeProductDetail();
+          } else if (selectedDiscount) {
+            closeDiscountDetail();
           } else {
             navigation.goBack();
           }
@@ -309,42 +362,40 @@ const ShopScreen = () => {
           <Text style={styles.headerSubtitle}>{shop?.address}</Text>
           <View style={styles.ratingContainer}>
             <FontAwesome name="star" size={14} color="#ff9900" />
-            <Text style={styles.shopRating}>{shop?.rating.toFixed(2)}</Text>
+            <Text style={styles.shopRating}>{shop?.rating?.toFixed(2)}</Text>
           </View>
         </Animated.View>
       </Animated.View>
-      {!selectedProduct && (
+      {!selectedProduct && !selectedDiscount && (
         <View style={styles.orderTypeContainer}>
           {orderTypes.map(order => (
             <TouchableOpacity
               key={order.type}
               style={[
                 styles.orderTypeButton,
-                orderType == order.type && styles.selectedOrderTypeButton,
+                orderType === order.type && styles.selectedOrderTypeButton,
               ]}
               onPress={() => handleOrderTypeChange(order.type)}
             >
-              <FontAwesome name={order.icon} size={15} color={orderType == order.type ? '#8C6D00' : '#333'} />
+              <FontAwesome name={order.icon} size={15} color={orderType === order.type ? '#8C6D00' : '#333'} />
               <Text style={styles.orderTypeText}>{order.type}</Text>
             </TouchableOpacity>
           ))}
         </View>
       )}
-      {!selectedProduct && (
+      {!selectedProduct && !selectedDiscount && (
         <View style={styles.categoryListContainer}>
-          {orderType !== 'Order-in' && (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.categoryScrollContainer}
-            >
-              {categories.map((item, index) => (
-                <TouchableOpacity key={item.id} onPress={() => scrollToCategory(index)} style={styles.categoryButton}>
-                  <Text style={styles.categoryButtonText}>{item.name}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          )}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.categoryScrollContainer}
+          >
+            {categories.map((item, index) => (
+              <TouchableOpacity key={item.id} onPress={() => scrollToCategory(index)} style={styles.categoryButton}>
+                <Text style={styles.categoryButtonText}>{item.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
       )}
       {loading ? (
@@ -360,39 +411,27 @@ const ShopScreen = () => {
           )}
           contentContainerStyle={styles.contentContainer}
         >
-          {orderType == 'Order-in' && !selectedProduct ? (
-            discounts.filter(discount => discount.delivery == 1).map(discount => renderDiscount(discount, true))
-          ) : (
-            !selectedProduct && (
-              <View style={{ backgroundColor: 'white', flex: 1, marginBottom: 5 }}>
-                {discounts.length > 0 && <Text style={styles.discountSectionTitle}>Our best discounts</Text>}
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.discountScrollContainer}
-                >
-                  {discounts.filter(discount => discount.delivery == 0).map(discount => renderDiscount(discount, false))}
-                </ScrollView>
-              </View>
-            )
-          )}
-          {orderType !== 'Order-in' && selectedProduct ? (
+          {selectedProduct ? (
             <ProductDetail
               product={selectedProduct}
               onAddToCart={handleAddToCart}
               onBack={closeProductDetail}
             />
+          ) : selectedDiscount ? (
+            <DiscountDetail
+              discount={selectedDiscount}
+              onAddToCart={handleAddToCart}
+              onBack={closeDiscountDetail}
+            />
           ) : (
-            categories.map(category => renderCategory(category))
+            <>
+              {renderDiscounts()}
+              {categories.map(category => renderCategory(category))}
+            </>
           )}
         </Animated.ScrollView>
       )}
-      <ModalDiscount
-        visible={discountModalVisible}
-        onClose={closeDiscountModal}
-        discount={selectedDiscount}
-      />
-      {cart.length > 0 && (
+      {cart.length > 0 && !selectedProduct && !selectedDiscount && (
         <View style={styles.cartContainer}>
           <Text style={styles.cartText}>{totalItems} Product{totalItems > 1 ? 's' : ''}</Text>
           <Text style={styles.cartText}>$ {totalAmount}</Text>

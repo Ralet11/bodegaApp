@@ -1,16 +1,21 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, TouchableOpacity, Dimensions, useColorScheme, ActivityIndicator, Animated, Modal, StyleSheet, Image, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, Dimensions, useColorScheme, ActivityIndicator, Animated, StyleSheet, BackHandler } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import Axios from 'react-native-axios';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import socketIOClient from "socket.io-client";
-import { setCurrentOrder, updateOrderIn, setAuxShops } from '../redux/slices/orders.slice';
+import { setCurrentOrder, updateOrderIn } from '../redux/slices/orders.slice';
 import { API_URL } from '@env';
-import { AirbnbRating } from 'react-native-ratings';
 import { setUser } from '../redux/slices/user.slice';
+import { setAuxShops } from '../redux/slices/setUp.slice';
+
+import CancelConfirmationModal from '../components/modals/CancelConfirmationModal';
+import OrderCanceledModal from '../components/modals/OrderCanceledModal';
+import RatingModal from '../components/modals/RatingModal';
+import OrderDetailsModal from '../components/modals/OrderDetailsModal';
 
 const { width, height } = Dimensions.get('window');
 
@@ -26,27 +31,35 @@ const AcceptedOrder = () => {
   const [balanceAdded, setBalanceAdded] = useState(false);
   const [balanceError, setBalanceError] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
-  const [showStars, setShowStars] = useState(false);
-  const [rating, setRating] = useState(0);
   const [buttonsVisible, setButtonsVisible] = useState(true);
-
-  const GOOGLE_MAPS_API_KEY = 'AIzaSyB8fCVwRXbMe9FAxsrC5CsyfjzpHxowQmE';
-
+  const [isCancelConfirmationVisible, setIsCancelConfirmationVisible] = useState(false);
   const [showOrderDetailsModal, setShowOrderDetailsModal] = useState(false);
   const [selectedOrderDetails, setSelectedOrderDetails] = useState([]);
 
-  const address = useSelector((state) => state?.user?.address) || '';
-  const user = useSelector((state) => state.user.userInfo.data);
+  const address = useSelector((state) => state?.user?.address?.formatted_address) || '';
   const token = useSelector((state) => state?.user?.userInfo.data.token);
-  const navigation = useNavigation();
   const shops = useSelector((state) => state?.setUp?.shops);
   const currentShop = useSelector((state) => state.currentShop.currentShop);
   const order = useSelector((state) => state.orders.currentOrder);
   const dispatch = useDispatch();
+  const navigation = useNavigation();
 
+  const GOOGLE_MAPS_API_KEY = 'AIzaSyAvritMA-llcdIPnOpudxQ4aZ1b5WsHHUc';
   const orderRef = useRef(order);
-
   const progressAnim = useRef(new Animated.Value(0)).current;
+
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        navigation.navigate('Home');
+        return true;
+      };
+
+      BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+      return () => BackHandler.removeEventListener('hardwareBackPress', onBackPress);
+    }, [navigation])
+  );
 
   useEffect(() => {
     const socket = socketIOClient(`${API_URL}`);
@@ -63,7 +76,7 @@ const AcceptedOrder = () => {
 
         if (updatedOrder.status === 'rejected') {
           setIsModalVisible(true);
-          setModalMessage('Your order has been canceled by the store. You will receive a refund within 48 hours or the balance will be credited to your Bodega Balance immediately.');
+          setModalMessage('Your order has been canceled by the store. You will receive a refund within 48 hours, or the balance will be credited to your Bodega Balance immediately.');
         } else if (updatedOrder.status === 'finished') {
           setShowRatingModal(true);
         }
@@ -112,7 +125,7 @@ const AcceptedOrder = () => {
       setShowRatingModal(true);
     } else if (order.status === 'rejected') {
       setIsModalVisible(true);
-      setModalMessage('Your order has been canceled by the store. You will receive a refund within 48 hours or the balance will be credited to your Bodega Balance immediately.');
+      setModalMessage('Your order has been canceled by the store. You will receive a refund within 48 hours, or the balance will be credited to your Bodega Balance immediately.');
     }
   }, [order]);
 
@@ -133,7 +146,7 @@ const AcceptedOrder = () => {
       amount: Math.round(parseFloat(order.total_price) * 100), // Convert to cents
     };
     try {
-      const response = await Axios.post(`${API_URL}/api/payment/refoundOrder`, data, {
+      const response = await Axios.post(`${API_URL}/api/payment/refundOrder`, data, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -182,9 +195,9 @@ const AcceptedOrder = () => {
     }
   };
 
-  const handleRating = async () => {
+  const handleRating = async (rating) => {
     try {
-       await Axios.post(`${API_URL}/api/local/rating`, {
+      await Axios.post(`${API_URL}/api/local/rating`, {
         id: currentShop,
         rating,
       }, {
@@ -194,10 +207,28 @@ const AcceptedOrder = () => {
       });
 
       setShowRatingModal(false);
-      dispatch(setAuxShops())
+      dispatch(setAuxShops());
       navigation.navigate('Home');
     } catch (error) {
       console.log(error);
+    }
+  };
+
+  const handleCancelOrder = async () => {
+    try {
+      const response = await Axios.post(`${API_URL}/api/orders/cancelOrder/${order.id}`, {}, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (response.status === 200) {
+        dispatch(setCurrentOrder({ ...order, status: 'rejected' }));
+        setIsModalVisible(true);
+        setModalMessage('Your order has been canceled. You can choose to receive a refund or credit to your Bodega Balance.');
+      }
+    } catch (error) {
+      console.log(error);
+      setModalMessage('Error canceling the order. Please contact support.');
     }
   };
 
@@ -294,7 +325,7 @@ const AcceptedOrder = () => {
           subText = 'Your order is ready to pick up';
         } else if (order?.type === 'Order-In') {
           mainText = 'Sending your order';
-          subText = 'Acércate al local para reclamar tu orden';
+          subText = 'Approach the store to claim your order';
         }
         progress = 1;
         break;
@@ -356,7 +387,7 @@ const AcceptedOrder = () => {
             <>
               <Text style={[styles.orderNumber, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>Order #{order?.id}</Text>
               <Text style={[styles.orderMessage, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>
-                Acércate al local para reclamar tu orden
+                Approach the store to claim your order
               </Text>
               <Text style={[styles.orderCode, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>
                 {formatCode(order?.code)}
@@ -393,6 +424,13 @@ const AcceptedOrder = () => {
               <Text style={[styles.orderMessage, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>{subText}</Text>
             </>
           )}
+          {
+            order.status === 'new order' && (
+              <TouchableOpacity onPress={() => setIsCancelConfirmationVisible(true)}>
+                <Text style={styles.smallButtonText1}>Cancel Order</Text>
+              </TouchableOpacity>
+            )
+          }
         </View>
         <View style={styles.orderDetails}>
           <View style={styles.orderDetail}>
@@ -413,131 +451,35 @@ const AcceptedOrder = () => {
           </TouchableOpacity>
         </View>
       </View>
-      <Modal
-        animationType="slide"
-        transparent={true}
+
+      {/* Aquí se importan los modals como componentes */}
+      <CancelConfirmationModal
+        visible={isCancelConfirmationVisible}
+        onClose={() => setIsCancelConfirmationVisible(false)}
+        onConfirm={handleCancelOrder}
+      />
+      <OrderCanceledModal
         visible={isModalVisible}
-        onRequestClose={() => {
-          setIsModalVisible(!isModalVisible);
-        }}
-      >
-        <View style={styles.modalContainer}>
-          <View style={[styles.modalContent, colorScheme === 'dark' ? styles.darkModalContent : styles.lightModalContent]}>
-            <Text style={[styles.modalTitle, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>Order Canceled</Text>
-            <Text style={[styles.modalMessage, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>
-              {modalMessage}
-            </Text>
-            <View style={styles.modalButtons}>
-              {isProcessingBalance ? (
-                <View style={styles.centeredLoader}>
-                  <ActivityIndicator size="large" color="#FFEB3B" />
-                </View>
-              ) : balanceAdded ? (
-                <Text style={[styles.modalMessage, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>
-                  
-                </Text>
-              ) : balanceError ? (
-                <Text style={[styles.modalMessage, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>
-                  An error occurred while adding the balance to your account. Please contact support.
-                </Text>
-              ) : (
-                <>
-                  {buttonsVisible && order.pi !== 'bodegaBalance' && (
-                    <TouchableOpacity style={styles.modalButton} onPress={handleRefund}>
-                      <Text style={styles.modalButtonText2}>Refund</Text>
-                    </TouchableOpacity>
-                  )}
-                  {buttonsVisible && (
-                    <TouchableOpacity style={styles.modalButton} onPress={handleBalance}>
-                      <Text style={styles.modalButtonText2}>Credit to Bodega Balance</Text>
-                    </TouchableOpacity>
-                  )}
-                </>
-              )}
-            </View>
-          </View>
-        </View>
-      </Modal>
-      <Modal
-        animationType="slide"
-        transparent={true}
+        onClose={() => setIsModalVisible(false)}
+        modalMessage={modalMessage}
+        onRefund={handleRefund}
+        onAddBalance={handleBalance}
+        isProcessingBalance={isProcessingBalance}
+        balanceAdded={balanceAdded}
+        balanceError={balanceError}
+        buttonsVisible={buttonsVisible}
+      />
+      <RatingModal
         visible={showRatingModal}
-        onRequestClose={() => {
-          setShowRatingModal(!showRatingModal);
-        }}
-      >
-        <View style={styles.modalContainer}>
-          <View style={[styles.modalContent, colorScheme === 'dark' ? styles.darkModalContent : styles.lightModalContent]}>
-            <Text style={[styles.modalTitle, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>Order Delivered</Text>
-            {showStars ? (
-              <>
-                <Text style={[styles.modalMessage, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>
-                  Rate this shop
-                </Text>
-                <AirbnbRating
-                  count={5}
-                  defaultRating={0}
-                  size={20}
-                  onFinishRating={(rating) => setRating(rating)}
-                />
-                <TouchableOpacity  onPress={handleRating}>
-                  <Text style={styles.modalButtonText}>Confirm</Text>
-                </TouchableOpacity>
-              </>
-            ) : (
-              <>
-                <Text style={[styles.modalMessage, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>
-                  The store has marked your order as delivered. Did you receive your order correctly?
-                </Text>
-                <View style={styles.modalButtons}>
-                  <TouchableOpacity style={styles.modalButton} onPress={() => setShowStars(true)}>
-                    <Text style={styles.modalButtonText2}>Yes</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.modalButton} onPress={handleRefund}>
-                    <Text style={styles.modalButtonText2}>Contact Support</Text>
-                  </TouchableOpacity>
-                </View>
-              </>
-            )}
-          </View>
-        </View>
-      </Modal>
-      <Modal
-        animationType="slide"
-        transparent={true}
+        onClose={() => setShowRatingModal(false)}
+        onRate={handleRating}
+      />
+      <OrderDetailsModal
         visible={showOrderDetailsModal}
-        onRequestClose={() => setShowOrderDetailsModal(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={[styles.modalContent, colorScheme === 'dark' ? styles.darkModalContent : styles.lightModalContent]}>
-            <Text style={[styles.modalTitle, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>Order Details</Text>
-            <ScrollView contentContainerStyle={styles.modalScrollContent}>
-              {selectedOrderDetails.map((item) => (
-                <View key={item.id} style={styles.detailCard}>
-                  <Image source={{ uri: item.image }} style={styles.detailImage} />
-                  <View style={styles.detailInfo}>
-                    <Text style={styles.detailName}>{item.name}</Text>
-                    <Text style={styles.detailDescription}>{item.description}</Text>
-                    <Text style={styles.detailPrice}>Price: ${item.price}</Text>
-                    <Text style={styles.detailQuantity}>Quantity: {item.quantity}</Text>
-                  </View>
-                </View>
-              ))}
-              <View style={styles.totalContainer}>
-                <Text style={[styles.totalText, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>
-                  Total Price: ${order.total_price}
-                </Text>
-                <Text style={[styles.totalText, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>
-                  Delivery Address: {order.deliveryAddress || 'Pick-Up'}
-                </Text>
-              </View>
-            </ScrollView>
-            <TouchableOpacity  onPress={() => setShowOrderDetailsModal(false)}>
-              <Text>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+        onClose={() => setShowOrderDetailsModal(false)}
+        orderDetails={selectedOrderDetails}
+        order={order}
+      />
     </SafeAreaView>
   );
 };
@@ -565,7 +507,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     elevation: 10,
-    marginTop: -20, // Adjust to improve space usage
+    marginTop: -20,
   },
   lightInfoContainer: {
     backgroundColor: '#fff',
@@ -651,6 +593,12 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 5,
   },
+  smallButtonText1: {
+    paddingTop: 20,
+    fontSize: 14,
+    fontWeight: '600',
+    color: 'gray',
+  },
   smallButtonText: {
     fontSize: 12,
     fontWeight: '600',
@@ -669,129 +617,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#ff9900',
     borderRadius: 5,
   },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    padding: 20,  // Agrega un poco de padding para evitar que el contenido toque los bordes
-  },
-  modalContent: {
-    width: '85%',
-    padding: 20,
-    borderRadius: 10,
-    alignItems: 'center',
-    elevation: 10,
-    maxHeight: '70%',  // Limitar la altura máxima del contenido modal
-  },
-  lightModalContent: {
-    backgroundColor: '#fff',
-  },
-  darkModalContent: {
-    backgroundColor: '#1c1c1c',
-  },
-  modalTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 15,
-    textAlign: 'center',
-  },
-  modalMessage: {
-    fontSize: 18,
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-evenly',
-    width: '100%',
-    marginTop: 10,
-  },
-  modalButton: {
-    flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 25,
-    marginHorizontal: 10,
-    backgroundColor: '#ff9900',
-    alignItems: 'center',
-    elevation: 2,
-  },
-  closeButton: {
-    marginTop: 20,
-    backgroundColor: '#FFEB3B', // Cambiar el color de fondo para que contraste mejor
-  },
-  closeButtonText: {
-    color: '#000', // Asegurar que el texto sea legible
-  },
-  modalButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#ff9900',
-    paddingTop: 20
-  },
-  modalButtonText2: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000',
-    paddingTop: 20
-  },
-  centeredLoader: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  detailCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 15,  // Ajustado para mayor separación entre items
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
-    paddingBottom: 15,
-    width: '100%',  // Asegura que cada detalle ocupe el ancho completo
-  },
-  detailImage: {
-    width: 60,  // Tamaño ajustado para mejor visibilidad
-    height: 60,  // Tamaño ajustado para mejor visibilidad
-    borderRadius: 10,
-    marginRight: 15,
-  },
-  detailInfo: {
-    flex: 1,
-  },
-  detailName: {
-    fontSize: 16,  // Tamaño de fuente ajustado
-    fontWeight: 'bold',
-    marginBottom: 5,
-  },
-  detailDescription: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 5,
-  },
-  detailPrice: {
-    fontSize: 16,
-    color: '#333',
-    marginBottom: 5,
-  },
-  detailQuantity: {
-    fontSize: 16,
-    color: '#333',
-  },
-  totalContainer: {
-    marginTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#ddd',
-    paddingTop: 10,
-  },
-  totalText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  modalScrollContent: {
-    paddingBottom: 20,
-    width: '100%',
-  }
 });
 
 export default AcceptedOrder;

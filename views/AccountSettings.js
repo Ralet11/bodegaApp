@@ -16,7 +16,7 @@ const AccountSettings = () => {
   const dispatch = useDispatch();
   const [loading, setLoading] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true); // Estado para controlar el loader
-  const address = useSelector((state) => state?.user?.address);
+  const address = useSelector((state) => state?.user?.address?.formatted_address);
   const addresses = useSelector((state) => state?.user?.addresses);
   const colorScheme = useColorScheme();
   const [privacyModalVisible, setPrivacyModalVisible] = useState(false);
@@ -584,6 +584,14 @@ const stylesDark = StyleSheet.create({
   input: {
     ...commonStyles.input,
     color: '#fff',
+  },
+  modalText: {
+    ...commonStyles.modalText,
+    color: '#fff',  // Asegura que el texto sea blanco
+  },
+  footerLinkText: {
+    ...commonStyles.footerLinkText,
+    color: '#fff',  // Asegura que los enlaces en el pie de página sean blancos
   },
   addressText: {
     ...commonStyles.addressText,

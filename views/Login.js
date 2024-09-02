@@ -1,22 +1,25 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, TextInput, Animated, StyleSheet, Dimensions, Image, Keyboard, TouchableWithoutFeedback, ActivityIndicator, useColorScheme, StatusBar } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, useColorScheme, Image, Animated, Keyboard, TouchableWithoutFeedback, ActivityIndicator, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Axios from 'react-native-axios';
 import { useDispatch } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
-import { FontAwesome } from '@expo/vector-icons'; 
+import { FontAwesome } from '@expo/vector-icons';
 import { API_URL } from '@env';
 import { setUser } from '../redux/slices/user.slice';
 import { fetchCategories } from '../redux/slices/setUp.slice';
 import Toast from 'react-native-toast-message';
+import { LinearGradient } from 'expo-linear-gradient';
 
-const { width, height } = Dimensions.get('window');
-
-export default function Login() {
+const LoginScreen = () => {
   const navigation = useNavigation();
   const dispatch = useDispatch();
   const colorScheme = useColorScheme();
   const styles = colorScheme === 'dark' ? stylesDark : stylesLight;
+
+  const logoAnim = useRef(new Animated.Value(0)).current;
+  const formAnim = useRef(new Animated.Value(0)).current;
+
   const [clientData, setClientData] = useState({
     email: "",
     password: ""
@@ -30,8 +33,6 @@ export default function Login() {
   const [emailLabelAnim] = useState(new Animated.Value(clientData.email ? 1 : 0));
   const [passwordLabelAnim] = useState(new Animated.Value(clientData.password ? 1 : 0));
   const [buttonAnim] = useState(new Animated.Value(1));
-  const [formAnim] = useState(new Animated.Value(0));
-  const [imageAnim] = useState(new Animated.Value(0));
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -42,7 +43,7 @@ export default function Login() {
       useNativeDriver: true,
     }).start();
 
-    Animated.timing(imageAnim, {
+    Animated.timing(logoAnim, {
       toValue: 1,
       duration: 1000,
       useNativeDriver: true,
@@ -104,7 +105,7 @@ export default function Login() {
 
     setLoading(true);
     Animated.timing(buttonAnim, {
-      toValue: 0.95, 
+      toValue: 0.95,
       duration: 200,
       useNativeDriver: true,
     }).start(async () => {
@@ -181,21 +182,20 @@ export default function Login() {
       <SafeAreaView style={styles.safeArea}>
         <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={colorScheme === 'dark' ? '#333' : '#F2BA25'} />
         <View style={styles.container}>
-          <Animated.View style={[styles.formContainer, { opacity: formAnim }]}>
-            <Animated.View style={[styles.logoContainer, {
-              opacity: imageAnim,
-              transform: [{
-                translateY: imageAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [-50, 0]
-                })
-              }]
-            }]}>
+          <Animated.View style={[styles.header, { opacity: logoAnim, transform: [{ translateY: logoAnim.interpolate({ inputRange: [0, 1], outputRange: [-50, 0] }) }] }]}>
+            <LinearGradient
+              colors={['#F2BB26', '#F2BB26']}
+              style={styles.headerGradient}
+            >
               <Image
-                source={{ uri: "https://res.cloudinary.com/doqyrz0sg/image/upload/v1717527579/WhatsApp_Image_2024-05-25_at_17.24.54_lpri1m.jpg" }}
+                source={{ uri: "https://res.cloudinary.com/doqyrz0sg/image/upload/v1724135145/discount/zyc3nulkzjbwzs4u7cvw.jpg" }}
                 style={styles.logo}
+                resizeMode="contain"
               />
-            </Animated.View>
+            </LinearGradient>
+          </Animated.View>
+          <Animated.View style={[styles.formContainer, { opacity: formAnim, transform: [{ translateY: formAnim.interpolate({ inputRange: [0, 1], outputRange: [50, 0] }) }] }]}>
+            <Text style={styles.title}>Welcome Back</Text>
             <View style={styles.inputContainer}>
               <FontAwesome name="envelope" size={20} color={colorScheme === 'dark' ? '#FFF' : '#888'} style={styles.icon} />
               <TextInput
@@ -214,7 +214,7 @@ export default function Login() {
                   duration: 200,
                   useNativeDriver: true,
                 }).start()}
-                autoCapitalize='none' // Aquí se desactiva la capitalización automática
+                autoCapitalize='none'
               />
             </View>
             <View style={styles.inputContainer}>
@@ -236,22 +236,31 @@ export default function Login() {
                   duration: 200,
                   useNativeDriver: true,
                 }).start()}
-                autoCapitalize='none' // Aquí se desactiva la capitalización automática
+                autoCapitalize='none'
               />
               <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.showPasswordButton}>
                 <FontAwesome name={showPassword ? "eye-slash" : "eye"} size={20} color={colorScheme === 'dark' ? '#FFF' : '#888'} />
               </TouchableOpacity>
             </View>
-            <TouchableOpacity onPress={handleLogin} style={styles.button} disabled={loading}>
+            <View style={styles.rememberForgotContainer}>
+              
+              <TouchableOpacity>
+                <Text style={styles.forgotText}>Forgot Password?</Text>
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity onPress={handleLogin} style={styles.signInButton} disabled={loading}>
               {loading ? (
                 <ActivityIndicator size="small" color="#FFF" />
               ) : (
-                <Animated.Text style={[styles.buttonText, { transform: [{ scale: buttonAnim }] }]}>Log In</Animated.Text>
+                <Animated.Text style={[styles.signInButtonText, { transform: [{ scale: buttonAnim }] }]}>SIGN IN</Animated.Text>
               )}
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => navigation.navigate('Signup')} style={styles.footerLink}>
-              <Text style={styles.footerText}>Don't have an account? Sign up</Text>
-            </TouchableOpacity>
+            <View style={styles.signUpContainer}>
+              <Text style={styles.signUpText}>Don't you have an account? </Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
+                <Text style={styles.signUpLink}>Sign Up from here</Text>
+              </TouchableOpacity>
+            </View>
             <TouchableOpacity onPress={handleGuestLogin} style={styles.guestLink}>
               <Text style={styles.guestText}>Continue as Guest</Text>
             </TouchableOpacity>
@@ -261,7 +270,7 @@ export default function Login() {
       </SafeAreaView>
     </TouchableWithoutFeedback>
   );
-}
+};
 
 const commonStyles = {
   safeArea: {
@@ -271,145 +280,154 @@ const commonStyles = {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 20,
+
   },
-  formContainer: {
+  header: {
+    height: 100,
     width: '100%',
-    maxWidth: 500,
-    borderRadius: 20,
-    paddingHorizontal: 30,
-    paddingBottom: 30,
+    borderBottomLeftRadius: 50,
+    borderBottomRightRadius: 50,
+    overflow: 'hidden',
+    marginBottom: 20,
     shadowColor: '#000',
-    shadowOpacity: 0.9, 
-    shadowOffset: { width: 0, height: 10 }, 
-    shadowRadius: 20, 
-    elevation: 50, 
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 5,
   },
-  logoContainer: {
+  headerGradient: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 30,
   },
   logo: {
-    width: 300,
+    width: 520,
     height: 120,
-    resizeMode: 'cover',
+  },
+  formContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 30,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#333',
     marginBottom: 20,
-    borderRadius: 10,
-    shadowColor: '#000',
-    shadowOpacity: 0.4,
-    shadowOffset: { width: 0, height: 10 },
-    shadowRadius: 20,
-    elevation: 15, 
+    textAlign: 'center',
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
-    borderBottomWidth: 1,
-    paddingBottom: 5,
+    marginBottom: 15,
+    backgroundColor: '#f9f9f9',
+    borderRadius: 25,
+    paddingHorizontal: 15,
+    borderWidth: 1,
+    borderColor: '#ddd',
   },
   icon: {
-    marginRight: 10,
+    marginRight: 15,  // Adjusted to add more spacing between the icon and the input
   },
   input: {
     flex: 1,
-    paddingVertical: 10,
+    height: 50,
     fontSize: 16,
   },
-  showPasswordButton: {
-    padding: 10,
+  rememberForgotContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 30,
   },
-  button: {
-    backgroundColor: "#FFC300",
-    paddingVertical: 15,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 20,
-    shadowColor: '#000',
-    shadowOpacity: 0.4, 
-    shadowOffset: { width: 0, height: 10 }, 
-    shadowRadius: 20, 
-    elevation: 15, 
+  rememberText: {
+    color: '#666',
   },
-  buttonText: {
-    fontSize: 18,
+  forgotText: {
+    color: '#F2BA25',
     fontWeight: 'bold',
   },
-  footerLink: {
-    marginTop: 20,
+  signInButton: {
+    backgroundColor: '#F2BA25',
+    borderRadius: 25,
+    height: 50,
+    justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
   },
-  footerText: {
+  signInButtonText: {
+    color: '#000',
+    fontWeight: 'bold',
     fontSize: 16,
   },
+  signUpContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 20,
+  },
+  signUpText: {
+    color: '#666',
+    fontSize: 16,
+  },
+  signUpLink: {
+    color: '#F2BA25',
+    fontWeight: 'bold',
+    fontSize: 16,
+    marginLeft: 5,
+  },
   guestLink: {
-    marginTop: 10,
+    marginTop: 100,
     alignItems: 'center',
   },
   guestText: {
     fontSize: 16,
     textDecorationLine: 'underline',
-    shadowColor: '#000',
-    shadowOpacity: 0.4, 
-    shadowOffset: { width: 0, height: 10 }, 
-    shadowRadius: 20, 
-    elevation: 15, 
+    color: '#333',
   },
 };
 
 const stylesLight = StyleSheet.create({
   ...commonStyles,
-  safeArea: {
-    ...commonStyles.safeArea,
-    backgroundColor: "#F2BA25",
-  },
-  formContainer: {
-    ...commonStyles.formContainer,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-  },
-  input: {
-    ...commonStyles.input,
-    color: '#333',
-  },
-  buttonText: {
-    ...commonStyles.buttonText,
-    color: '#000',
-  },
-  footerText: {
-    ...commonStyles.footerText,
-    color: '#333',
-  },
-  guestText: {
-    ...commonStyles.guestText,
-    color: '#333',
+  container: {
+    ...commonStyles.container,
+    backgroundColor: "#fff",
   },
 });
 
 const stylesDark = StyleSheet.create({
   ...commonStyles,
-  safeArea: {
-    ...commonStyles.safeArea,
+  container: {
+    ...commonStyles.container,
     backgroundColor: "#333",
   },
-  formContainer: {
-    ...commonStyles.formContainer,
-    backgroundColor: '#444',
+  inputContainer: {
+    ...commonStyles.inputContainer,
+    backgroundColor: '#555',
+    borderColor: '#777',
   },
   input: {
     ...commonStyles.input,
     color: '#FFF',
   },
-  buttonText: {
-    ...commonStyles.buttonText,
+  title: {
+    ...commonStyles.title,
+    color: '#FFF',
+  },
+  icon: {
+    marginRight: 15,  // Adjusted to add more spacing between the icon and the input
+    color: '#FFF',
+  },
+  signInButtonText: {
+    ...commonStyles.signInButtonText,
     color: '#000',
   },
   footerText: {
     ...commonStyles.footerText,
     color: '#FFF',
   },
-  guestText: {
-    ...commonStyles.guestText,
-    color: '#FFF',
-  },
 });
+
+export default LoginScreen;

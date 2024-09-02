@@ -560,6 +560,10 @@ const stylesLight = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderColor: '#E0E0E0',
   },
+  benefitsTitle: {
+    ...commonStyles.benefitsTitle,
+    color: '#333',
+  },
   benefitItem: {
     ...commonStyles.benefitItem,
     backgroundColor: '#FFFFFF',
@@ -588,6 +592,10 @@ const stylesDark = StyleSheet.create({
     ...commonStyles.container,
     backgroundColor: '#121212',
   },
+  benefitsTitle: {
+    ...commonStyles.benefitsTitle,
+    color: '#fff',
+  },
   headerCard: {
     ...commonStyles.headerCard,
     backgroundColor: '#1F1F1F',
@@ -603,15 +611,59 @@ const stylesDark = StyleSheet.create({
   },
   benefitText: {
     ...commonStyles.benefitText,
-    color: '#FFD700',
+    color: '#FFFFFF',  // Cambiado a blanco
   },
   cancelLink: {
     ...commonStyles.cancelLink,
-    color: '#FFD700',
+    color: '#FFFFFF',  // Cambiado a blanco
+  },
+  joinTitle: {
+    ...commonStyles.joinTitle,
+    color: '#FFFFFF',  // Cambiado a blanco
+  },
+  joinPrice: {
+    ...commonStyles.joinPrice,
+    color: '#FFFFFF',  // Cambiado a blanco
+  },
+  joinSubtitle: {
+    ...commonStyles.joinSubtitle,
+    color: '#FFFFFF',  // Cambiado a blanco
+  },
+  headerTitle: {
+    ...commonStyles.headerTitle,
+    color: '#FFFFFF',  // Cambiado a blanco
+  },
+  headerText: {
+    ...commonStyles.headerText,
+    color: '#FFFFFF',  // Cambiado a blanco
+  },
+  savingsAmount: {
+    ...commonStyles.savingsAmount,
+    color: '#FFFFFF',  // Cambiado a blanco
   },
   subscribeButtonText: {
     ...commonStyles.subscribeButtonText,
-    color: '#333',
+    color: '#333', // Este se mantiene ya que el botón es oscuro
+  },
+  moreInfo: {
+    ...commonStyles.moreInfo,
+    color: '#1E90FF',  // Se mantiene azul para contraste
+  },
+  modalText: {
+    ...commonStyles.modalText,
+    color: '#FFFFFF',  // Cambiado a blanco
+  },
+  infoText: {
+    ...commonStyles.infoText,
+    color: '#FFFFFF',  // Cambiado a blanco
+  },
+  closeButtonText: {
+    ...commonStyles.closeButtonText,
+    color: '#FFFFFF',  // Se mantiene blanco
+  },
+  buttonText: {
+    ...commonStyles.buttonText,
+    color: '#FFFFFF',  // Se mantiene blanco
   },
 });
 

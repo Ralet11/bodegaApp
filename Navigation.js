@@ -25,6 +25,7 @@ import Contact from './views/Contact';
 import BodegaPro from './views/BodegaPro';
 import SearchShops from './views/SearchShops';
 import DiscountDetailView from './views/DiscountDetailView';
+import DashboardDiscounts from './views/DashboardDiscounts';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -63,7 +64,7 @@ function TabNavigator() {
       />
       <Tab.Screen 
         name="Map" 
-        component={MapViewComponent} 
+        component={DashboardDiscounts} 
         options={{ tabBarLabel: 'Discounts' }} 
       />
       <Tab.Screen 
@@ -77,7 +78,6 @@ function TabNavigator() {
 
 export default function Navigation() {
   const scheme = useColorScheme();
-  const token = useSelector(state => state?.user?.userInfo?.data?.token);
 
   return (
     <NavigationContainer theme={scheme === 'dark' ? DarkTheme : DefaultTheme}>
@@ -157,6 +157,11 @@ export default function Navigation() {
           component={DiscountDetailView}
           options={{ headerShown: false }} 
         />
+       <Stack.Screen 
+    name="MapScreen" 
+    component={MapViewComponent}
+    options={{ headerShown: false }} 
+/>
       </Stack.Navigator>
     </NavigationContainer>
   );

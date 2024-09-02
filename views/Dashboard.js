@@ -6,7 +6,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import Axios from 'react-native-axios';
 import { API_URL } from '@env';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { setShops } from '../redux/slices/setUp.slice';
+import { setAuxShops, setShops } from '../redux/slices/setUp.slice';
 import HorizontalScroll from '../components/HorizontalScroll';
 import PromoSlider from '../components/PromotionSlider';
 import AccountDrawer from '../components/AccountDrawer';
@@ -15,6 +15,8 @@ import OrderStatus from '../components/OrderStatus';
 import SkeletonLoader from '../components/SkeletonLoader';
 import { setUserDiscounts } from '../redux/slices/setUp.slice';
 import { lightTheme, darkTheme } from '../components/themes';
+import socketIOClient from "socket.io-client";
+
 
 const Dashboard = () => {
   const scheme = useColorScheme();
@@ -27,7 +29,7 @@ const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [deliveryMode, setDeliveryMode] = useState('Delivery');
   const categories = useSelector((state) => state?.setUp?.categories) || [];
-  const address = useSelector((state) => state?.user?.address);
+  const address = useSelector((state) => state?.user?.address?.formatted_address);
   const addresses = useSelector((state) => state?.user?.addresses);
   const navigation = useNavigation();
   const dispatch = useDispatch();
@@ -36,8 +38,8 @@ const Dashboard = () => {
   const ordersIn = useSelector((state) => state?.orders?.ordersIn);
   const auxShops = useSelector((state) => state?.setUp?.auxShops);
 
-
-  console.log(shopsByCategory[0], "shop")
+  const orderTypeParam = deliveryMode === 'Delivery' ? 2 : deliveryMode === 'Pickup' ? 1 : null;
+  console.log(address, "address")
 
   const categoryTitles = {
     1: 'Best smoke shops',
@@ -45,9 +47,27 @@ const Dashboard = () => {
     3: 'Our Restaurants',
     4: 'Markets',
   };
+  console.log(auxShops,   "auxShops")
+
+  useEffect(() => {
+    const socket = socketIOClient(`${API_URL}`);
+    
+    const syncShops = () => {
+      console.log("probando sync")
+        dispatch(setAuxShops());
+    }
+
+    socket.on('syncShops', syncShops);
+
+    return () => {
+      socket.off('syncShops');
+      socket.disconnect();
+    };
+  }, [dispatch, token]);
 
   const fetchShops = async () => {
     try {
+      console.log("acstualizando shop")
       const response = await Axios.get(`${API_URL}/api/local/app/getShopsOrderByCat`);
       setShopsByCategory(response.data);
       filterShops(response.data, deliveryMode);
@@ -72,12 +92,15 @@ const Dashboard = () => {
         },
       });
 
+      console.log(response.data)
+
       if (response.status === 200) {
         dispatch(setAddresses(response.data));
         if (!response.data || response.data.length === 0) {
+          console.log(response.data, "en modal visi")
           setModalVisible(true);
         } else {
-          dispatch(setAddress(response.data[0].formatted_address));
+          dispatch(setAddress(response.data[0]));
           setModalVisible(false);
         }
       }
@@ -86,12 +109,12 @@ const Dashboard = () => {
     }
   };
 
-
-
   useEffect(() => {
+    
     if (user?.id && token) {
       const fetchUserDiscounts = async () => {
         try {
+          console.log("actualizando dicounts")
           const response = await Axios.get(`${API_URL}/api/discounts/userDiscount/${user.id}`, {
             headers: {
               Authorization: `Bearer ${token}`
@@ -105,10 +128,10 @@ const Dashboard = () => {
 
       fetchUserDiscounts();
     }
-  }, [user, token]);
-
+  }, [user, token, auxShops]);
 
   useEffect(() => {
+    
     fetchShops();
     fetchAddress();
   }, [dispatch, token, auxShops]);
@@ -152,12 +175,13 @@ const Dashboard = () => {
   };
 
   const handleAddressSelect = (selectedAddress) => {
-    dispatch(setAddress(selectedAddress.formatted_address));
+    console.log(selectedAddress, "selectedAddress")
+    dispatch(setAddress(selectedAddress));
     setAddressModalVisible(false);
   };
 
   const handleShopPress = (shop) => {
-    navigation.navigate('Shop', { shop });
+    navigation.navigate('Shop', { shop, orderTypeParam });
   };
 
   const handleCategoryPress = (category) => {
@@ -192,7 +216,7 @@ const Dashboard = () => {
     setDeliveryMode(mode);
     filterShops(shopsByCategory, mode);
   };
-
+ 
   const filterShops = (shops, mode) => {
     const currentDateTime = new Date();
     const currentDay = currentDateTime.toLocaleString('en-US', { weekday: 'short' }).toLowerCase();
@@ -228,6 +252,7 @@ const Dashboard = () => {
       <View style={scheme === 'dark' ? darkTheme.header : lightTheme.header}>
         <View style={scheme === 'dark' ? darkTheme.addressToggleContainer : lightTheme.addressToggleContainer}>
           <TouchableOpacity onPress={changeAddress} style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <FontAwesome name="map-marker" size={20} color={scheme === 'dark' ? '#fff' : '#333'} style={{ marginRight: 5 }} />
             <Text
               style={scheme === 'dark' ? darkTheme.addressText : lightTheme.addressText}
               numberOfLines={1}
@@ -306,7 +331,7 @@ const Dashboard = () => {
         {noShopsAvailable ? (
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 50 }}>
             <Image
-              source={{ uri: 'https://res.cloudinary.com/doqyrz0sg/image/upload/v1720400961/c0e3cfe8-b839-496f-b6af-9e9f76d7360c_dev8hm.webp' }} // Replace with your image URL
+              source={{ uri: 'https://res.cloudinary.com/doqyrz0sg/image/upload/v1720400961/c0e3cfe8-b839-496f-b6af-9e9f76d7360c_dev8hm.webp' }} // Reemplaza con tu URL de imagen
               style={{ width: 200, height: 200 }}
             />
             <Text style={{ marginTop: 20, fontSize: 18, color: scheme === 'dark' ? '#fff' : '#333' }}>
@@ -323,6 +348,7 @@ const Dashboard = () => {
                 scheme={scheme}
                 handleItemPress={handleShopPress}
                 categoryId={categoryId}
+                orderTypeParam={orderTypeParam}
               />
             )
           ))
@@ -397,58 +423,38 @@ const Dashboard = () => {
           setAddressModalVisible(!addressModalVisible);
         }}
       >
-        <View
-          style={{
-            flex: 1,
-            justifyContent: 'center',
-            alignItems: 'center',
-            backgroundColor: 'rgba(0,0,0,0.5)',
-          }}
-        >
-          <View
-            style={{
-              width: 300,
-              padding: 20,
-              backgroundColor: scheme === 'dark' ? '#333' : '#fff',
-              borderRadius: 10,
-              alignItems: 'center',
-            }}
-          >
-            <TouchableOpacity onPress={() => setAddressModalVisible(false)} style={styles.closeButton}>
+        <View style={scheme === 'dark' ? darkTheme.modalBackground : lightTheme.modalBackground}>
+          <View style={[scheme === 'dark' ? darkTheme.modalContainer : lightTheme.modalContainer, scheme === 'dark' && { backgroundColor: '#333' }]}>
+            <TouchableOpacity onPress={() => setAddressModalVisible(false)} style={scheme === 'dark' ? darkTheme.closeButton : lightTheme.closeButton}>
               <FontAwesome name="close" size={24} color={scheme === 'dark' ? '#fff' : '#000'} />
             </TouchableOpacity>
-            <Text style={{ fontSize: 18, marginBottom: 15, color: scheme === 'dark' ? '#fff' : '#333' }}>
+            <Text style={scheme === 'dark' ? darkTheme.modalTitle : lightTheme.modalTitle}>
               Select Your Address
             </Text>
             <FlatList
               data={addresses}
               keyExtractor={(item) => item.id}
               renderItem={({ item }) => (
-                <TouchableOpacity onPress={() => handleAddressSelect(item)}>
-                  <View style={styles.addressItem}>
-                  <Text>{item.name}</Text>
-                    <Text style={{ color: scheme === 'dark' ? '#fff' : '#333' }}>
-                      {item.formatted_address}
-                    </Text>
-                  </View>
+                <TouchableOpacity onPress={() => handleAddressSelect(item)} style={scheme === 'dark' ? darkTheme.addressItem : lightTheme.addressItem}>
+                  <Text style={scheme === 'dark' ? darkTheme.addressName : lightTheme.addressName}>
+                    {item.name}
+                  </Text>
+                  <Text style={scheme === 'dark' ? darkTheme.addressTextModal : lightTheme.addressTextModal}>
+                    {item.formatted_address}
+                  </Text>
                 </TouchableOpacity>
               )}
-              ItemSeparatorComponent={() => <View style={styles.separator} />}
+              ItemSeparatorComponent={() => <View style={scheme === 'dark' ? darkTheme.separator : lightTheme.separator} />}
+              contentContainerStyle={scheme === 'dark' ? darkTheme.flatListContent : lightTheme.flatListContent}
             />
             <TouchableOpacity
-              style={{
-                marginTop: 20,
-                paddingVertical: 10,
-                paddingHorizontal: 20,
-                backgroundColor: '#FFC300', // Cambiado a amarillo cálido
-                borderRadius: 5,
-              }}
+              style={scheme === 'dark' ? darkTheme.addButton : lightTheme.addButton}
               onPress={() => {
                 setAddressModalVisible(false);
                 navigation.navigate('SetAddressScreen');
               }}
             >
-              <Text style={{ color: 'black' }}>+ Add Address</Text>
+              <Text style={scheme === 'dark' ? darkTheme.addButtonText : lightTheme.addButtonText}>+ Add Address</Text>
             </TouchableOpacity>
           </View>
         </View>

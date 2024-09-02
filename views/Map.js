@@ -9,7 +9,7 @@ import { FontAwesome } from '@expo/vector-icons';
 
 const { width, height } = Dimensions.get('window');
 
-const GOOGLE_API_KEY = 'AIzaSyB8fCVwRXbMe9FAxsrC5CsyfjzpHxowQmE';
+const GOOGLE_API_KEY = 'AIzaSyAvritMA-llcdIPnOpudxQ4aZ1b5WsHHUc';
 
 const MapViewComponent = () => {
   const dispatch = useDispatch();
@@ -167,6 +167,11 @@ const MapViewComponent = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Botón Go Back */}
+      <TouchableOpacity style={styles.goBackButton} onPress={() => navigation.goBack()}>
+        <FontAwesome name="arrow-left" size={24} color="#fff" />
+      </TouchableOpacity>
+
       {loading ? (
         <View style={styles.loaderContainer}>
           <ActivityIndicator size="large" color="#008080" />
@@ -342,7 +347,7 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     width: width * 0.8,
-    height: height * 0.6, // Ajustado para ocupar más espacio en la pantalla
+    height: height * 0.6,
     padding: 20,
     backgroundColor: '#fff',
     borderRadius: 20,
@@ -353,7 +358,7 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 5,
     marginHorizontal: width * 0.1,
-    marginTop: 150
+    marginTop: 150,
   },
   modalImage: {
     width: '100%',
@@ -429,6 +434,15 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: '#333',
+  },
+  goBackButton: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    zIndex: 2,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 20,
+    padding: 10,
   },
 });
 

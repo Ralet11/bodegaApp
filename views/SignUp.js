@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, TextInput, Animated, StyleSheet, Dimensions, Image, Keyboard, TouchableWithoutFeedback, useColorScheme } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, StyleSheet, useColorScheme, Image, Animated, Keyboard, TouchableWithoutFeedback, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Axios from 'react-native-axios';
 import { useDispatch } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
-import { FontAwesome } from '@expo/vector-icons'; 
+import { FontAwesome } from '@expo/vector-icons';
 import { API_URL } from '@env';
 import { setUser } from '../redux/slices/user.slice';
 import { fetchCategories } from '../redux/slices/setUp.slice';
 import PhoneInput from '../components/CountryInput';
 import Toast from 'react-native-toast-message';
-
+import { LinearGradient } from 'expo-linear-gradient';
 
 const { width, height } = Dimensions.get('window');
 
@@ -140,7 +140,7 @@ export default function Signup() {
     }
 
     Animated.timing(buttonAnim, {
-      toValue: 0.95, 
+      toValue: 0.95,
       duration: 200,
       useNativeDriver: true,
     }).start(async () => {
@@ -195,26 +195,20 @@ export default function Signup() {
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.container}>
-          <Animated.View style={[styles.formContainer, { opacity: formAnim }]}>
-            <Animated.View style={[styles.logoContainer, {
-              opacity: imageAnim,
-              transform: [{
-                translateY: imageAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [-50, 0]
-                })
-              }],
-              shadowColor: '#000',
-              shadowOpacity: 0.4,
-              shadowOffset: { width: 0, height: 10 },
-              shadowRadius: 20,
-              elevation: 15,
-            }]}>
+          <Animated.View style={[styles.header, { opacity: imageAnim, transform: [{ translateY: imageAnim.interpolate({ inputRange: [0, 1], outputRange: [-50, 0] }) }] }]}>
+            <LinearGradient
+              colors={['#F2BB26', '#F2BB26']}
+              style={styles.headerGradient}
+            >
               <Image
-                source={{ uri: "https://res.cloudinary.com/doqyrz0sg/image/upload/v1717527579/WhatsApp_Image_2024-05-25_at_17.24.54_lpri1m.jpg" }}
+                source={{ uri: "https://res.cloudinary.com/doqyrz0sg/image/upload/v1724135145/discount/zyc3nulkzjbwzs4u7cvw.jpg" }}
                 style={styles.logo}
+                resizeMode="contain"
               />
-            </Animated.View>
+            </LinearGradient>
+          </Animated.View>
+          <Animated.View style={[styles.formContainer, { opacity: formAnim, transform: [{ translateY: formAnim.interpolate({ inputRange: [0, 1], outputRange: [50, 0] }) }] }]}>
+            <Text style={styles.title}>Create Your Account</Text>
             <View style={styles.inputContainer}>
               <FontAwesome name="user" size={20} color={colorScheme === 'dark' ? '#FFF' : '#888'} style={styles.icon} />
               <TextInput
@@ -318,14 +312,18 @@ export default function Signup() {
               />
             </View>
             {errors.phone && <Text style={styles.errorText}>Valid phone number is required.</Text>}
-            <TouchableOpacity onPress={handleSignup} style={styles.button}>
-              <Animated.Text style={[styles.buttonText, { transform: [{ scale: buttonAnim }] }]}>Sign Up</Animated.Text>
+            <TouchableOpacity onPress={handleSignup} style={styles.signInButton}>
+              <Animated.Text style={[styles.signInButtonText, { transform: [{ scale: buttonAnim }] }]}>Sign Up</Animated.Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => navigation.navigate('Login')} style={styles.footerLink}>
-              <Text style={styles.footerText}>Already have an account? Log in</Text>
-            </TouchableOpacity>
+            <View style={styles.signUpContainer}>
+              <Text style={styles.signUpText}>Don't you have an account? </Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+                <Text style={styles.signUpLink}>Sign Up from here</Text>
+              </TouchableOpacity>
+            </View>
           </Animated.View>
         </View>
+        <Toast />
       </SafeAreaView>
     </TouchableWithoutFeedback>
   );
@@ -338,70 +336,119 @@ const commonStyles = {
   container: {
     flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
+    alignItems: 'center'
   },
-  formContainer: {
+  header: {
+    height: 100,
     width: '100%',
-    maxWidth: 500,
-    borderRadius: 20,
-    paddingHorizontal: 30,
-    paddingBottom: 30,
+    borderBottomLeftRadius: 50,
+    borderBottomRightRadius: 50,
+    overflow: 'hidden',
+    marginBottom: 20,
     shadowColor: '#000',
-    shadowOpacity: 0.9, 
-    shadowOffset: { width: 0, height: 10 }, 
-    shadowRadius: 20, 
-    elevation: 50, 
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 5,
   },
-  logoContainer: {
+  headerGradient: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 30,
   },
   logo: {
-    width: 300,
+    width: 520,
     height: 120,
-    resizeMode: 'cover',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+    textAlign: 'center',
     marginBottom: 20,
-    borderRadius: 10,
-    shadowColor: '#000',
-    shadowOpacity: 0.4,
-    shadowOffset: { width: 0, height: 10 },
-    shadowRadius: 20,
-    elevation: 15, 
+  },
+  formContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    width: '100%',
+    paddingHorizontal: 30,
+  },
+  signUpContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 20,
+    width: '100%',
+  },
+  signUpText: {
+    color: '#666',
+    fontSize: 16,
+  },
+  signUpLink: {
+    color: '#F2BA25',
+    fontWeight: 'bold',
+    fontSize: 16,
+    marginLeft: 5,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 5, 
-    borderBottomWidth: 1,
-    paddingBottom: 5,
+    marginBottom: 15,
+    backgroundColor: '#f9f9f9',
+    borderRadius: 25,
+    paddingHorizontal: 15,
+    borderWidth: 1,
+    borderColor: '#ddd',
   },
   icon: {
     marginRight: 10,
   },
   input: {
     flex: 1,
-    paddingVertical: 10,
+    height: 50,
     fontSize: 16,
   },
   showPasswordButton: {
     padding: 10,
   },
-  button: {
-    backgroundColor: "#FFC300",
-    paddingVertical: 15,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 20,
-    shadowColor: '#000',
-    shadowOpacity: 0.4, 
-    shadowOffset: { width: 0, height: 10 }, 
-    shadowRadius: 20, 
-    elevation: 15, 
+  errorText: {
+    color: 'red',
+    fontSize: 14,
+    marginTop: 5,
+    marginBottom: 10,
   },
-  buttonText: {
-    fontSize: 18,
+  phoneInputContainer: {
+    flex: 1,
+    height: 50, // Ajusta la altura del input
+    borderBottomWidth: 1,
+    borderBottomColor: '#888',
+  },
+  phoneInputTextContainer: {
+    backgroundColor: 'transparent',
+    paddingVertical: 0, // Elimina cualquier padding adicional
+  },
+  phoneInputText: {
+    color: '#333',
+    fontSize: 16,
+    height: 50, // Asegura que la altura del texto coincida con el contenedor
+    paddingVertical: 10, // Ajusta el padding para centrar el texto verticalmente
+  },
+  signInButton: {
+    backgroundColor: '#F2BA25',
+    borderRadius: 25,
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+  },
+  signInButtonText: {
+    color: '#000',
     fontWeight: 'bold',
+    fontSize: 16,
   },
   footerLink: {
     marginTop: 20,
@@ -410,79 +457,33 @@ const commonStyles = {
   footerText: {
     fontSize: 16,
   },
-  errorText: {
-    color: 'red',
-    fontSize: 14,
-    marginTop: 5,
-    marginBottom: 10, 
-  },
-  phoneInputContainer: {
-    flex: 1,
-    borderBottomWidth: 1,
-    borderBottomColor: '#888',
-  },
-  phoneInputTextContainer: {
-    backgroundColor: 'transparent',
-  },
-  phoneInputText: {
-    color: '#333',
-    paddingVertical: 10,
-    fontSize: 16,
-  },
+  forgotText: {
+    color: '#F2BA25',
+    fontWeight: 'bold',
+  }
 };
 
 const stylesLight = StyleSheet.create({
   ...commonStyles,
-  safeArea: {
-    ...commonStyles.safeArea,
-    backgroundColor: "#F2BA25",
-  },
-  formContainer: {
-    ...commonStyles.formContainer,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-  },
-  input: {
-    ...commonStyles.input,
-    color: '#333',
-  },
-  buttonText: {
-    ...commonStyles.buttonText,
-    color: '#000',
-  },
-  footerText: {
-    ...commonStyles.footerText,
-    color: '#333',
-  },
-  phoneInputContainer: {
-    ...commonStyles.phoneInputContainer,
-    borderBottomColor: '#ccc',
-  },
-  phoneInputText: {
-    ...commonStyles.phoneInputText,
-    color: '#333',
+  container: {
+    ...commonStyles.container,
+    backgroundColor: "#fff",
   },
 });
 
 const stylesDark = StyleSheet.create({
   ...commonStyles,
-  safeArea: {
-    ...commonStyles.safeArea,
+  container: {
+    ...commonStyles.container,
     backgroundColor: "#333",
   },
-  formContainer: {
-    ...commonStyles.formContainer,
-    backgroundColor: '#444',
+  inputContainer: {
+    ...commonStyles.inputContainer,
+    backgroundColor: '#555',
+    borderColor: '#777',
   },
   input: {
     ...commonStyles.input,
-    color: '#FFF',
-  },
-  buttonText: {
-    ...commonStyles.buttonText,
-    color: '#000',
-  },
-  footerText: {
-    ...commonStyles.footerText,
     color: '#FFF',
   },
   phoneInputContainer: {
@@ -492,5 +493,29 @@ const stylesDark = StyleSheet.create({
   phoneInputText: {
     ...commonStyles.phoneInputText,
     color: '#FFF',
+  },
+  signInButtonText: {
+    ...commonStyles.signInButtonText,
+    color: '#000',
+  },
+  footerText: {
+    ...commonStyles.footerText,
+    color: '#FFF',
+  },
+  errorText: {
+    ...commonStyles.errorText,
+    color: 'red',
+  },
+  title: {
+    ...commonStyles.title,
+    color: '#FFF',
+  },
+  signUpText: {
+    ...commonStyles.signUpText,
+    color: '#FFF',
+  },
+  signInButtonText: {
+    ...commonStyles.signInButtonText,
+    color: '#000',
   },
 });
