@@ -414,7 +414,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 10,
     top: '50%',
-    transform: [{ translateY: -15 }],
+    transform: [{ translateY: -25 }],  // Ajuste para bajar la flecha verticalmente
     zIndex: 1,
     padding: 10,
     backgroundColor: 'rgba(255, 255, 255, 0.8)',
@@ -424,7 +424,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 10,
     top: '50%',
-    transform: [{ translateY: -15 }],
+    transform: [{ translateY: -25 }],  // Ajuste para bajar la flecha verticalmente
     zIndex: 1,
     padding: 10,
     backgroundColor: 'rgba(255, 255, 255, 0.8)',
@@ -437,7 +437,7 @@ const styles = StyleSheet.create({
   },
   goBackButton: {
     position: 'absolute',
-    top: 10,
+    top: 40,  // Baja el botón de volver
     left: 10,
     zIndex: 2,
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
