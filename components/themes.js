@@ -1,70 +1,68 @@
 import { StyleSheet } from 'react-native';
 
+
 const lightTheme = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#FFFFFF',  // Fondo blanco
   },
   header: {
-    flexDirection: 'column',
-    alignItems: 'center',
-    backgroundColor: '#F2BB26',
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 5,
-    paddingTop: 10,
-  },
-  iconButton: {
-    marginHorizontal: 10,
-    padding: 10,
-  },
-  searchInput: {
-    flex: 1,
-    height: 40,
-    borderColor: '#ddd',
-    borderWidth: 1,
-    borderRadius: 20,
+    flexDirection: 'column',  // Cambiar a columna para que los elementos se apilen
+    alignItems: 'flex-start',  // Alinear elementos a la izquierda
+    justifyContent: 'flex-start',  // Evitar espacios entre ellos
     paddingHorizontal: 15,
-    backgroundColor: '#fff',
-    color: '#333',
-    fontSize: 14,
+    paddingVertical: 10,
+    backgroundColor: '#FFFFFF',  // Fondo blanco
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',  // Línea sutil en la parte inferior
   },
   addressToggleContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 5,
-    gap: 30
+    justifyContent: 'space-between',  // Asegura que la dirección y el botón de selección estén alineados
+    width: '100%',  // Ocupar todo el ancho disponible
+    marginBottom: 10,  // Espacio entre la dirección y la barra de búsqueda
   },
   addressText: {
     fontSize: 14,
+    color: '#333',  // Color oscuro para mayor contraste
+    maxWidth: 180,  // Limitar el ancho del texto
+  },
+  searchInput: {
+    width: '90%',  // Hacer que ocupe todo el ancho disponible debajo de la dirección
+    height: 40,
+    borderColor: '#E0E0E0',  // Borde claro
+    borderWidth: 1,
+    borderRadius: 8,  // Bordes suavizados
+    paddingHorizontal: 15,
+    backgroundColor: '#F9F9F9',  // Fondo claro
     color: '#333',
-    marginRight: 10,
-    maxWidth: 150, // Ajustado maxWidth para que encaje en la pantalla
+    fontSize: 14,
   },
   deliveryToggleContainer: {
     flexDirection: 'row',
-    backgroundColor: '#444',
-    borderRadius: 15,
+    backgroundColor: '#F9F9F9',  // Fondo claro para los botones de alternancia
+    borderRadius: 12,  // Bordes más suaves
     padding: 3,
+    marginTop: 10,  // Separación entre la barra de búsqueda y los botones de alternancia
   },
   deliveryToggleButton: {
-    paddingVertical: 3,
-    paddingHorizontal: 10,
-    borderRadius: 15,
-    marginHorizontal: 3, // Agregado margen entre los botones de alternancia
+    paddingVertical: 5,
+    paddingHorizontal: 15,
+    borderRadius: 12,
+    marginHorizontal: 5,
+    backgroundColor: '#FFFFFF',  // Fondo blanco para botones no seleccionados
+    borderWidth: 1,
+    borderColor: '#E0E0E0',  // Bordes ligeros
   },
   deliveryToggleText: {
     fontSize: 14,
+    color: '#333',  // Texto oscuro
   },
   contentContainer: {
-    padding: 20,
+    padding: 10,
     paddingBottom: 80,
+    backgroundColor: '#FFFFFF',  // Fondo blanco puro para todo el contenido
   },
   sectionTitle: {
     fontSize: 18,
@@ -86,6 +84,13 @@ const lightTheme = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 10,
     marginRight: 10,
+    marginBottom: 10,
+    backgroundColor: '#FFFFFF',  // Fondo blanco puro para las categorías
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,  // Sombra ligera para dar profundidad
   },
   categoryImage: {
     width: 100,
@@ -104,7 +109,7 @@ const lightTheme = StyleSheet.create({
   },
   offerCard: {
     width: 160,
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     borderRadius: 20,
     padding: 10,
     marginRight: 15,
@@ -114,8 +119,6 @@ const lightTheme = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 10,
     elevation: 5,
-    transform: [{ scale: 1 }],
-    transition: 'transform 0.3s',
   },
   offerImage: {
     width: 120,
@@ -143,7 +146,7 @@ const lightTheme = StyleSheet.create({
     marginBottom: 20,
   },
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     borderRadius: 20,
     overflow: 'hidden',
     marginBottom: 20,
@@ -152,8 +155,6 @@ const lightTheme = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 10,
     elevation: 10,
-    transform: [{ scale: 1 }],
-    transition: 'transform 0.3s',
   },
   shopImage: {
     width: '100%',
@@ -255,7 +256,7 @@ const lightTheme = StyleSheet.create({
     marginTop: 20,
     paddingVertical: 10,
     paddingHorizontal: 20,
-    backgroundColor: '#FFC300',
+    backgroundColor: '#FFC300',  // Amarillo para el botón
     borderRadius: 5,
   },
   addButtonText: {
@@ -263,6 +264,8 @@ const lightTheme = StyleSheet.create({
     fontSize: 16,
   },
 });
+
+
 
 const darkTheme = StyleSheet.create({
   safeArea: {
@@ -327,7 +330,7 @@ const darkTheme = StyleSheet.create({
     fontSize: 14,
   },
   contentContainer: {
-    padding: 20,
+    padding: 10,
     paddingBottom: 60,
   },
   sectionTitle: {
@@ -350,6 +353,7 @@ const darkTheme = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 10,
     marginRight: 10,
+    marginBottom: 15,
   },
   categoryImage: {
     width: 100,

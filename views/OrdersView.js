@@ -17,9 +17,13 @@ const OrderScreen = () => {
   const scheme = useColorScheme();
   const styles = scheme === 'dark' ? darkStyles : lightStyles;
 
+  console.log(orders, "orsers")
+
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedOrderDetails, setSelectedOrderDetails] = useState([]);
   const [loading, setLoading] = useState(true);  // State to manage loading
+
+  
 
   useEffect(() => {
     if (user && user.role !== 'guest') {
@@ -122,7 +126,7 @@ const OrderScreen = () => {
               <Text style={styles.modalTitle}>Order Details</Text>
               {selectedOrderDetails.map((item) => (
                 <View key={item.id} style={styles.detailCard}>
-                  <Image source={{ uri: item.image }} style={styles.detailImage} />
+                  <Image source={{ uri: item.img }} style={styles.detailImage} />
                   <View style={styles.detailInfo}>
                     <Text style={styles.detailName}>{item.name}</Text>
             

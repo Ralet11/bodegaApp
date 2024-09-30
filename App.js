@@ -5,8 +5,19 @@ import { StripeProvider } from '@stripe/stripe-react-native';
 import { store, persistor } from './redux/store'; // Asegúrate de exportar store y persistor
 import Navigation from './Navigation';
 import Toast from 'react-native-toast-message';
+import { useFonts } from 'expo-font';
+
 
 export default function App() {
+
+  
+const [loaded] = useFonts({
+  'font-primary': require('./assets/Kanit-Regular.ttf'),
+});
+
+if (!loaded) {
+  return null;
+}
   return (
     <Provider store={store}>
       <PersistGate loading={null} persistor={persistor}>

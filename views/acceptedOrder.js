@@ -44,9 +44,13 @@ const AcceptedOrder = () => {
   const dispatch = useDispatch();
   const navigation = useNavigation();
 
+  console.log(order, 'order');
+
   const GOOGLE_MAPS_API_KEY = 'AIzaSyAvritMA-llcdIPnOpudxQ4aZ1b5WsHHUc';
   const orderRef = useRef(order);
   const progressAnim = useRef(new Animated.Value(0)).current;
+
+  console.log(order, 'order');
 
   useFocusEffect(
     React.useCallback(() => {

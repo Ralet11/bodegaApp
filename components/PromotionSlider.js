@@ -11,11 +11,11 @@ const PromoSlider = () => {
   return (
     <View style={styles.container}>
       <Swiper
-        showsPagination={true}
         autoplay={true}
-        autoplayTimeout={7}  // Cambia el valor para ajustar la velocidad
-        style={styles.wrapper}
-        paginationStyle={{ bottom: 10 }}
+        autoplayTimeout={7}
+        dot={<View style={styles.dot} />}  // Barra dorada en lugar de puntos
+        activeDot={<View style={styles.activeDot} />}  // Barra activa dorada más grande
+        paginationStyle={{ bottom: 5 }}  // Ajuste de la posición
       >
         {promos.map((promo) => (
           <View key={promo.id} style={styles.slide}>
@@ -29,12 +29,11 @@ const PromoSlider = () => {
 
 const styles = StyleSheet.create({
   container: {
-    height: 200,
+    height: 180,  // Tamaño ajustado para que se vea como en la imagen de referencia
     borderRadius: 15,
     overflow: 'hidden',
     marginBottom: 20,
   },
-  wrapper: {},
   slide: {
     flex: 1,
     justifyContent: 'center',
@@ -47,6 +46,20 @@ const styles = StyleSheet.create({
     height: '100%',
     resizeMode: 'cover',
     borderRadius: 15,
+  },
+  dot: {
+    backgroundColor: '#e0c080',  // Color dorado claro
+    width: 30,  // Ancho de la barra no activa
+    height: 4,  // Altura de la barra
+    marginHorizontal: 3,  // Espacio entre las barras
+    borderRadius: 2,
+  },
+  activeDot: {
+    backgroundColor: '#FFD700',  // Color dorado brillante para la barra activa
+    width: 40,  // Ancho de la barra activa
+    height: 4,  // Altura de la barra activa
+    marginHorizontal: 3,
+    borderRadius: 2,
   },
 });
 

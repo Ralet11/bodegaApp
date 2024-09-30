@@ -98,12 +98,12 @@ const AccountDrawer = ({ user, visible, onClose, onNavigate, scheme }) => {
                       Contact
                     </Text>
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={() => onNavigate('BodegaPro')} style={styles.drawerButton}>
+                  {/* <TouchableOpacity onPress={() => onNavigate('BodegaPro')} style={styles.drawerButton}>
                     <FontAwesome name="star" size={20} color={scheme === 'dark' ? '#FFD700' : '#333'} />
                     <Text style={[styles.drawerButtonText, scheme === 'dark' ? styles.darkButtonText : styles.lightButtonText]}>
                       Bodega+ Pro
                     </Text>
-                  </TouchableOpacity>
+                  </TouchableOpacity> */}
                   <View style={styles.bodegaBalance}>
                     <FontAwesome name="money" size={20} color={scheme === 'dark' ? '#FFD700' : '#333'} />
                     <Text style={[styles.drawerText, scheme === 'dark' ? styles.darkButtonText : styles.lightButtonText]}>

@@ -15,6 +15,8 @@ const OrderStatus = () => {
   const dispatch = useDispatch();
   const token = useSelector((state) => state?.user?.userInfo.data.token);
 
+  console.log(ordersIn, 'ordersInww');
+
   useEffect(() => {
     const socket = socketIOClient(`${API_URL}`);
 
@@ -27,13 +29,21 @@ const OrderStatus = () => {
               Authorization: `Bearer ${token}`,
             },
           });
+          console.log(response.data, 'response.data en satus');
           const updatedOrder = response.data;
           dispatch(updateOrderIn({ orderId: updatedOrder.id, status: updatedOrder.status }));
 
+          // Si la orden es "rejected" o "finished", navega a la pantalla correspondiente
           if (updatedOrder.status === 'rejected' || updatedOrder.status === 'finished') {
             dispatch(removeOrderIn({ orderId: updatedOrder.id }));
             dispatch(setCurrentOrder(updatedOrder));
-            navigation.navigate('AcceptedOrder');
+
+            // Verificar el tipo de orden y navegar a la pantalla correspondiente
+            if (updatedOrder.type === 'Delivery') {
+              navigation.navigate('AcceptedOrder');
+            } else {
+              navigation.navigate('PickUpOrderFinish');
+            }
           }
         } catch (error) {
           console.log(error);
@@ -46,7 +56,7 @@ const OrderStatus = () => {
     return () => {
       socket.disconnect();
     };
-  }, [dispatch, token]);
+  }, [dispatch, token, navigation]);
 
   const getOrderStatusText = (order) => {
     const { status, type } = order;
@@ -94,7 +104,14 @@ const OrderStatus = () => {
       dispatch(removeOrderIn({ orderId: item.id }));
     }
     dispatch(setCurrentOrder(item));
-    navigation.navigate('AcceptedOrder');
+    console.log(item, 'item');
+
+    // Verificar el tipo de orden y navegar a la pantalla correspondiente
+    if (item.type === 'Delivery') {
+      navigation.navigate('AcceptedOrder');
+    } else {
+      navigation.navigate('PickUpOrderFinish');
+    }
   };
 
   const renderItem = ({ item }) => {
@@ -105,7 +122,7 @@ const OrderStatus = () => {
         <View style={styles.orderHeader}>
           <Text style={[styles.orderNumber, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>Order #{item.id}</Text>
           <TouchableOpacity onPress={() => seeOrder(item)}>
-            <Text style={[styles.seeOrderText, { color: '#ff9900' }]}>See Order</Text>
+            <Text style={[styles.seeOrderText, { color: '#FFD700' }]}>See Order</Text>
           </TouchableOpacity>
         </View>
         {mainText !== '' && (

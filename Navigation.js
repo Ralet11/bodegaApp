@@ -5,6 +5,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { FontAwesome } from '@expo/vector-icons';
 import { useColorScheme, StyleSheet, Platform } from 'react-native';
 import { useSelector } from 'react-redux';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 import Dashboard from './views/Dashboard';
 import BurgerSignUpScreen from './views/SignUp';
@@ -26,6 +27,9 @@ import BodegaPro from './views/BodegaPro';
 import SearchShops from './views/SearchShops';
 import DiscountDetailView from './views/DiscountDetailView';
 import DashboardDiscounts from './views/DashboardDiscounts';
+import OrderSummary from './views/PickUpOrderFinish';
+import DiscountDetailScreen from './components/DiscountDetail';
+import ReviewScreen from './views/ReviewsScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -41,36 +45,45 @@ function TabNavigator() {
           let iconName;
 
           if (route.name === 'Home') {
-            iconName = focused ? 'home' : 'home';
-          } else if (route.name === 'Map') {
-            iconName = focused ? 'map' : 'map-o';
+            iconName = focused ? 'walk' : 'walk';
+          } else if (route.name === 'Discounts') {
+            iconName = focused ? 'ticket-percent' : 'ticket-percent';
           } else if (route.name === 'Orders') {
-            iconName = focused ? 'list' : 'list-alt';
+            iconName = focused ? 'view-list' : 'view-list';
+          }else if (route.name === 'Map') {
+            iconName = focused ? 'map' : 'map';
           }
 
-          return <FontAwesome name={iconName} size={size} color={color} />;
+          return <MaterialCommunityIcons name={iconName} size={size} color={color} />;
+
         },
-        tabBarActiveTintColor: 'tomato',
+        tabBarActiveTintColor: '#FFC300',
         tabBarInactiveTintColor: 'gray',
         tabBarStyle: scheme === 'dark' ? styles.tabBarDark : styles.tabBar,
         tabBarLabelStyle: scheme === 'dark' ? styles.tabBarLabelDark : styles.tabBarLabel,
         tabBarIconStyle: styles.tabBarIcon,
       })}
     >
-      <Tab.Screen 
-        name="Home" 
-        component={Dashboard} 
-        options={{ tabBarLabel: 'Home' }} 
+
+      <Tab.Screen
+        name="Discounts"
+        component={DashboardDiscounts}
+        options={{ tabBarLabel: 'Dine-in' }}
       />
-      <Tab.Screen 
-        name="Map" 
-        component={DashboardDiscounts} 
-        options={{ tabBarLabel: 'Discounts' }} 
+      <Tab.Screen
+        name="Home"
+        component={Dashboard}
+        options={{ tabBarLabel: 'Pickup' }}
       />
-      <Tab.Screen 
-        name="Orders" 
-        component={OrderScreen} 
-        options={{ tabBarLabel: 'Orders' }} 
+      <Tab.Screen
+        name="Map"
+        component={MapViewComponent}
+        options={{ tabBarLabel: 'Map' }}
+      />
+      <Tab.Screen
+        name="Orders"
+        component={OrderScreen}
+        options={{ tabBarLabel: 'Orders' }}
       />
     </Tab.Navigator>
   );
@@ -82,86 +95,91 @@ export default function Navigation() {
   return (
     <NavigationContainer theme={scheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack.Navigator initialRouteName="Logo">
-        <Stack.Screen 
-          name="Logo" 
-          component={LogoScreen} 
-          options={{ headerShown: false }} 
+        <Stack.Screen
+          name="Logo"
+          component={LogoScreen}
+          options={{ headerShown: false }}
         />
         <Stack.Screen
           name="Login"
           component={Login}
           options={{ headerShown: false }}
         />
-        <Stack.Screen 
-          name="Main" 
-          component={TabNavigator} 
-          options={{ headerShown: false }} 
+        <Stack.Screen
+          name="Main"
+          component={TabNavigator}
+          options={{ headerShown: false }}
         />
-        <Stack.Screen 
-          name="Shop" 
+        <Stack.Screen
+          name="Shop"
           component={ShopScreen}
-          options={{ headerShown: false }} 
+          options={{ headerShown: false }}
         />
-        <Stack.Screen 
-          name="CartScreen" 
+        <Stack.Screen
+          name="CartScreen"
           component={CartScreen}
-          options={{ headerShown: false }} 
+          options={{ headerShown: false }}
         />
-        <Stack.Screen 
-          name="AcceptedOrder" 
+        <Stack.Screen
+          name="AcceptedOrder"
           component={AcceptedOrder}
-          options={{ headerShown: false }} 
+          options={{ headerShown: false }}
         />
-        <Stack.Screen 
-          name="SetAddressScreen" 
+        <Stack.Screen
+          name="SetAddressScreen"
           component={SetAddressScreen}
-          options={{ headerShown: false }} 
+          options={{ headerShown: false }}
         />
-        <Stack.Screen 
-          name="CategoryShops" 
+        <Stack.Screen
+          name="CategoryShops"
           component={CategoryShops}
-          options={{ headerShown: false }} 
+          options={{ headerShown: false }}
         />
-        <Stack.Screen 
-          name="Signup" 
+        <Stack.Screen
+          name="Signup"
           component={Signup}
-          options={{ headerShown: false }} 
+          options={{ headerShown: false }}
         />
-        <Stack.Screen 
-          name="AccountSettings" 
+        <Stack.Screen
+          name="AccountSettings"
           component={AccountSettings}
-          options={{ headerShown: false }} 
+          options={{ headerShown: false }}
         />
-        <Stack.Screen 
-          name="MyCoupons" 
+        <Stack.Screen
+          name="MyCoupons"
           component={MyCoupons}
-          options={{ headerShown: false }} 
+          options={{ headerShown: false }}
         />
-        <Stack.Screen 
-          name="Contact" 
+        <Stack.Screen
+          name="Contact"
           component={Contact}
-          options={{ headerShown: false }} 
+          options={{ headerShown: false }}
         />
-        <Stack.Screen 
-          name="BodegaPro" 
+        <Stack.Screen
+          name="BodegaPro"
           component={BodegaPro}
-          options={{ headerShown: false }} 
+          options={{ headerShown: false }}
         />
-        <Stack.Screen 
-          name="SearchShops" 
+        <Stack.Screen
+          name="SearchShops"
           component={SearchShops}
-          options={{ headerShown: false }} 
+          options={{ headerShown: false }}
         />
-        <Stack.Screen 
-          name="DiscountDetail" 
-          component={DiscountDetailView}
-          options={{ headerShown: false }} 
+        <Stack.Screen
+          name="MapScreen"
+          component={MapViewComponent}
+          options={{ headerShown: false }}
         />
-       <Stack.Screen 
-    name="MapScreen" 
-    component={MapViewComponent}
-    options={{ headerShown: false }} 
-/>
+        <Stack.Screen
+          name="PickUpOrderFinish"
+          component={OrderSummary}
+          options={{ headerShown: false }}
+        />
+          <Stack.Screen
+          name="ReviewSceen"
+          component={ReviewScreen}
+          options={{ headerShown: false }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -11,6 +11,14 @@ import { fetchCategories } from '../redux/slices/setUp.slice';
 import Toast from 'react-native-toast-message';
 import { LinearGradient } from 'expo-linear-gradient';
 
+// Importaciones necesarias para Google y Apple Sign-In
+import * as WebBrowser from 'expo-web-browser';
+import * as Google from 'expo-auth-session/providers/google';
+import * as AuthSession from 'expo-auth-session';
+import * as AppleAuthentication from 'expo-apple-authentication';
+
+WebBrowser.maybeCompleteAuthSession();
+
 const LoginScreen = () => {
   const navigation = useNavigation();
   const dispatch = useDispatch();
@@ -36,6 +44,13 @@ const LoginScreen = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Configuración de Google Sign-In
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    androidClientId: '446223706539-i8b0j8tasvjm66luvhvt67gtgjl4h41a.apps.googleusercontent.com',
+    expoClientId: '446223706539-u2lnq90ruft4lk7onsp9dmot8dh811eb.apps.googleusercontent.com',
+    scopes: ['profile', 'email'],
+  });
+
   useEffect(() => {
     Animated.timing(formAnim, {
       toValue: 1,
@@ -49,6 +64,46 @@ const LoginScreen = () => {
       useNativeDriver: true,
     }).start();
   }, []);
+
+  useEffect(() => {
+    if (response?.type === 'success') {
+      const { authentication } = response;
+      handleGoogleLogin(authentication);
+    }
+  }, [response]);
+
+  const handleGoogleLogin = async (authentication) => {
+    try {
+      const userInfoResponse = await Axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${authentication.accessToken}` },
+      });
+
+      const userInfo = userInfoResponse.data;
+
+      const backendResponse = await Axios.post(`${API_URL}/api/auth/googleLogin`, {
+        userInfo,
+      });
+
+      if (backendResponse.data.error === false) {
+        const _clientData = backendResponse.data;
+        dispatch(setUser(_clientData));
+        dispatch(fetchCategories());
+        navigation.navigate('Main');
+      } else {
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: backendResponse.data.message || 'Error en la respuesta del servidor.',
+        });
+      }
+    } catch (error) {
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: error.response?.data?.message || error.message || 'Algo salió mal. Por favor, intenta de nuevo más tarde.',
+      });
+    }
+  };
 
   const handleChange = (fieldName, value) => {
     setClientData(prevState => ({
@@ -243,7 +298,6 @@ const LoginScreen = () => {
               </TouchableOpacity>
             </View>
             <View style={styles.rememberForgotContainer}>
-              
               <TouchableOpacity>
                 <Text style={styles.forgotText}>Forgot Password?</Text>
               </TouchableOpacity>
@@ -255,6 +309,19 @@ const LoginScreen = () => {
                 <Animated.Text style={[styles.signInButtonText, { transform: [{ scale: buttonAnim }] }]}>SIGN IN</Animated.Text>
               )}
             </TouchableOpacity>
+
+            <Text style={styles.orText}>or login with</Text>
+
+            {/* Íconos de Google y Apple Sign-In */}
+            <View style={styles.socialContainer}>
+              <TouchableOpacity onPress={() => promptAsync()} style={[styles.socialButton, styles.googleButtonBg]}>
+                <FontAwesome name="google" size={30} color="#FFF" />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => console.log('Apple Sign-In')} style={[styles.socialButton, styles.appleButtonBg]}>
+                <FontAwesome name="apple" size={30} color="#FFF" />
+              </TouchableOpacity>
+            </View>
+
             <View style={styles.signUpContainer}>
               <Text style={styles.signUpText}>Don't you have an account? </Text>
               <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
@@ -280,7 +347,6 @@ const commonStyles = {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-
   },
   header: {
     height: 100,
@@ -327,7 +393,7 @@ const commonStyles = {
     borderColor: '#ddd',
   },
   icon: {
-    marginRight: 15,  // Adjusted to add more spacing between the icon and the input
+    marginRight: 15,
   },
   input: {
     flex: 1,
@@ -338,9 +404,6 @@ const commonStyles = {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 30,
-  },
-  rememberText: {
-    color: '#666',
   },
   forgotText: {
     color: '#F2BA25',
@@ -362,6 +425,31 @@ const commonStyles = {
     color: '#000',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  orText: {
+    textAlign: 'center',
+    color: '#666',
+    marginVertical: 10,
+    fontSize: 16,
+  },
+  socialContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 20,
+  },
+  socialButton: {
+    marginHorizontal: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 25,
+    width: 60,
+    height: 60,
+  },
+  googleButtonBg: {
+    backgroundColor: '#DB4437',
+  },
+  appleButtonBg: {
+    backgroundColor: '#000',
   },
   signUpContainer: {
     flexDirection: 'row',
@@ -417,7 +505,7 @@ const stylesDark = StyleSheet.create({
     color: '#FFF',
   },
   icon: {
-    marginRight: 15,  // Adjusted to add more spacing between the icon and the input
+    marginRight: 15,
     color: '#FFF',
   },
   signInButtonText: {

@@ -21,6 +21,14 @@ const commonStyles = {
     alignItems: 'center',
     marginBottom: 20,
   },
+  removeButton: {
+  position: 'absolute',
+  right: 30,
+  top: '50%',
+  transform: [{ translateY: -12 }], // Centra verticalmente el botón
+  backgroundColor: 'transparent',
+  padding: 10,
+},
   goBackButton: {
     marginRight: 10,
   },
@@ -112,6 +120,14 @@ const commonStyles = {
     color: '#000',
     fontWeight: 'bold',
     fontSize: 8,  // Ajustado para mayor visibilidad
+  },
+  promotionLabel: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: '#CCCCFF',
+    padding: 5,
+    borderRadius: 5,
   },
   cartItemDetails: {
     flex: 1,

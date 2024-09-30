@@ -27,7 +27,7 @@ const Dashboard = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [addressModalVisible, setAddressModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [deliveryMode, setDeliveryMode] = useState('Delivery');
+  const [deliveryMode, setDeliveryMode] = useState('Pickup');
   const categories = useSelector((state) => state?.setUp?.categories) || [];
   const address = useSelector((state) => state?.user?.address?.formatted_address);
   const addresses = useSelector((state) => state?.user?.addresses);
@@ -47,14 +47,14 @@ const Dashboard = () => {
     3: 'Our Restaurants',
     4: 'Markets',
   };
-  console.log(auxShops,   "auxShops")
+  console.log(auxShops, "auxShops")
 
   useEffect(() => {
     const socket = socketIOClient(`${API_URL}`);
-    
+
     const syncShops = () => {
       console.log("probando sync")
-        dispatch(setAuxShops());
+      dispatch(setAuxShops());
     }
 
     socket.on('syncShops', syncShops);
@@ -110,7 +110,7 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    
+
     if (user?.id && token) {
       const fetchUserDiscounts = async () => {
         try {
@@ -131,7 +131,7 @@ const Dashboard = () => {
   }, [user, token, auxShops]);
 
   useEffect(() => {
-    
+
     fetchShops();
     fetchAddress();
   }, [dispatch, token, auxShops]);
@@ -216,12 +216,12 @@ const Dashboard = () => {
     setDeliveryMode(mode);
     filterShops(shopsByCategory, mode);
   };
- 
+
   const filterShops = (shops, mode) => {
     const currentDateTime = new Date();
     const currentDay = currentDateTime.toLocaleString('en-US', { weekday: 'short' }).toLowerCase();
     const currentTime = currentDateTime.toTimeString().slice(0, 8); // Obtener la hora actual en formato HH:MM:SS
-  
+
     const filtered = {};
     Object.keys(shops).forEach((categoryId) => {
       filtered[categoryId] = shops[categoryId].filter((shop) => {
@@ -263,23 +263,15 @@ const Dashboard = () => {
             <FontAwesome name="caret-down" size={16} color={scheme === 'dark' ? '#fff' : '#333'} style={{ marginLeft: 5 }} />
           </TouchableOpacity>
           <View style={scheme === 'dark' ? darkTheme.deliveryToggleContainer : lightTheme.deliveryToggleContainer}>
-            <TouchableOpacity
-              onPress={() => handleToggle('Delivery')}
-              style={[
-                scheme === 'dark' ? darkTheme.deliveryToggleButton : lightTheme.deliveryToggleButton,
-                { backgroundColor: deliveryMode === 'Delivery' ? '#fff' : 'transparent' }
-              ]}
-            >
-              <Text style={{ color: deliveryMode === 'Delivery' ? '#000' : '#fff' }}>Delivery</Text>
-            </TouchableOpacity>
+           
             <TouchableOpacity
               onPress={() => handleToggle('Pickup')}
               style={[
                 scheme === 'dark' ? darkTheme.deliveryToggleButton : lightTheme.deliveryToggleButton,
-                { backgroundColor: deliveryMode === 'Pickup' ? '#fff' : 'transparent' }
+                { backgroundColor: deliveryMode === 'Pickup' ? '#FFC300' : 'transparent' }
               ]}
             >
-              <Text style={{ color: deliveryMode === 'Pickup' ? '#000' : '#fff' }}>Pickup</Text>
+              <Text style={{ color: deliveryMode === 'Pickup' ? '#000' : '#333' }}>Pickup</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -305,7 +297,7 @@ const Dashboard = () => {
         <PromoSlider />
         <View style={{ paddingHorizontal: 15, paddingVertical: 10 }}>
           <Text
-            style={{ fontSize: 14, fontWeight: 'bold', color: scheme === 'dark' ? '#fff' : '#333' }}
+            style={{ fontSize: 14, fontWeight: '900', color: scheme === 'dark' ? '#fff' : '#333' }}
           >
             What are you looking for today?
           </Text>

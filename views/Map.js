@@ -1,33 +1,46 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal, Image, ActivityIndicator, FlatList, Dimensions } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Modal,
+  Image,
+  ActivityIndicator,
+  FlatList,
+  Dimensions,
+  ScrollView,
+} from 'react-native';
 import MapView, { Marker, Callout } from 'react-native-maps';
 import { useDispatch, useSelector } from 'react-redux';
 import * as Location from 'expo-location';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
+import isEqual from 'lodash.isequal';
 
 const { width, height } = Dimensions.get('window');
 
 const GOOGLE_API_KEY = 'AIzaSyAvritMA-llcdIPnOpudxQ4aZ1b5WsHHUc';
 
+
 const MapViewComponent = () => {
   const dispatch = useDispatch();
   const address = useSelector((state) => state?.user?.address?.formatted_address) || '';
-  const shopsByCategory = useSelector((state) => state?.setUp?.shops) || {};
+
+  // Usamos isEqual para evitar re-renderizados innecesarios
+  const shopsByCategory = useSelector((state) => state?.setUp?.shopsDiscounts || {}, isEqual);
+
   const [region, setRegion] = useState(null);
   const [marker, setMarker] = useState(null);
   const [selectedLocalIndex, setSelectedLocalIndex] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedTag, setSelectedTag] = useState(null);
   const [locationPermissionDenied, setLocationPermissionDenied] = useState(false);
   const navigation = useNavigation();
   const flatListRef = useRef();
 
-  const categoryTitles = {
-    2: 'Markets',
-    3: 'Restaurants',
-  };
+  const [allTags, setAllTags] = useState([]);
 
   useEffect(() => {
     const fetchLocation = async () => {
@@ -51,7 +64,7 @@ const MapViewComponent = () => {
 
         setMarker({ latitude, longitude });
 
-        // Set up location listener
+        // Configurar el listener de ubicación
         Location.watchPositionAsync(
           { accuracy: Location.Accuracy.High, timeInterval: 5000, distanceInterval: 10 },
           (newLocation) => {
@@ -74,7 +87,9 @@ const MapViewComponent = () => {
     const fetchAddressLocation = async () => {
       try {
         const response = await fetch(
-          `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${GOOGLE_API_KEY}`
+          `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
+            address
+          )}&key=${GOOGLE_API_KEY}`
         );
         const json = await response.json();
         if (json.results.length > 0) {
@@ -104,6 +119,30 @@ const MapViewComponent = () => {
     }
   }, [address]);
 
+  // Extraer todas las etiquetas de las tiendas y eliminar duplicados
+  useEffect(() => {
+    console.log('shopsByCategory:', shopsByCategory); // Para depuración
+    const shopsArray = Array.isArray(shopsByCategory)
+      ? shopsByCategory.flat()
+      : Object.values(shopsByCategory).flat();
+    console.log('shopsArray:', shopsArray); // Para depuración
+    const tagsMap = new Map();
+
+    shopsArray.forEach((shop) => {
+      if (shop.tags) {
+        shop.tags.forEach((tag) => {
+          if (!tagsMap.has(tag.id)) {
+            tagsMap.set(tag.id, tag);
+          }
+        });
+      }
+    });
+
+    const tagsArray = Array.from(tagsMap.values());
+    console.log('Tags extraídos:', tagsArray); // Para depuración
+    setAllTags(tagsArray);
+  }, [shopsByCategory]);
+
   const handleMarkerPress = useCallback((local, index) => {
     setSelectedLocalIndex(index);
   }, []);
@@ -112,20 +151,39 @@ const MapViewComponent = () => {
     setSelectedLocalIndex(null);
   }, []);
 
-  const handleNavigateToShop = useCallback((shop) => {
-    navigation.navigate('Shop', { shop });
-    setSelectedLocalIndex(null);
-  }, [navigation]);
+  const handleNavigateToShop = useCallback(
+    (shop) => {
+      navigation.navigate('Shop', { shop });
+      setSelectedLocalIndex(null);
+    },
+    [navigation]
+  );
 
-  const handleCategorySelect = useCallback((categoryId) => {
-    setSelectedCategory(categoryId);
-  }, []);
+  const handleTagPress = useCallback(
+    (tag) => {
+      const newSelectedTag = selectedTag && selectedTag.id === tag.id ? null : tag;
+      setSelectedTag(newSelectedTag);
+    },
+    [selectedTag]
+  );
 
   const filterShops = useCallback(() => {
-    return selectedCategory
-      ? shopsByCategory[selectedCategory]?.filter(shop => shop.orderIn) || []
-      : Object.values(shopsByCategory).flat().filter(shop => shop.orderIn);
-  }, [selectedCategory, shopsByCategory]);
+    const allShops = Array.isArray(shopsByCategory)
+      ? shopsByCategory.filter((shop) => shop.orderIn)
+      : Object.values(shopsByCategory)
+          .flat()
+          .filter((shop) => shop.orderIn);
+
+    let filtered = allShops;
+
+    if (selectedTag) {
+      filtered = filtered.filter(
+        (shop) => shop.tags && shop.tags.some((t) => t.id === selectedTag.id)
+      );
+    }
+
+    return filtered;
+  }, [selectedTag, shopsByCategory]);
 
   const filteredShops = useMemo(() => filterShops(), [filterShops]);
 
@@ -145,32 +203,68 @@ const MapViewComponent = () => {
     }
   };
 
-  const snapToOffsets = useMemo(
-    () => filteredShops.map((_, index) => index * width),
-    [filteredShops]
-  );
-
   const renderStars = (rating) => {
     const stars = [];
+    const fullStars = Math.floor(rating);
+    const hasHalfStar = rating - fullStars >= 0.5;
+
     for (let i = 1; i <= 5; i++) {
-      stars.push(
-        <FontAwesome
-          key={i}
-          name={i <= rating ? 'star' : 'star-o'}
-          size={20}
-          color="#ffcc00"
-        />
-      );
+      if (i <= fullStars) {
+        stars.push(<FontAwesome key={i} name="star" size={20} color="#ffcc00" />);
+      } else if (i === fullStars + 1 && hasHalfStar) {
+        stars.push(<FontAwesome key={i} name="star-half-full" size={20} color="#ffcc00" />);
+      } else {
+        stars.push(<FontAwesome key={i} name="star-o" size={20} color="#ffcc00" />);
+      }
     }
     return stars;
   };
 
+  // Mapear emojis a las categorías
+  const tagEmojis = {
+    Pizza: '🍕',
+    Burgers: '🍔',
+    Sushi: '🍣',
+    Vegan: '🥦',
+    // Agrega más categorías y emojis según sea necesario
+  };
+
   return (
     <SafeAreaView style={styles.container}>
-      {/* Botón Go Back */}
-      <TouchableOpacity style={styles.goBackButton} onPress={() => navigation.goBack()}>
-        <FontAwesome name="arrow-left" size={24} color="#fff" />
-      </TouchableOpacity>
+      {/* Contenedor del header con el botón Go Back y los filtros */}
+      <View style={styles.headerContainer}>
+        {/* Botón Go Back */}
+        <TouchableOpacity style={styles.goBackButton} onPress={() => navigation.goBack()}>
+          <FontAwesome name="arrow-left" size={24} color="#fff" />
+        </TouchableOpacity>
+
+        {/* Contenedor de etiquetas */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tagsScrollView}
+        >
+          {allTags.map((tag) => (
+            <TouchableOpacity
+              key={tag.id}
+              style={[
+                styles.tagButton,
+                selectedTag && selectedTag.id === tag.id && styles.selectedTagButton,
+              ]}
+              onPress={() => handleTagPress(tag)}
+            >
+              <Text
+                style={[
+                  styles.tagText,
+                  selectedTag && selectedTag.id === tag.id && styles.selectedTagText,
+                ]}
+              >
+                {tagEmojis[tag.name] || '🍽️'} {tag.name}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
 
       {loading ? (
         <View style={styles.loaderContainer}>
@@ -179,47 +273,32 @@ const MapViewComponent = () => {
       ) : locationPermissionDenied ? (
         <View style={styles.permissionDeniedContainer}>
           <Text style={styles.permissionDeniedText}>
-            Permission to access location was denied. Please enable location services to use the app.
+            Permiso para acceder a la ubicación denegado. Por favor, habilita los servicios de
+            ubicación para usar la aplicación.
           </Text>
         </View>
       ) : (
         region && (
-          <>
-            <View style={styles.filterContainer}>
-              {Object.keys(categoryTitles).map((key) => (
-                <TouchableOpacity
-                  key={key}
-                  style={[
-                    styles.filterButton,
-                    selectedCategory === parseInt(key) && styles.selectedFilterButton,
-                  ]}
-                  onPress={() => handleCategorySelect(parseInt(key))}
-                >
-                  <Text style={styles.filterButtonText}>{categoryTitles[key]}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            <MapView style={styles.map} region={region}>
-              {marker && <Marker coordinate={marker} />}
+          <MapView style={styles.map} region={region}>
+            {marker && <Marker coordinate={marker} />}
 
-              {filteredShops.map((shop, index) => (
-                <Marker
-                  key={shop.id}
-                  coordinate={{ latitude: shop.lat, longitude: shop.lng }}
-                  onPress={() => handleMarkerPress(shop, index)}
-                >
-                  <View style={styles.markerContainer}>
-                    <View style={styles.circle}>
-                      <Image source={{ uri: shop.img }} style={styles.markerImage} />
-                    </View>
+            {filteredShops.map((shop, index) => (
+              <Marker
+                key={shop.id}
+                coordinate={{ latitude: shop.lat, longitude: shop.lng }}
+                onPress={() => handleMarkerPress(shop, index)}
+              >
+                <View style={styles.markerContainer}>
+                  <View style={styles.circle}>
+                    <Image source={{ uri: shop.logo }} style={styles.markerImage} />
                   </View>
-                  <Callout>
-                    <Text>{shop.name}</Text>
-                  </Callout>
-                </Marker>
-              ))}
-            </MapView>
-          </>
+                </View>
+                <Callout>
+                  <Text>{shop.name}</Text>
+                </Callout>
+              </Marker>
+            ))}
+          </MapView>
         )
       )}
       <Modal
@@ -239,12 +318,9 @@ const MapViewComponent = () => {
                 data={filteredShops}
                 horizontal
                 pagingEnabled
-                snapToInterval={width}
-                snapToAlignment="center"
-                decelerationRate="fast"
                 renderItem={({ item }) => (
                   <View style={styles.modalContent}>
-                    <Image source={{ uri: item.img }} style={styles.modalImage} />
+                    <Image source={{ uri: item.placeImage }} style={styles.modalImage} />
                     <Text style={styles.modalTitle}>{item.name}</Text>
                     <View style={styles.ratingContainer}>{renderStars(item.rating)}</View>
                     <Text style={styles.modalAddress}>{item.address}</Text>
@@ -252,15 +328,17 @@ const MapViewComponent = () => {
                       style={styles.navigateButton}
                       onPress={() => handleNavigateToShop(item)}
                     >
-                      <Text style={styles.navigateButtonText}>View Details</Text>
+                      <Text style={styles.navigateButtonText}>Ver Detalles</Text>
                     </TouchableOpacity>
                   </View>
                 )}
                 keyExtractor={(item) => item.id.toString()}
                 initialScrollIndex={selectedLocalIndex}
-                getItemLayout={(data, index) => (
-                  { length: width, offset: width * index, index }
-                )}
+                getItemLayout={(data, index) => ({
+                  length: width,
+                  offset: width * index,
+                  index,
+                })}
               />
               <TouchableOpacity style={styles.arrowRight} onPress={handleNext}>
                 <Text style={styles.arrowText}>{'>'}</Text>
@@ -282,6 +360,7 @@ const styles = StyleSheet.create({
   },
   map: {
     flex: 1,
+    zIndex: 1,
   },
   loaderContainer: {
     flex: 1,
@@ -299,26 +378,43 @@ const styles = StyleSheet.create({
     color: '#ff0000',
     textAlign: 'center',
   },
-  filterContainer: {
+  headerContainer: {
+    position: 'absolute',
+    top: 40,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 10,
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    padding: 10,
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
+    alignItems: 'center',
+    zIndex: 11,
+    elevation: 11,
   },
-  filterButton: {
-    padding: 10,
+  goBackButton: {
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     borderRadius: 20,
-    backgroundColor: '#f5f5f5',
+    padding: 10,
+    marginRight: 10,
   },
-  selectedFilterButton: {
+  tagsScrollView: {
+    flexGrow: 1,
+  },
+  tagButton: {
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    borderRadius: 20,
+    marginRight: 10,
+  },
+  selectedTagButton: {
     backgroundColor: '#ffcc00',
   },
-  filterButtonText: {
+  tagText: {
     fontSize: 14,
-    fontWeight: 'bold',
     color: '#333',
+  },
+  selectedTagText: {
+    color: '#000',
+    fontWeight: 'bold',
   },
   markerContainer: {
     alignItems: 'center',
@@ -341,24 +437,18 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
     width: width * 0.8,
-    height: height * 0.6,
     padding: 20,
     backgroundColor: '#fff',
     borderRadius: 20,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 5,
     marginHorizontal: width * 0.1,
-    marginTop: 150,
+    marginTop: 100,
   },
   modalImage: {
     width: '100%',
@@ -399,7 +489,7 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     position: 'absolute',
-    top: 20,
+    top: 40,
     right: 20,
     padding: 10,
     backgroundColor: '#000',
@@ -414,7 +504,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 10,
     top: '50%',
-    transform: [{ translateY: -25 }],  // Ajuste para bajar la flecha verticalmente
+    transform: [{ translateY: -25 }],
     zIndex: 1,
     padding: 10,
     backgroundColor: 'rgba(255, 255, 255, 0.8)',
@@ -424,7 +514,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 10,
     top: '50%',
-    transform: [{ translateY: -25 }],  // Ajuste para bajar la flecha verticalmente
+    transform: [{ translateY: -25 }],
     zIndex: 1,
     padding: 10,
     backgroundColor: 'rgba(255, 255, 255, 0.8)',
@@ -434,15 +524,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: '#333',
-  },
-  goBackButton: {
-    position: 'absolute',
-    top: 40,  // Baja el botón de volver
-    left: 10,
-    zIndex: 2,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    borderRadius: 20,
-    padding: 10,
   },
 });
 

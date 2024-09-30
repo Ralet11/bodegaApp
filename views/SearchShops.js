@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Image, TextInput, useColorScheme, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, Image, TextInput, useColorScheme, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -11,15 +11,87 @@ const SearchShops = () => {
     const navigation = useNavigation();
     const { categoryId, categoryName, filteredShops: initialFilteredShops, searchQuery: initialSearchQuery } = route.params || {};
     const shopsByCategory = useSelector((state) => state.setUp.shops);
-    const [filteredShops, setFilteredShops] = useState(initialFilteredShops || []);
+
+    const [initialShops, setInitialShops] = useState([]);
+    const [filteredShops, setFilteredShops] = useState([]);
     const [searchQuery, setSearchQuery] = useState(initialSearchQuery || '');
+    const [allTags, setAllTags] = useState([]);
+    const [selectedTag, setSelectedTag] = useState(null);
 
     useEffect(() => {
         if (shopsByCategory && categoryId && !initialFilteredShops) {
             const shops = shopsByCategory[categoryId] || [];
-            setFilteredShops(shops);
+            console.log('Tiendas originales:', shops);
+
+            // Verificar si los IDs son únicos
+            const shopIds = shops.map(shop => shop.id);
+            const uniqueShopIds = new Set(shopIds);
+
+            if (shopIds.length !== uniqueShopIds.size) {
+                console.warn('Hay IDs de tiendas duplicados o faltantes.');
+            }
+
+            // Eliminar tiendas duplicadas
+            const uniqueShops = shops.filter((shop, index, self) =>
+                index === self.findIndex((s) =>
+                    s.id === shop.id || (s.name === shop.name && s.address === shop.address)
+                )
+            );
+
+            setInitialShops(uniqueShops);
+            setFilteredShops(uniqueShops);
+        } else if (initialFilteredShops) {
+            setInitialShops(initialFilteredShops);
+            setFilteredShops(initialFilteredShops);
         }
     }, [shopsByCategory, categoryId, initialFilteredShops]);
+
+    // Extraer todas las etiquetas y eliminar duplicados
+    useEffect(() => {
+        if (initialShops.length > 0) {
+            const tagsMap = new Map();
+            initialShops.forEach(shop => {
+                if (shop.tags) {
+                    shop.tags.forEach(tag => {
+                        if (!tagsMap.has(tag.id)) {
+                            tagsMap.set(tag.id, tag);
+                        }
+                    });
+                }
+            });
+            setAllTags(Array.from(tagsMap.values()));
+        }
+    }, [initialShops]);
+
+    // Filtrar tiendas por consulta de búsqueda y etiqueta seleccionada
+    useEffect(() => {
+        filterShops(searchQuery, selectedTag);
+    }, [searchQuery, selectedTag, initialShops]);
+
+    const filterShops = (query, tag) => {
+        let filtered = initialShops;
+
+        if (query) {
+            filtered = filtered.filter(shop =>
+                shop.name.toLowerCase().includes(query.toLowerCase())
+            );
+        }
+
+        if (tag) {
+            filtered = filtered.filter(shop =>
+                shop.tags && shop.tags.some(t => t.id === tag.id)
+            );
+        }
+
+        // Eliminar duplicados después de filtrar
+        filtered = filtered.filter((shop, index, self) =>
+            index === self.findIndex((s) =>
+                s.id === shop.id || (s.name === shop.name && s.address === shop.address)
+            )
+        );
+
+        setFilteredShops(filtered);
+    };
 
     const handleBackPress = () => {
         navigation.goBack();
@@ -27,22 +99,15 @@ const SearchShops = () => {
 
     const handleSearch = (query) => {
         setSearchQuery(query);
-        if (shopsByCategory && categoryId && shopsByCategory[categoryId]) {
-            const filtered = shopsByCategory[categoryId].filter(shop =>
-                shop.name.toLowerCase().includes(query.toLowerCase())
-            );
-            setFilteredShops(filtered);
-        }
     };
 
     const handleShopPress = (shop) => {
         navigation.navigate('Shop', { shop });
     };
 
-    const handleSearchSubmit = () => {
-        if (searchQuery.trim()) {
-            handleSearch(searchQuery);
-        }
+    const handleTagPress = (tag) => {
+        const newSelectedTag = selectedTag && selectedTag.id === tag.id ? null : tag;
+        setSelectedTag(newSelectedTag);
     };
 
     const styles = scheme === 'dark' ? darkTheme : lightTheme;
@@ -55,36 +120,61 @@ const SearchShops = () => {
                 </TouchableOpacity>
                 <TextInput
                     style={styles.searchInput}
-                    placeholder="Search places, foods..."
+                    placeholder="Buscar lugares, comidas..."
                     placeholderTextColor={scheme === 'dark' ? '#888' : '#aaa'}
                     value={searchQuery}
-                    onChangeText={setSearchQuery}
-                    onSubmitEditing={handleSearchSubmit}
+                    onChangeText={handleSearch}
                 />
             </View>
-            <View style={styles.categoryContainer}>
-                <Text style={styles.headerTitle}>{categoryName}</Text>
-            </View>
-            <View style={styles.resultsContainer}>
-                <Text style={styles.resultsTitle}>Found Shops</Text>
-            </View>
-            <ScrollView contentContainerStyle={styles.contentContainer}>
-                {filteredShops.length > 0 ? (
-                    filteredShops.map((shop) => (
-                        <TouchableOpacity key={shop.id} onPress={() => handleShopPress(shop)}>
-                            <View style={styles.card}>
-                                <Image source={{ uri: shop.img }} style={styles.shopImage} />
-                                <View style={styles.cardContent}>
-                                    <Text style={styles.cardTitle}>{shop.name}</Text>
-                                    <Text style={styles.cardSubtitle}>{shop.address}</Text>
-                                </View>
-                            </View>
+
+            {/* Mostrar etiquetas como botones clicables */}
+            <View style={styles.tagsContainer}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                    {allTags.map(tag => (
+                        <TouchableOpacity
+                            key={tag.id}
+                            style={[
+                                styles.tagButton,
+                                selectedTag && selectedTag.id === tag.id && styles.tagButtonSelected,
+                            ]}
+                            onPress={() => handleTagPress(tag)}
+                        >
+                            <Text
+                                style={[
+                                    styles.tagText,
+                                    selectedTag && selectedTag.id === tag.id && styles.tagTextSelected,
+                                ]}
+                            >
+                                {tag.name}
+                            </Text>
                         </TouchableOpacity>
-                    ))
-                ) : (
-                    <Text style={styles.noShopsText}>No shops available in this category</Text>
+                    ))}
+                </ScrollView>
+            </View>
+
+            <View style={styles.resultsContainer}>
+                <Text style={styles.resultsTitle}>Tiendas Encontradas</Text>
+            </View>
+
+            <FlatList
+                data={filteredShops}
+                keyExtractor={(shop, index) => `${shop.id || shop.name}_${index}`}
+                renderItem={({ item: shop }) => (
+                    <TouchableOpacity onPress={() => handleShopPress(shop)}>
+                        <View style={styles.card}>
+                            <Image source={{ uri: shop.logo }} style={styles.shopImage} />
+                            <View style={styles.cardContent}>
+                                <Text style={styles.cardTitle}>{shop.name}</Text>
+                                <Text style={styles.cardSubtitle}>{shop.address}</Text>
+                            </View>
+                        </View>
+                    </TouchableOpacity>
                 )}
-            </ScrollView>
+                contentContainerStyle={styles.contentContainer}
+                ListEmptyComponent={
+                    <Text style={styles.noShopsText}>No hay tiendas disponibles en esta categoría</Text>
+                }
+            />
         </SafeAreaView>
     );
 };
@@ -93,11 +183,14 @@ const commonStyles = {
     safeArea: {
         flex: 1,
         backgroundColor: '#F5F5F5',
+        paddingTop: 10,
+        paddingBottom: 20,
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 10,
+        paddingVertical: 12,
+        paddingHorizontal: 15,
         backgroundColor: '#F2BB26',
         borderBottomWidth: 1,
         borderBottomColor: '#E0E0E0',
@@ -114,17 +207,30 @@ const commonStyles = {
         marginHorizontal: 10,
         color: '#000',
     },
-    categoryContainer: {
-        paddingVertical: 15,
+    tagsContainer: {
+        height: 60,
         paddingHorizontal: 20,
-        backgroundColor: '#FFF',
-        borderBottomWidth: 1,
-        borderBottomColor: '#E0E0E0',
+        paddingTop: 5,
+        paddingBottom: 5,
     },
-    headerTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
+    tagButton: {
+        paddingHorizontal: 20,
+        paddingVertical: 8,
+        backgroundColor: '#E0E0E0',
+        borderRadius: 20,
+        marginHorizontal: 5,
+        alignItems: 'center',
+    },
+    tagButtonSelected: {
+        backgroundColor: '#F2BB26',
+    },
+    tagText: {
+        fontSize: 14,
         color: '#333',
+    },
+    tagTextSelected: {
+        color: '#FFF',
+        fontWeight: 'bold',
     },
     resultsContainer: {
         paddingHorizontal: 20,
@@ -139,13 +245,13 @@ const commonStyles = {
     contentContainer: {
         paddingHorizontal: 20,
         paddingTop: 10,
-        paddingBottom: 20, // Added padding to ensure content doesn't get cut off
+        paddingBottom: 20,
     },
     card: {
         flexDirection: 'row',
         marginBottom: 15,
         backgroundColor: '#FFF',
-        borderRadius: 10,
+        borderRadius: 12,
         overflow: 'hidden',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
@@ -156,18 +262,19 @@ const commonStyles = {
     shopImage: {
         width: 80,
         height: 80,
-        borderRadius: 10,
-        margin: 10, // Added margin for better spacing
+        borderRadius: 12,
+        margin: 10,
     },
     cardContent: {
         flex: 1,
         justifyContent: 'center',
+        paddingRight: 10,
     },
     cardTitle: {
         fontSize: 16,
         fontWeight: 'bold',
         color: '#333',
-        marginBottom: 5, // Added margin for better text spacing
+        marginBottom: 5,
     },
     cardSubtitle: {
         fontSize: 14,
@@ -197,18 +304,25 @@ const darkTheme = StyleSheet.create({
         backgroundColor: '#222',
         color: '#FFF',
     },
-    iconButton: {
-        ...commonStyles.iconButton,
-        color: '#FFF',
-    },
-    categoryContainer: {
-        ...commonStyles.categoryContainer,
+    tagsContainer: {
+        ...commonStyles.tagsContainer,
         backgroundColor: '#1E1E1E',
-        borderBottomColor: '#444',
     },
-    headerTitle: {
-        ...commonStyles.headerTitle,
+    tagButton: {
+        ...commonStyles.tagButton,
+        backgroundColor: '#444',
+    },
+    tagButtonSelected: {
+        ...commonStyles.tagButtonSelected,
+        backgroundColor: '#FFD700',
+    },
+    tagText: {
+        ...commonStyles.tagText,
         color: '#FFF',
+    },
+    tagTextSelected: {
+        ...commonStyles.tagTextSelected,
+        color: '#000',
     },
     resultsContainer: {
         ...commonStyles.resultsContainer,
@@ -251,17 +365,9 @@ const lightTheme = StyleSheet.create({
         backgroundColor: '#FFF',
         color: '#000',
     },
-    iconButton: {
-        ...commonStyles.iconButton,
-        color: '#000',
-    },
-    categoryContainer: {
-        ...commonStyles.categoryContainer,
+    tagsContainer: {
+        ...commonStyles.tagsContainer,
         backgroundColor: '#FFF',
-    },
-    headerTitle: {
-        ...commonStyles.headerTitle,
-        color: '#333',
     },
     resultsContainer: {
         ...commonStyles.resultsContainer,

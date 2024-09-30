@@ -42,6 +42,12 @@ const cartSlice = createSlice({
     clearCart(state) {
       state.items = [];
     },
+    removeFromCart(state, action) {
+      const itemIndex = state.items.findIndex(item => item.id === action.payload.id && areExtrasEqual(item.selectedExtras, action.payload.selectedExtras));
+      if (itemIndex >= 0) {
+        state.items.splice(itemIndex, 1);
+      }
+    },
   },
 });
 
@@ -61,5 +67,5 @@ const areExtrasEqual = (extras1, extras2) => {
   return true;
 };
 
-export const { addToCart, incrementQuantity, decrementQuantity, clearCart } = cartSlice.actions;
+export const { addToCart, incrementQuantity, decrementQuantity, clearCart, removeFromCart } = cartSlice.actions;
 export default cartSlice.reducer;

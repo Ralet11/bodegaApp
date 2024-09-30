@@ -13,7 +13,7 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.khtech.bodega",
+      "bundleIdentifier": "com.khtech.bodega", //
       "buildNumber": "2"
     },
     "android": {
@@ -43,6 +43,8 @@
       "eas": {
         "projectId": "b82244d1-6590-44d1-9254-5fd97b5d397b"
       }
-    }
+    },
+ "scheme": "bodegaplus"
   }
 }
+

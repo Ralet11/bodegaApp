@@ -1,11 +1,111 @@
+// styles.js
+
 import { StyleSheet } from 'react-native';
 
 const commonStyles = {
   safeArea: {
     flex: 1,
   },
+  shopInfoContainer: {
+    padding: 16,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    marginTop: -60,
+    alignItems: 'center',
+  },
+  shopName: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  shopInfoDetails: {
+    marginTop: -30,
+    paddingHorizontal: 0,
+    borderRadius: 10,
+    padding: 10,
+    width: '90%',
+    alignItems: 'center',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  shopImage: {
+    width: '100%',
+    height: 150,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+  },
+  shopAddressContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  shopAddress: {
+    fontSize: 14,
+    marginLeft: 4,
+  },
+  shopDistance: {
+    fontSize: 12,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  ratingAndOrderTypeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginTop: 8,
+  },
+  shopRatingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+  },
+  shopRating: {
+    marginLeft: 4,
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  shopRatingOpinions: {
+    fontSize: 12,
+    marginLeft: 4,
+  },
+  shopRatingArrow: {
+    marginLeft: 8,
+    fontSize: 16,
+  },
+  shopInfoLeft: {
+    flex: 1,
+    alignItems: 'flex-start',
+    paddingRight: 20,
+  },
+  shopInfoRight: {
+    flex: 1,
+    alignItems: 'flex-end',
+  },
+  shopHours: {
+    fontSize: 12,
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  headerContainer: {
+    width: '100%',
+    height: 250,
+    backgroundColor: 'transparent',
+  },
   contentContainer: {
-    paddingBottom: 80,
+    paddingBottom: 0,
+    marginTop: -30,
   },
   container: {
     flex: 1,
@@ -19,21 +119,11 @@ const commonStyles = {
     top: 40,
     left: 20,
     zIndex: 10,
-  },
-  headerContainer: {
-    position: 'relative',
-  },
-  headerImage: {
-    width: '100%',
-    height: '100%',
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    borderRadius: 20,
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
   },
   headerTextContainer: {
     position: 'absolute',
@@ -44,26 +134,22 @@ const commonStyles = {
   headerTitle: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#fff',
     fontFamily: 'sans-serif-medium',
+  },
+  headerTitle1: {
+    textAlign: 'center',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  bgtitle1: {
+    paddingVertical: 10,
+    alignItems: 'center',
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#fff',
     marginTop: 4,
     fontFamily: 'sans-serif',
     width: '80%',
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  shopRating: {
-    marginLeft: 4,
-    fontSize: 12,
-    color: '#ff9900',
-    fontFamily: 'sans-serif',
   },
   sectionTitle: {
     fontSize: 18,
@@ -73,28 +159,20 @@ const commonStyles = {
     paddingHorizontal: 16,
     fontFamily: 'sans-serif-medium',
   },
-  offersContainer: {
-    flexDirection: 'row',
-    marginBottom: 20,
-    paddingHorizontal: 16,
+  categoryScrollContainer: {
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+    margin: 0,
   },
-  categoryContainer: {
-    marginBottom: 5,
-    marginTop: 1,
-    paddingHorizontal: 20,
-    backgroundColor: 'white',
-    paddingVertical: 20,
-    borderRadius: 10,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+  categorySeparator: {
+    height: 1,
+    width: '100%',
+    alignSelf: 'center',
+    marginTop: 10,
   },
   categoryTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 10,
     fontFamily: 'sans-serif-medium',
   },
   productCard: {
@@ -102,8 +180,6 @@ const commonStyles = {
     padding: 10,
     marginBottom: 10,
     borderRadius: 10,
-    backgroundColor: '#fff',
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -125,11 +201,9 @@ const commonStyles = {
     fontSize: 16,
     fontWeight: 'bold',
     fontFamily: 'sans-serif-medium',
-    color: '#000',
   },
   productDescription: {
     fontSize: 12,
-    color: '#666',
   },
   productPriceContainer: {
     flexDirection: 'row',
@@ -149,7 +223,6 @@ const commonStyles = {
   quantityButton: {
     width: 28,
     height: 28,
-    backgroundColor: '#FFC107',
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 14,
@@ -174,15 +247,12 @@ const commonStyles = {
     alignItems: 'center',
     padding: 15,
     borderTopWidth: 1,
-    backgroundColor: '#fff',
-    borderTopColor: '#ccc',
   },
   cartText: {
     fontSize: 14,
     fontFamily: 'sans-serif',
   },
   cartButton: {
-    backgroundColor: '#FFC107',
     borderRadius: 8,
     paddingVertical: 8,
     paddingHorizontal: 15,
@@ -196,70 +266,75 @@ const commonStyles = {
     position: 'absolute',
     bottom: 80,
     right: 20,
-    backgroundColor: '#FFC107',
     width: 56,
     height: 56,
     borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 5,
   },
-  categoryScrollContainer: {
-    paddingVertical: 1,
-    paddingLeft: 16,
+  stickyCategoryList: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 0,
+    borderBottomWidth: 1,
+    elevation: 5,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    marginBottom: 0,
   },
   categoryButton: {
-    padding: 10,
-    backgroundColor: '#FFC107',
-    borderRadius: 10,
-    marginRight: 10,
+    paddingVertical: 5,
+    paddingHorizontal: 8,
+    marginHorizontal: 4,
+    borderRadius: 5,
+    marginBottom: 0,
   },
   categoryButtonText: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: 'bold',
-    color: '#000',
     fontFamily: 'sans-serif-medium',
   },
-  categoryListContainer: {
-    paddingVertical: 5,
+  categoryButtonText1: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    fontFamily: 'sans-serif-medium',
   },
-  loader: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  activeCategoryButton: {
+    borderBottomWidth: 2,
+  },
+  activeCategoryButtonText: {
+    color: '#FFC107',
+  },
+  categoryListContainer: {
+    paddingVertical: 10,
   },
   discountSectionContainer: {
     marginBottom: 20,
     paddingHorizontal: 20,
-    backgroundColor: 'white',
     paddingVertical: 20,
     borderRadius: 10,
     elevation: 5,
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-  },
-  discountSectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    fontFamily: 'sans-serif-medium',
   },
   discountCard: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 10,
     marginVertical: 5,
-    backgroundColor: '#fff',
     borderRadius: 10,
     borderWidth: 1,
     elevation: 3,
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -274,19 +349,20 @@ const commonStyles = {
     marginLeft: 10,
   },
   discountPercentage: {
-    color: '#006400',
     fontWeight: 'bold',
     fontSize: 16,
   },
   discountProduct: {
     fontSize: 14,
-    color: '#333',
     fontWeight: 'bold',
   },
   discountDescription: {
     fontSize: 12,
-    color: '#666',
     marginTop: 2,
+  },
+  headerImage: {
+    width: '100%',
+    height: 300,
   },
   discountPrice: {
     fontSize: 14,
@@ -294,7 +370,6 @@ const commonStyles = {
     marginTop: 5,
   },
   addButton: {
-    backgroundColor: '#FFC107',
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 5,
@@ -302,22 +377,18 @@ const commonStyles = {
     alignItems: 'center',
   },
   addButtonText: {
-    color: '#000',
     fontWeight: 'bold',
   },
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
   },
   modalContent: {
-    backgroundColor: '#fff',
     padding: 20,
     borderRadius: 15,
     width: '85%',
     alignItems: 'center',
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 5,
@@ -327,7 +398,6 @@ const commonStyles = {
     fontSize: 16,
     marginBottom: 15,
     fontFamily: 'sans-serif-medium',
-    color: '#333',
     textAlign: 'center',
   },
   modalActions: {
@@ -336,7 +406,6 @@ const commonStyles = {
     width: '100%',
   },
   modalButton: {
-    backgroundColor: '#FFC107',
     padding: 10,
     borderRadius: 8,
     width: '45%',
@@ -347,408 +416,155 @@ const commonStyles = {
   modalButtonText: {
     fontSize: 14,
     fontFamily: 'sans-serif-medium',
-    color: '#333',
   },
-  orderTypeContainer: {
+  orderTypeButtonsContainer: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    marginVertical: 1,
-    marginTop: 20,
-    marginBottom:10,
+    alignItems: 'center',
+  },
+  orderTypeButtonsRow: {
+    flexDirection: 'row',
   },
   orderTypeButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E0E0E0',
-    padding: 5,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
     borderRadius: 20,
-    borderWidth: 3,
-    borderColor: '#BDBDBD',
-    marginHorizontal: 5,
-  },
-  selectedOrderTypeButton: {
-    backgroundColor: '#FFE082',
-    borderColor: '#FFC107',
+    borderWidth: 1,
+    marginLeft: 8,
   },
   orderTypeText: {
     marginLeft: 5,
-    fontSize: 8,
-    color: '#8C6D00',
-    fontWeight: 'bold',
-  },
-  orderTypeModalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-  },
-  orderTypeModalContent: {
-    backgroundColor: '#fff',
-    padding: 20,
-    borderRadius: 15,
-    width: '85%',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 10,
-  },
-  orderTypeModalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 15,
-    fontFamily: 'sans-serif-medium',
-    color: '#333',
-  },
-  orderTypeOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
-    width: '100%',
-  },
-  orderTypeOptionText: {
-    marginLeft: 10,
-    fontSize: 16,
-    color: '#333',
-  },
-
-  // Estilos para el detalle del producto
-  productDetailContainer: {
-    flex: 1,
-    padding: 16,
-    backgroundColor: '#fff',
-  },
-  productDetailImage: {
-    width: '100%',
-    height: 120,
-    borderRadius: 10,
-    marginBottom: 20,
-    alignSelf: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-  },
-  productDetailName: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    fontFamily: 'sans-serif-medium',
-    color: '#333',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  productDetailDescription: {
-    fontSize: 14,
-    color: '#666',
-    fontFamily: 'sans-serif',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  productDetailActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  addToCartButton: {
-    backgroundColor: '#FFC107',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 3,
-  },
-  addToCartButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    fontFamily: 'sans-serif-medium',
-  },
-  backToProducts: {
-    fontSize: 14,
-    color: '#007AFF',
-    marginBottom: 20,
-    fontFamily: 'sans-serif',
-  },
-
-  // Estilos para extras
-  extrasContainer: {
-    marginTop: 20,
-    backgroundColor: '#f1f1f1',
-    padding: 10,
-    borderRadius: 10,
-  },
-  extraSection: {
-    marginBottom: 20,
-  },
-  extraTitleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  extraTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    fontFamily: 'sans-serif-medium',
-    marginBottom: 10,
-  },
-  requiredText: {
-    color: '#666',
     fontSize: 12,
-    fontFamily: 'sans-serif',
-    marginLeft: 5,
+    fontWeight: 'bold',
   },
-  optionButton: {
-    backgroundColor: '#E0E0E0',
-    padding: 10,
-    borderRadius: 5,
-    marginBottom: 10,
+  selectedOrderTypeButton: {
+    borderColor: '#FFC107',
+  },
+  stickyHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 16,
   },
-  selectedOptionButton: {
-    backgroundColor: '#D4B048',
+  stickyBackButton: {
+    padding: 8,
   },
-  optionText: {
-    fontSize: 14,
-    fontFamily: 'sans-serif',
-    color: '#333',
-  },
-  selectedOptionText: {
-    color: '#4A148C',
+  stickyHeaderText: {
+    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 };
-
-const stylesDark = StyleSheet.create({
-  ...commonStyles,
-  container: {
-    ...commonStyles.container,
-    backgroundColor: '#1a1a1a', // Fondo oscuro
-  },
-  productDetailPrice: {color: "white"},
-  orderTypeContainer: {
-    ...commonStyles.orderTypeContainer,
-  },
-  discountProduct: {
-    color: "white"
-  },
-  discountPrice: {
- color: "white"
-  },
-  discountSectionContainer: {
-    ...commonStyles.discountSectionContainer,
-    backgroundColor: '#000',
-
-  },
-  categoryContainer: {
-    ...commonStyles.container,
-  },
-  sectionTitle: {
-    ...commonStyles.sectionTitle,
-    color: '#E5E5E5', // Letras claras para contraste
-  },
-  offerCard: {
-    ...commonStyles.offerCard,
-    backgroundColor: '#2b2b2b', // Tarjetas en un tono oscuro
-  },
-  categoryTitle: {
-    ...commonStyles.categoryTitle,
-    color: '#E5E5E5', // Letras claras
-  },
-  productCard: {
-    ...commonStyles.productCard,
-    backgroundColor: '#2b2b2b',
-  },
-  productName: {
-    ...commonStyles.productName,
-    color: '#E5E5E5', // Letras claras
-  },
-  productPrice: {
-    ...commonStyles.productPrice,
-    color: '#E5E5E5', // Letras claras
-  },
-  quantityText: {
-    ...commonStyles.quantityText,
-    color: '#E5E5E5',
-  },
-  cartContainer: {
-    ...commonStyles.cartContainer,
-    backgroundColor: '#2b2b2b',
-    borderTopColor: '#3d3d3d', // Ligeramente más oscuro para diferenciación
-  },
-  cartText: {
-    ...commonStyles.cartText,
-    color: '#E5E5E5',
-  },
-  cartButton: {
-    ...commonStyles.cartButton,
-    backgroundColor: '#FFC107',
-// Botón oscuro
-  },
-  cartButtonText: {
-    ...commonStyles.cartButtonText,
-    color: '#000', // Letras claras en el botón
-  },
-  fab: {
-    ...commonStyles.fab,
-    backgroundColor: '#3d3d3d', // Botón oscuro
-  },
-  categoryListContainer: {
-    backgroundColor: '#1a1a1a',
-    paddingVertical: 10,
-  },
-  modalContent: {
-    backgroundColor: '#2b2b2b',
-    shadowColor: '#000000', // Sombra negra para mantener la oscuridad
-    padding: 20,
-    borderRadius: 15,
-    width: '85%',
-    alignItems: 'center',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 10,
-  },
-  modalText: {
-    color: '#E5E5E5', // Letras claras
-  },
-  modalButtonText: {
-    color: '#000', // Letras claras en el botón del modal
-  },
-  discountSectionTitle: {
-    ...commonStyles.discountSectionTitle,
-    color: '#E5E5E5',
-  },
-  discountCard: {
-    ...commonStyles.discountCard,
-    backgroundColor: '#2b2b2b',
-  },
-  discountTitle: {
-    ...commonStyles.discountTitle,
-    color: '#E5E5E5',
-  },
-  discountDescription: {
-    ...commonStyles.discountDescription,
-    color: '#B0BEC5', // Letras en un gris claro para menor contraste
-  },
-  discountValidity: {
-    ...commonStyles.discountValidity,
-    color: '#B0BEC5', // Letras en gris claro
-  },
-  discountType: {
-    ...commonStyles.discountType,
-    color: '#B0BEC5', // Letras en gris claro
-  },
-  discountBlockCard: {
-    ...commonStyles.discountBlockCard,
-    backgroundColor: '#2b2b2b',
-  },
-
-  // Estilos específicos para el detalle del producto en modo oscuro
-  productDetailContainer: {
-    ...commonStyles.productDetailContainer,
-    backgroundColor: '#1a1a1a',
-  },
-  productDetailName: {
-    ...commonStyles.productDetailName,
-    color: '#E5E5E5',
-  },
-  productDetailDescription: {
-    ...commonStyles.productDetailDescription,
-    color: '#B0BEC5',
-  },
-  addToCartButton: {
-    ...commonStyles.addToCartButton,
-    backgroundColor: '#FFC107', // Fondo oscuro para el botón
-  },
-  addToCartButtonText: {
-    ...commonStyles.addToCartButtonText,
-    color: '#000', // Letras claras en el botón
-  },
-  backToProducts: {
-    ...commonStyles.backToProducts,
-    color: '#E5E5E5', // Letras claras para volver a productos
-  },
-
-  // Estilos para extras en modo oscuro
-  extrasContainer: {
-    ...commonStyles.extrasContainer,
-    backgroundColor: '#2b2b2b',
-  },
-  extraTitle: {
-    ...commonStyles.extraTitle,
-    color: '#E5E5E5',
-  },
-  optionButton: {
-    ...commonStyles.optionButton,
-    backgroundColor: '#3d3d3d', // Fondo oscuro para los botones de opciones
-  },
-  selectedOptionButton: {
-    ...commonStyles.selectedOptionButton,
-    backgroundColor: '#D4B048', // Fondo ligeramente más claro para opción seleccionada
-  },
-  optionText: {
-    ...commonStyles.optionText,
-    color: '#E5E5E5',
-  },
-  selectedOptionText: {
-    ...commonStyles.selectedOptionText,
-    color: '#000',
-  },
-  requiredText: {
-    ...commonStyles.requiredText,
-    color: '#B0BEC5', // Letras en gris claro
-  },
-});
 
 const stylesLight = StyleSheet.create({
   ...commonStyles,
   container: {
-    ...commonStyles.container,
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
   },
-  orderTypeContainer: {
-    ...commonStyles.orderTypeContainer
+  shopInfoContainer: {
+    ...commonStyles.shopInfoContainer,
+    backgroundColor: '#FFFFFF',
   },
-  sectionTitle: {
-    ...commonStyles.sectionTitle,
-    color: '#333',
+  shopName: {
+    ...commonStyles.shopName,
+    color: '#333333',
   },
-  offerCard: {
-    ...commonStyles.offerCard,
-    backgroundColor: '#fff',
+  shopInfoDetails: {
+    ...commonStyles.shopInfoDetails,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000000',
   },
-  categoryTitle: {
-    ...commonStyles.categoryTitle,
-    color: '#333',
+  shopAddress: {
+    ...commonStyles.shopAddress,
+    color: '#666666',
+  },
+  shopDistance: {
+    ...commonStyles.shopDistance,
+    color: '#999999',
+  },
+  shopRatingContainer: {
+    ...commonStyles.shopRatingContainer,
+    backgroundColor: '#fff4db',
+    shadowColor: '#000000',
+  },
+  shopRating: {
+    ...commonStyles.shopRating,
+    color: '#333333',
+  },
+  shopRatingOpinions: {
+    ...commonStyles.shopRatingOpinions,
+    color: '#666666',
+  },
+  shopRatingArrow: {
+    ...commonStyles.shopRatingArrow,
+    color: '#666666',
+  },
+  shopHours: {
+    ...commonStyles.shopHours,
+    color: '#999999',
+  },
+  orderTypeButton: {
+    ...commonStyles.orderTypeButton,
+    backgroundColor: '#E0E0E0',
+    borderColor: '#BDBDBD',
+  },
+  orderTypeText: {
+    ...commonStyles.orderTypeText,
+    color: '#8C6D00',
+  },
+  selectedOrderTypeButton: {
+    ...commonStyles.selectedOrderTypeButton,
+    backgroundColor: '#FFE082',
+  },
+  categoryButtonText: {
+    ...commonStyles.categoryButtonText,
+    color: '#000000',
+  },
+  categoryButtonText1: {
+    ...commonStyles.categoryButtonText1,
+    color: '#000000',
+  },
+  activeCategoryButtonText: {
+    ...commonStyles.activeCategoryButtonText,
+    color: '#FFC107',
+  },
+  categorySeparator: {
+    ...commonStyles.categorySeparator,
+    backgroundColor: '#CCCCCC',
   },
   productCard: {
     ...commonStyles.productCard,
-    backgroundColor: '#f8f8f8',
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000000',
   },
   productName: {
     ...commonStyles.productName,
-    color: '#000',
+    color: '#000000',
+  },
+  productDescription: {
+    ...commonStyles.productDescription,
+    color: '#666666',
   },
   productPrice: {
     ...commonStyles.productPrice,
-    color: '#000',
+    color: '#000000',
   },
   quantityText: {
     ...commonStyles.quantityText,
-    color: '#000',
+    color: '#000000',
+  },
+  quantityButton: {
+    ...commonStyles.quantityButton,
+    backgroundColor: '#FFC107',
   },
   cartContainer: {
     ...commonStyles.cartContainer,
-    backgroundColor: '#f8f8f8',
-    borderTopColor: '#ccc',
+    backgroundColor: '#FFFFFF',
+    borderTopColor: '#CCCCCC',
   },
   cartText: {
     ...commonStyles.cartText,
-    color: '#333',
+    color: '#333333',
   },
   cartButton: {
     ...commonStyles.cartButton,
@@ -756,91 +572,239 @@ const stylesLight = StyleSheet.create({
   },
   cartButtonText: {
     ...commonStyles.cartButtonText,
-    color: '#333',
+    color: '#333333',
   },
   fab: {
     ...commonStyles.fab,
     backgroundColor: '#FFC107',
+    shadowColor: '#000000',
   },
-  categoryListContainer: {
-    marginTop: 20,
-    backgroundColor: 'white',
-    paddingVertical: 10,
+  modalContainer: {
+    ...commonStyles.modalContainer,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
   },
   modalContent: {
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    padding: 20,
-    borderRadius: 15,
-    width: '85%',
-    alignItems: 'center',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 10,
+    ...commonStyles.modalContent,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000000',
   },
   modalText: {
-    color: '#333',
+    ...commonStyles.modalText,
+    color: '#333333',
   },
-  modalButtonText: {
-    color: '#333',
-  },
-
-  // Estilos específicos para el detalle del producto en modo claro
-  productDetailContainer: {
-    ...commonStyles.productDetailContainer,
-    backgroundColor: '#fff',
-  },
-  productDetailName: {
-    ...commonStyles.productDetailName,
-    color: '#333',
-  },
-  productDetailDescription: {
-    ...commonStyles.productDetailDescription,
-    color: '#666',
-  },
-  addToCartButton: {
-    ...commonStyles.addToCartButton,
+  modalButton:{
+    ...commonStyles.modalButton,
     backgroundColor: '#FFC107',
   },
-  addToCartButtonText: {
-    ...commonStyles.addToCartButtonText,
-    color: '#333',
+  modalButtonText: {
+    ...commonStyles.modalButtonText,
+    color: '#333333',
   },
-  backToProducts: {
-    ...commonStyles.backToProducts,
-    color: '#007AFF',
+  stickyCategoryList: {
+    ...commonStyles.stickyCategoryList,
+    backgroundColor: '#FFFFFF',
+    borderBottomColor: '#B0B0B0',
+    shadowColor: '#000000',
   },
-
-  // Estilos específicos para extras en modo claro
-  extrasContainer: {
-    ...commonStyles.extrasContainer,
-    backgroundColor: '#f1f1f1',
+  stickyHeaderText: {
+    ...commonStyles.stickyHeaderText,
+    color: '#333333',
   },
-  extraTitle: {
-    ...commonStyles.extraTitle,
-    color: '#333',
+  backButton: {
+    ...commonStyles.backButton,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
   },
-  optionButton: {
-    ...commonStyles.optionButton,
-    backgroundColor: '#E0E0E0',
+  stickyBackButton: {
+    ...commonStyles.stickyBackButton,
+    backgroundColor: 'transparent',
   },
-  selectedOptionButton: {
-    ...commonStyles.selectedOptionButton,
-    backgroundColor: '#D4B048',
+  headerTitle: {
+    ...commonStyles.headerTitle,
+    color: '#FFFFFF',
   },
-  optionText: {
-    ...commonStyles.optionText,
-    color: '#333',
-  },
-  selectedOptionText: {
-    ...commonStyles.selectedOptionText,
-    color: '#4A148C',
-  },
-  requiredText: {
-    ...commonStyles.requiredText,
-    color: 'black',
+  bgtitle1: {
+    ...commonStyles.bgtitle1,
+    backgroundColor: '#000000',
   },
 });
 
-export { stylesDark, stylesLight };
+const stylesDark = StyleSheet.create({
+  ...commonStyles,
+  container: {
+    backgroundColor: '#121212',
+  },
+  shopInfoContainer: {
+    ...commonStyles.shopInfoContainer,
+    backgroundColor: '#1E1E1E',
+  },
+  shopName: {
+    ...commonStyles.shopName,
+    color: '#FFFFFF',
+  },
+  categoryListContainer:{
+    padding:35
+  },
+  shopInfoDetails: {
+    ...commonStyles.shopInfoDetails,
+    backgroundColor: '#1E1E1E',
+    shadowColor: '#000000',
+  },
+  shopAddress: {
+    ...commonStyles.shopAddress,
+    color: '#B3B3B3',
+  },
+  shopDistance: {
+    ...commonStyles.shopDistance,
+    color: '#B3B3B3',
+  },
+  shopRatingContainer: {
+    ...commonStyles.shopRatingContainer,
+    backgroundColor: '#2A2A2A',
+    shadowColor: '#000000',
+  },
+  shopRating: {
+    ...commonStyles.shopRating,
+    color: '#FFFFFF',
+  },
+  shopRatingOpinions: {
+    ...commonStyles.shopRatingOpinions,
+    color: '#B3B3B3',
+  },
+  shopRatingArrow: {
+    ...commonStyles.shopRatingArrow,
+    color: '#B3B3B3',
+  },
+  shopHours: {
+    ...commonStyles.shopHours,
+    color: '#B3B3B3',
+  },
+  orderTypeButton: {
+    ...commonStyles.orderTypeButton,
+    backgroundColor: '#2A2A2A',
+    borderColor: '#444444',
+  },
+  orderTypeText: {
+    ...commonStyles.orderTypeText,
+    color: '#000',
+  },
+  selectedOrderTypeButton: {
+    ...commonStyles.selectedOrderTypeButton,
+    backgroundColor: '#FFC107',
+  },
+  categoryButtonText: {
+    ...commonStyles.categoryButtonText,
+    color: '#FFFFFF',
+  },
+  categoryButtonText1: {
+    ...commonStyles.categoryButtonText1,
+    color: '#FFFFFF',
+  },
+  activeCategoryButtonText: {
+    ...commonStyles.activeCategoryButtonText,
+    color: '#FFC107',
+  },
+  categorySeparator: {
+    ...commonStyles.categorySeparator,
+    backgroundColor: '#333333',
+  },
+  productCard: {
+    ...commonStyles.productCard,
+    backgroundColor: '#1E1E1E',
+    shadowColor: '#000000',
+  },
+  productName: {
+    ...commonStyles.productName,
+    color: '#FFFFFF',
+  },
+  productDescription: {
+    ...commonStyles.productDescription,
+    color: '#B3B3B3',
+  },
+  productPrice: {
+    ...commonStyles.productPrice,
+    color: '#FFFFFF',
+  },
+  quantityText: {
+    ...commonStyles.quantityText,
+    color: '#FFFFFF',
+  },
+  quantityButton: {
+    ...commonStyles.quantityButton,
+    backgroundColor: '#FFC107',
+  },
+  cartContainer: {
+    ...commonStyles.cartContainer,
+    backgroundColor: '#1E1E1E',
+    borderTopColor: '#333333',
+  },
+  cartText: {
+    ...commonStyles.cartText,
+    color: '#FFFFFF',
+  },
+  categoryTitle:{
+    ...commonStyles.categoryTitle,
+    color: '#fff',
+  },
+  cartButton: {
+    ...commonStyles.cartButton,
+    backgroundColor: '#FFC107',
+  },
+  cartButtonText: {
+    ...commonStyles.cartButtonText,
+    color: '#000000',
+  },
+  fab: {
+    ...commonStyles.fab,
+    backgroundColor: '#FFC107',
+    shadowColor: '#000000',
+  },
+  modalContainer: {
+    ...commonStyles.modalContainer,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+  },
+  modalContent: {
+    ...commonStyles.modalContent,
+    backgroundColor: '#1E1E1E',
+    shadowColor: '#000000',
+  },
+  modalText: {
+    ...commonStyles.modalText,
+    color: '#FFFFFF',
+  },
+  modalButton:{
+    ...commonStyles.modalButton,
+    backgroundColor: '#FFC107',
+  },
+  modalButtonText: {
+    ...commonStyles.modalButtonText,
+    color: '#000000',
+  },
+  stickyCategoryList: {
+    ...commonStyles.stickyCategoryList,
+    backgroundColor: '#121212',
+    borderBottomColor: '#333333',
+    shadowColor: '#000000',
+  },
+  stickyHeaderText: {
+    ...commonStyles.stickyHeaderText,
+    color: '#FFFFFF',
+  },
+  backButton: {
+    ...commonStyles.backButton,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+  },
+  stickyBackButton: {
+    ...commonStyles.stickyBackButton,
+    backgroundColor: 'transparent',
+  },
+  headerTitle: {
+    ...commonStyles.headerTitle,
+    color: '#FFFFFF',
+  },
+  bgtitle1: {
+    ...commonStyles.bgtitle1,
+    backgroundColor: '#000000',
+  },
+});
+
+export { stylesLight, stylesDark };
