@@ -1,9 +1,18 @@
+// ReviewScreen.js
+
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  StyleSheet,
+  Alert,
+} from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { API_URL } from '@env';
-import ReviewCard from '../components/ReviewsCards';
+import { API_URL } from '@env'; // Ensure you have your API URL configured
+import ReviewCard from '../components/ReviewsCards'; // Adjust the import path as needed
 import Axios from 'react-native-axios';
 import { useSelector } from 'react-redux';
 
@@ -38,7 +47,16 @@ const ReviewScreen = () => {
     <View style={styles.container}>
       {/* Header with the title */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.goBackButton} onPress={() => navigation.goBack()}>
+        <TouchableOpacity
+          style={styles.goBackButton}
+          onPress={() => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              Alert.alert('Cannot go back');
+            }
+          }}
+        >
           <Icon name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
 
@@ -92,37 +110,35 @@ const ReviewScreen = () => {
   );
 };
 
-// Improved styles for a modern and cleaner design
+// Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9F9F9', // A lighter and softer background color
+    backgroundColor: '#F9F9F9',
   },
   header: {
     paddingVertical: 30,
     paddingHorizontal: 15,
     backgroundColor: '#333',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
-    flexDirection: 'row',
-    position: 'relative',
-    elevation: 4, // Added shadow to the header
+    flexDirection: 'row', // Ensure items are in a row
+    elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
   },
   goBackButton: {
-    position: 'absolute',
-    left: 15,
     width: 36,
     height: 36,
     borderRadius: 18,
     backgroundColor: '#000',
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: 10, // Added margin to separate from the title
   },
   headerTitle: {
     fontSize: 20,
@@ -131,7 +147,7 @@ const styles = StyleSheet.create({
   },
   filterWrapper: {
     height: 40,
-    marginVertical: 20, // Added margin so it doesn't stick to the header
+    marginVertical: 20,
   },
   filterContainer: {
     backgroundColor: '#fff',
@@ -143,16 +159,16 @@ const styles = StyleSheet.create({
   filterContentContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 15,
   },
   filterButton: {
     marginRight: 10,
-    paddingVertical: 8, // Reduced padding for the buttons
+    paddingVertical: 8,
     paddingHorizontal: 15,
     borderRadius: 20,
     backgroundColor: '#E0E0E0',
     justifyContent: 'center',
     alignItems: 'center',
-    transition: 'background-color 0.3s ease', // Smooth transition
   },
   filterButtonSelected: {
     backgroundColor: '#FFC107',
@@ -183,6 +199,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#B0B0B0',
     marginTop: 10,
+    textAlign: 'center',
   },
 });
 
