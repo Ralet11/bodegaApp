@@ -48,6 +48,7 @@ const LoginScreen = () => {
   const [request, response, promptAsync] = Google.useAuthRequest({
     androidClientId: '446223706539-i8b0j8tasvjm66luvhvt67gtgjl4h41a.apps.googleusercontent.com',
     expoClientId: '446223706539-u2lnq90ruft4lk7onsp9dmot8dh811eb.apps.googleusercontent.com',
+    iosClientId: '446223706539-f18kn0300m6l69q9ccj3j4lj27q51att.apps.googleusercontent.com',
     scopes: ['profile', 'email'],
   });
 
