@@ -309,13 +309,14 @@ const commonStyles = {
     fontFamily: 'sans-serif-medium',
   },
   activeCategoryButton: {
-    borderBottomWidth: 2,
-  },
+  borderBottomWidth: 2,
+  borderBottomColor: '#FFC107',  // Añade esta línea
+},
   activeCategoryButtonText: {
     color: '#FFC107',
   },
   categoryListContainer: {
-    paddingVertical: 10,
+    paddingVertical: 30,
   },
   discountSectionContainer: {
     marginBottom: 20,
@@ -605,6 +606,7 @@ const stylesLight = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderBottomColor: '#B0B0B0',
     shadowColor: '#000000',
+    paddingTop:30
   },
   stickyHeaderText: {
     ...commonStyles.stickyHeaderText,
@@ -784,9 +786,11 @@ const stylesDark = StyleSheet.create({
     backgroundColor: '#121212',
     borderBottomColor: '#333333',
     shadowColor: '#000000',
+    paddingTop:30
   },
   stickyHeaderText: {
     ...commonStyles.stickyHeaderText,
+    paddingTop:30,
     color: '#FFFFFF',
   },
   backButton: {

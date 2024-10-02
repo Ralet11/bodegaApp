@@ -72,7 +72,9 @@ const CartScreen = () => {
   const [customTip, setCustomTip] = useState('');
   const [deliveryInstructions, setDeliveryInstructions] = useState(addressInfo.additionalDetails || '');
 
-  const GOOGLE_API_KEY = 'YOUR_GOOGLE_API_KEY'; // Replace with your actual Google API key
+  const GOOGLE_API_KEY = 'AIzaSyAvritMA-llcdIPnOpudxQ4aZ1b5WsHHUc'; // Replace with your actual Google API key
+
+  console.log(cart, "cart en cart")
 
   const shop = Object.values(shops)
     .flat()
@@ -412,6 +414,12 @@ const CartScreen = () => {
     }
   };
 
+  useEffect(() => {
+    if (cart.length === 0) {
+      navigation.goBack(); // Si el carrito está vacío, regresa a la pantalla anterior
+    }
+  }, [cart, navigation]);
+
   const selectAddress = (address) => {
     dispatch(setAddress(address.formatted_address));
     setModalVisible(false);
@@ -450,8 +458,8 @@ const CartScreen = () => {
 
           {/* Order Type Section */}
           <View style={styles.orderTypeContainer}>
-            <TouchableOpacity
-              onPress={() => toggleOrderType(orderType === 'Delivery' ? 'Pick-up' : 'Delivery')}
+            <View
+             
               disabled={orderType === 'Order-in'}
             >
               <View style={styles.orderType}>
@@ -470,7 +478,7 @@ const CartScreen = () => {
                   {orderType === 'Order-in' ? 'Dine-in' : orderType}
                 </Text>
               </View>
-            </TouchableOpacity>
+            </View>
             <Text style={styles.orderTypeText}>User: {user.name}</Text>
           </View>
 
@@ -495,84 +503,91 @@ const CartScreen = () => {
 
           {/* Cart Items */}
           <View style={styles.cartItemsContainer}>
-            {cart.map((item) => {
-              // Flatten the selectedExtras
-              const selectedExtrasArray = Object.values(item.selectedExtras || {}).flat();
+          {cart.map((item) => {
+  // Flatten the selectedExtras
+  const selectedExtrasArray = Object.values(item.selectedExtras || {}).flat();
 
-              // Calculate total price for the item including extras
-              const itemPrice =
-                typeof item.price === 'string'
-                  ? parseFloat(item.price.replace('$', ''))
-                  : item.price;
+  // Calculate total price for the item including extras
+  const itemPrice =
+    typeof item.price === 'string'
+      ? parseFloat(item.price.replace('$', ''))
+      : item.price;
 
-              const extrasTotal = selectedExtrasArray.reduce(
-                (extraTotal, extra) =>
-                  extraTotal +
-                  (typeof extra.price === 'string'
-                    ? parseFloat(extra.price.replace('$', ''))
-                    : extra.price),
-                0
-              );
+  const extrasTotal = selectedExtrasArray.reduce(
+    (extraTotal, extra) =>
+      extraTotal +
+      (typeof extra.price === 'string'
+        ? parseFloat(extra.price.replace('$', ''))
+        : extra.price),
+    0
+  );
 
-              const totalPrice = (itemPrice + extrasTotal).toFixed(2);
+  const totalPrice = (itemPrice + extrasTotal).toFixed(2);
 
-              return (
-                <View key={item.id} style={styles.cartItem}>
-                  {(item.discount || item.promotion) ? (
-                    <Image source={{ uri: item.img }} style={styles.cartItemImage} />
-                  ) : (
-                    <Image source={{ uri: item.image }} style={styles.cartItemImage} />
-                  )}
-                  {item.discount && (
-                    <View style={styles.discountLabel}>
-                      <Text style={styles.discountLabelText}>Discount</Text>
-                    </View>
-                  )}
-                  {item.promotion && (
-                    <View style={styles.promotionLabel}>
-                      <Text style={styles.discountLabelText}>Reward</Text>
-                    </View>
-                  )}
-                  <View style={styles.cartItemDetails}>
-                    <Text style={styles.cartItemName}>{item.name}</Text>
-                    {selectedExtrasArray.length > 0 && (
-                      <View style={styles.cartItemExtras}>
-                        {selectedExtrasArray.map((extra, index) => (
-                          <Text key={index} style={styles.cartItemExtraText}>
-                            {extra.name} (${extra.price})
-                          </Text>
-                        ))}
-                      </View>
-                    )}
-                    <View style={styles.row}>
-                      {item.promotion ? (
-                        <View style={styles.freeTag}>
-                          <Text style={styles.freeText}>Free</Text>
-                        </View>
-                      ) : (
-                        <Text style={styles.cartItemPrice}>${totalPrice}</Text>
-                      )}
-                      <View style={styles.quantityContainer}>
-                        <Text
-                          style={[
-                            styles.quantityText,
-                            { color: colorScheme === 'dark' ? '#fff' : '#000' },
-                          ]}
-                        >
-                          {item.quantity}
-                        </Text>
-                      </View>
-                    </View>
-                    <TouchableOpacity
-                      onPress={() => handleRemove(item)}
-                      style={styles.removeButton}
-                    >
-                      <FontAwesome name="trash-o" size={24} color="#FF4500" />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              );
-            })}
+  return (
+    <View key={item.id} style={styles.cartItem}>
+      <Image source={{ uri: item.img }} style={styles.cartItemImage} />
+      
+      {item.discount && (
+        <View style={styles.discountLabel}>
+          <Text style={styles.discountLabelText}>Discount</Text>
+        </View>
+      )}
+      
+      {item.promotion && (
+        <View style={styles.promotionLabel}>
+          <Text style={styles.promotionLabelText}>Reward</Text>
+        </View>
+      )}
+      
+      <View style={styles.cartItemDetails}>
+        <Text style={styles.cartItemName}>{item.name}</Text>
+
+        {selectedExtrasArray.length > 0 && (
+          <View style={styles.cartItemExtras}>
+            {selectedExtrasArray.map((extra, index) => (
+              <Text key={index} style={styles.cartItemExtraText}>
+                {extra.name} (${extra.price})
+              </Text>
+            ))}
+          </View>
+        )}
+
+        <View style={styles.row}>
+          <Text style={styles.cartItemPrice}>${totalPrice}</Text>
+
+          {/* Botones para cambiar la cantidad */}
+          <View style={styles.quantityControl}>
+            <TouchableOpacity
+              style={styles.quantityButton}
+              onPress={() => dispatch(decrementQuantity(item.id))}
+            >
+              <Text style={styles.quantityButtonText}>-</Text>
+            </TouchableOpacity>
+
+            <Text
+              style={[
+                styles.quantityText,
+                { color: colorScheme === 'dark' ? '#fff' : '#000' },
+              ]}
+            >
+              {item.quantity}
+            </Text>
+
+            <TouchableOpacity
+              style={styles.quantityButton}
+              onPress={() => dispatch(incrementQuantity(item.id))}
+            >
+              <Text style={styles.quantityButtonText}>+</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+       
+      </View>
+    </View>
+  );
+})}
           </View>
 
           {/* Tip Section */}

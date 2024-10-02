@@ -5,10 +5,14 @@ import { API_URL } from '@env';
 import Axios from 'react-native-axios';
 import { useDispatch, useSelector } from 'react-redux';
 import { addToCart } from '../redux/slices/cart.slice';
+import { useNavigation } from '@react-navigation/native';
 
-const ProductCard = ({ promotion, onPress, user, token }) => {
+const ProductCard = ({ promotion, onPress, user, token, shop }) => {
   const dispatch = useDispatch();
   const cart = useSelector(state => state.cart.items); // Obtenemos los elementos del carrito del estado global
+  const navigation = useNavigation()
+
+  console.log(shop)
   
   if (!promotion || promotion.length === 0) {
     return null; // Mostrar un mensaje de "Cargando..." o manejar de otra forma si no hay datos.
@@ -40,6 +44,10 @@ const ProductCard = ({ promotion, onPress, user, token }) => {
     };
     fetchUserPromotions();
   }, []);
+
+  const goPromoScreen = () => {
+    navigation.navigate('PromoMealScreen', { promotion, userPromo, product, shopName: shop.name });
+  }
 
   // Función para manejar la reclamación del premio
   const handleClaimReward = () => {
@@ -95,7 +103,7 @@ const ProductCard = ({ promotion, onPress, user, token }) => {
             <Icon name="check-circle" size={24} color="#28A745" />
           </View>
         ) : (
-          <TouchableOpacity style={styles.button} onPress={onPress}>
+          <TouchableOpacity onPress={goPromoScreen} style={styles.button}>
             <Text style={styles.buttonText}>View More</Text>
           </TouchableOpacity>
         )}

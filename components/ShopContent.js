@@ -1,3 +1,5 @@
+// ShopContent.js
+
 import React, { useRef, useState, useEffect } from 'react';
 import {
   View,
@@ -38,6 +40,7 @@ const ShopContent = ({
   orderType,
   selectedCategory,
   setSelectedCategory,
+  shop
 }) => {
   const colorScheme = useColorScheme();
   const styles = colorScheme === 'dark' ? stylesDark : stylesLight;
@@ -52,7 +55,11 @@ const ShopContent = ({
   }, [categories]);
 
   const renderProduct = (product) => {
-    const productInCart = cart?.find((cartItem) => cartItem?.id === product?.id);
+    const productInCart = cart?.find(
+      (cartItem) =>
+        cartItem?.id === product?.id &&
+        JSON.stringify(cartItem.selectedExtras || {}) === '{}'
+    );
 
     const handleIncrementQuantity = () => {
       if (product.extras && product.extras.length > 0) {
@@ -61,7 +68,13 @@ const ShopContent = ({
         if (productInCart) {
           dispatch(incrementQuantity(product?.id));
         } else {
-          handleAddToCart(product, 1);
+          // Add currentPrice and selectedExtras
+          const productToAdd = {
+            ...product,
+            currentPrice: product.price,
+            selectedExtras: {},
+          };
+          handleAddToCart(productToAdd, 1);
         }
       }
     };
@@ -90,6 +103,7 @@ const ShopContent = ({
               <TouchableOpacity
                 style={styles.quantityButton}
                 onPress={handleDecrementQuantity}
+                disabled={!productInCart || productInCart.quantity === 0}
               >
                 <FontAwesome name="minus" size={14} color={iconColor} />
               </TouchableOpacity>
@@ -192,32 +206,29 @@ const ShopContent = ({
   };
 
   return (
-    <View style={{padding: 20}}>
+    <>
       {selectedProduct ? (
         <ProductDetail
           product={selectedProduct}
           onAddToCart={handleAddToCart}
           onBack={closeProductDetail}
+          shop={shop}
         />
       ) : selectedDiscount ? (
-        <DiscountDetail
-          discount={selectedDiscount}
-          onAddToCart={handleAddDiscountToCart}
-          onBack={closeDiscountDetail}
-        />
+        selectedDiscount && shop && (
+          <DiscountDetail
+            discount={selectedDiscount}
+            onAddToCart={handleAddDiscountToCart}
+            onBack={closeDiscountDetail}
+            shop={shop} // Asegurarse de que shop se pasa correctamente aquí
+          />
+        )
       ) : (
-        <ScrollView
-          ref={scrollViewRef}
-          nestedScrollEnabled={true}
-          style={styles.scrollView}
-          scrollEventThrottle={16}
-          onScroll={handleScroll}
-        >
-          {renderDiscounts()}
-          {categories.map((category, index) => renderCategory(category, index))}
-        </ScrollView>
+        <View style={{ padding: 5, paddingBottom: 50 }}>
+          {discounts?.map((category, index) => renderCategory(category, index))}
+        </View>
       )}
-    </View>
+    </>
   );
 };
 

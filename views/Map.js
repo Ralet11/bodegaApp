@@ -10,25 +10,31 @@ import {
   FlatList,
   Dimensions,
   ScrollView,
+  Animated,
+  Easing,
+  Linking,
+  Alert,
+  Platform,
 } from 'react-native';
-import MapView, { Marker, Callout } from 'react-native-maps';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useDispatch, useSelector } from 'react-redux';
 import * as Location from 'expo-location';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { FontAwesome } from '@expo/vector-icons';
+import { FontAwesome5 } from '@expo/vector-icons';
 import isEqual from 'lodash.isequal';
+import Axios from 'react-native-axios';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
+import LottieView from 'lottie-react-native';
 
 const { width, height } = Dimensions.get('window');
 
 const GOOGLE_API_KEY = 'AIzaSyAvritMA-llcdIPnOpudxQ4aZ1b5WsHHUc';
 
-
 const MapViewComponent = () => {
   const dispatch = useDispatch();
   const address = useSelector((state) => state?.user?.address?.formatted_address) || '';
-
-  // Usamos isEqual para evitar re-renderizados innecesarios
   const shopsByCategory = useSelector((state) => state?.setUp?.shopsDiscounts || {}, isEqual);
 
   const [region, setRegion] = useState(null);
@@ -39,8 +45,54 @@ const MapViewComponent = () => {
   const [locationPermissionDenied, setLocationPermissionDenied] = useState(false);
   const navigation = useNavigation();
   const flatListRef = useRef();
-
   const [allTags, setAllTags] = useState([]);
+  const [distances, setDistances] = useState({});
+
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(height)).current;
+  const scaleAnim = useRef(new Animated.Value(0.5)).current;
+
+  useEffect(() => {
+    if (selectedLocalIndex !== null) {
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.spring(slideAnim, {
+          toValue: 0,
+          speed: 12,
+          bounciness: 8,
+          useNativeDriver: true,
+        }),
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          friction: 3,
+          tension: 40,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: height,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 0.5,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [selectedLocalIndex, fadeAnim, slideAnim, scaleAnim]);
 
   useEffect(() => {
     const fetchLocation = async () => {
@@ -64,7 +116,6 @@ const MapViewComponent = () => {
 
         setMarker({ latitude, longitude });
 
-        // Configurar el listener de ubicación
         Location.watchPositionAsync(
           { accuracy: Location.Accuracy.High, timeInterval: 5000, distanceInterval: 10 },
           (newLocation) => {
@@ -119,13 +170,43 @@ const MapViewComponent = () => {
     }
   }, [address]);
 
-  // Extraer todas las etiquetas de las tiendas y eliminar duplicados
   useEffect(() => {
-    console.log('shopsByCategory:', shopsByCategory); // Para depuración
+    const fetchDistances = async () => {
+      const newDistances = {};
+      for (const shop of filteredShops) {
+        if (shop.address) {
+          try {
+            const response = await Axios.get(
+              `https://maps.googleapis.com/maps/api/distancematrix/json?units=metric&origins=${encodeURIComponent(
+                address
+              )}&destinations=${encodeURIComponent(shop.address)}&key=${GOOGLE_API_KEY}`
+            );
+            const distanceValueKm = response.data.rows[0].elements[0].distance.value / 1000;
+
+            // Convert to miles
+            const distanceValueMiles = distanceValueKm * 0.621371;
+            const distanceTextMiles = `${distanceValueMiles.toFixed(2)} mi`;
+
+            if (distanceValueMiles <= 20) {
+              newDistances[shop.id] = distanceTextMiles;
+            }
+          } catch (error) {
+            console.error('Error fetching distance:', error);
+          }
+        }
+      }
+      setDistances(newDistances);
+    };
+
+    if (address) {
+      fetchDistances();
+    }
+  }, [address, filteredShops]);
+
+  useEffect(() => {
     const shopsArray = Array.isArray(shopsByCategory)
       ? shopsByCategory.flat()
       : Object.values(shopsByCategory).flat();
-    console.log('shopsArray:', shopsArray); // Para depuración
     const tagsMap = new Map();
 
     shopsArray.forEach((shop) => {
@@ -139,7 +220,6 @@ const MapViewComponent = () => {
     });
 
     const tagsArray = Array.from(tagsMap.values());
-    console.log('Tags extraídos:', tagsArray); // Para depuración
     setAllTags(tagsArray);
   }, [shopsByCategory]);
 
@@ -203,42 +283,54 @@ const MapViewComponent = () => {
     }
   };
 
-  const renderStars = (rating) => {
-    const stars = [];
-    const fullStars = Math.floor(rating);
-    const hasHalfStar = rating - fullStars >= 0.5;
-
-    for (let i = 1; i <= 5; i++) {
-      if (i <= fullStars) {
-        stars.push(<FontAwesome key={i} name="star" size={20} color="#ffcc00" />);
-      } else if (i === fullStars + 1 && hasHalfStar) {
-        stars.push(<FontAwesome key={i} name="star-half-full" size={20} color="#ffcc00" />);
-      } else {
-        stars.push(<FontAwesome key={i} name="star-o" size={20} color="#ffcc00" />);
-      }
-    }
-    return stars;
+  const renderRating = (rating) => {
+    return (
+      <View style={styles.ratingContainer}>
+        <Text style={styles.ratingText}>{rating.toFixed(1)}</Text>
+        <FontAwesome5 name="star" size={18} color="#FFD700" style={styles.starIcon} />
+      </View>
+    );
   };
 
-  // Mapear emojis a las categorías
+  const openAddressInMaps = (address) => {
+    const encodedAddress = encodeURIComponent(address);
+    const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+    const appleMapsUrl = `http://maps.apple.com/?q=${encodedAddress}`;
+
+    if (Platform.OS === 'ios') {
+      Alert.alert(
+        'Open in Maps',
+        'Would you like to open the address in Google Maps or Apple Maps?',
+        [
+          {
+            text: 'Google Maps',
+            onPress: () => Linking.openURL(googleMapsUrl),
+          },
+          {
+            text: 'Apple Maps',
+            onPress: () => Linking.openURL(appleMapsUrl),
+          },
+        ]
+      );
+    } else {
+      Linking.openURL(googleMapsUrl);
+    }
+  };
+
   const tagEmojis = {
     Pizza: '🍕',
     Burgers: '🍔',
     Sushi: '🍣',
     Vegan: '🥦',
-    // Agrega más categorías y emojis según sea necesario
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Contenedor del header con el botón Go Back y los filtros */}
-      <View style={styles.headerContainer}>
-        {/* Botón Go Back */}
+      <BlurView intensity={100} style={styles.headerContainer}>
         <TouchableOpacity style={styles.goBackButton} onPress={() => navigation.goBack()}>
-          <FontAwesome name="arrow-left" size={24} color="#fff" />
+          <FontAwesome5 name="arrow-left" size={24} color="#333" />
         </TouchableOpacity>
 
-        {/* Contenedor de etiquetas */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -264,14 +356,25 @@ const MapViewComponent = () => {
             </TouchableOpacity>
           ))}
         </ScrollView>
-      </View>
+      </BlurView>
 
       {loading ? (
         <View style={styles.loaderContainer}>
-          <ActivityIndicator size="large" color="#008080" />
+          <LottieView
+            source={{ uri: 'https://assets10.lottiefiles.com/packages/lf20_q7uarxsb.json' }}
+            autoPlay
+            loop
+            style={styles.lottieAnimation}
+          />
         </View>
       ) : locationPermissionDenied ? (
         <View style={styles.permissionDeniedContainer}>
+          <LottieView
+            source={{ uri: 'https://assets5.lottiefiles.com/packages/lf20_sB03tR.json' }}
+            autoPlay
+            loop
+            style={styles.lottieAnimation}
+          />
           <Text style={styles.permissionDeniedText}>
             Permiso para acceder a la ubicación denegado. Por favor, habilita los servicios de
             ubicación para usar la aplicación.
@@ -279,8 +382,14 @@ const MapViewComponent = () => {
         </View>
       ) : (
         region && (
-          <MapView style={styles.map} region={region}>
-            {marker && <Marker coordinate={marker} />}
+          <MapView style={styles.map} region={region} provider={PROVIDER_GOOGLE}>
+            {marker && (
+              <Marker coordinate={marker}>
+                <View style={styles.userMarker}>
+                  <FontAwesome5 name="map-pin" size={24} color="#4A90E2" />
+                </View>
+              </Marker>
+            )}
 
             {filteredShops.map((shop, index) => (
               <Marker
@@ -288,14 +397,25 @@ const MapViewComponent = () => {
                 coordinate={{ latitude: shop.lat, longitude: shop.lng }}
                 onPress={() => handleMarkerPress(shop, index)}
               >
-                <View style={styles.markerContainer}>
-                  <View style={styles.circle}>
-                    <Image source={{ uri: shop.logo }} style={styles.markerImage} />
-                  </View>
-                </View>
-                <Callout>
-                  <Text>{shop.name}</Text>
-                </Callout>
+                <Animated.View
+                  style={[
+                    styles.markerContainer,
+                    {
+                      transform: [
+                        {
+                          scale: selectedLocalIndex === index
+                            ? scaleAnim.interpolate({
+                                inputRange: [0.5, 1],
+                                outputRange: [1, 1.2],
+                              })
+                            : 1,
+                        },
+                      ],
+                    },
+                  ]}
+                >
+                  <Image source={{ uri: shop.logo }} style={styles.markerImage} />
+                </Animated.View>
               </Marker>
             ))}
           </MapView>
@@ -304,14 +424,22 @@ const MapViewComponent = () => {
       <Modal
         visible={selectedLocalIndex !== null}
         transparent={true}
-        animationType="slide"
+        animationType="none"
         onRequestClose={handleCloseModal}
       >
-        <View style={styles.modalContainer}>
+        <Animated.View
+          style={[
+            styles.modalContainer,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            },
+          ]}
+        >
           {selectedLocalIndex !== null && (
             <>
               <TouchableOpacity style={styles.arrowLeft} onPress={handlePrevious}>
-                <Text style={styles.arrowText}>{'<'}</Text>
+                <FontAwesome5 name="chevron-left" size={24} color="#333" />
               </TouchableOpacity>
               <FlatList
                 ref={flatListRef}
@@ -319,18 +447,41 @@ const MapViewComponent = () => {
                 horizontal
                 pagingEnabled
                 renderItem={({ item }) => (
-                  <View style={styles.modalContent}>
+                  <Animated.View
+                    style={[
+                      styles.modalContent,
+                      {
+                        transform: [{ scale: scaleAnim }],
+                      },
+                    ]}
+                  >
                     <Image source={{ uri: item.placeImage }} style={styles.modalImage} />
-                    <Text style={styles.modalTitle}>{item.name}</Text>
-                    <View style={styles.ratingContainer}>{renderStars(item.rating)}</View>
-                    <Text style={styles.modalAddress}>{item.address}</Text>
-                    <TouchableOpacity
-                      style={styles.navigateButton}
-                      onPress={() => handleNavigateToShop(item)}
-                    >
-                      <Text style={styles.navigateButtonText}>Ver Detalles</Text>
-                    </TouchableOpacity>
-                  </View>
+                    <LinearGradient
+                      colors={['rgba(0,0,0,0.7)', 'transparent']}
+                      style={styles.imageOverlay}
+                    />
+                    <BlurView intensity={90} style={styles.modalInfo}>
+                      <Text style={styles.modalTitle}>{item.name}</Text>
+                      <View style={styles.ratingDistanceContainer}>
+                        {renderRating(item.rating)}
+                        {distances[item.id] && (
+                          <View style={styles.distanceContainer}>
+                            <FontAwesome5 name="street-view" size={14} color="#333" />
+                            <Text style={styles.distanceText}>{distances[item.id]}</Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text style={styles.modalAddress} onPress={() => openAddressInMaps(item.address)}>
+                        {item.address}
+                      </Text>
+                      <TouchableOpacity
+                        style={styles.navigateButton}
+                        onPress={() => handleNavigateToShop(item)}
+                      >
+                        <Text style={styles.navigateButtonText}>View Shop</Text>
+                      </TouchableOpacity>
+                    </BlurView>
+                  </Animated.View>
                 )}
                 keyExtractor={(item) => item.id.toString()}
                 initialScrollIndex={selectedLocalIndex}
@@ -341,14 +492,14 @@ const MapViewComponent = () => {
                 })}
               />
               <TouchableOpacity style={styles.arrowRight} onPress={handleNext}>
-                <Text style={styles.arrowText}>{'>'}</Text>
+                <FontAwesome5 name="chevron-right" size={24} color="#333" />
               </TouchableOpacity>
               <TouchableOpacity style={styles.closeButton} onPress={handleCloseModal}>
-                <Text style={styles.closeButtonText}>X</Text>
+                <FontAwesome5 name="times" size={24} color="#333" />
               </TouchableOpacity>
             </>
           )}
-        </View>
+        </Animated.View>
       </Modal>
     </SafeAreaView>
   );
@@ -357,6 +508,7 @@ const MapViewComponent = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#fff',
   },
   map: {
     flex: 1,
@@ -366,23 +518,31 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  lottieAnimation: {
+    width: 200,
+    height: 200,
   },
   permissionDeniedContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+    backgroundColor: '#fff',
   },
   permissionDeniedText: {
     fontSize: 16,
-    color: '#ff0000',
+    color: '#ff6b6b',
     textAlign: 'center',
+    marginTop: 20,
   },
   headerContainer: {
     position: 'absolute',
-    top: 40,
+    top: 0,
     left: 0,
     right: 0,
+    paddingTop: 40,
     paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
@@ -390,140 +550,179 @@ const styles = StyleSheet.create({
     elevation: 11,
   },
   goBackButton: {
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
     borderRadius: 20,
     padding: 10,
     marginRight: 10,
   },
   tagsScrollView: {
     flexGrow: 1,
+    paddingVertical: 10,
   },
   tagButton: {
     paddingHorizontal: 15,
     paddingVertical: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    backgroundColor: '#f0f0f0',
     borderRadius: 20,
     marginRight: 10,
   },
   selectedTagButton: {
-    backgroundColor: '#ffcc00',
+    backgroundColor: '#4A90E2',
   },
   tagText: {
     fontSize: 14,
     color: '#333',
   },
   selectedTagText: {
-    color: '#000',
+    color: '#fff',
     fontWeight: 'bold',
+  },
+  userMarker: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   markerContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  circle: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: 'white',
+    backgroundColor: '#fff',
     borderWidth: 2,
-    borderColor: '#ffcc00',
-    justifyContent: 'center',
-    alignItems: 'center',
+    borderColor: '#4A90E2',
+    overflow: 'hidden',
   },
   markerImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'flex-end',
   },
   modalContent: {
-    width: width * 0.8,
-    padding: 20,
-    backgroundColor: '#fff',
-    borderRadius: 20,
+    width: width,
+    height: height * 0.6,
+    justifyContent: 'flex-end',
     alignItems: 'center',
-    marginHorizontal: width * 0.1,
-    marginTop: 100,
+    overflow: 'hidden',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
   },
   modalImage: {
     width: '100%',
-    height: 200,
-    borderRadius: 20,
-    marginBottom: 10,
-    borderWidth: 2,
-    borderColor: '#ffcc00',
+    height: '100%',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+  },
+  imageOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 100,
+  },
+  modalInfo: {
+    width: '100%',
+    padding: 20,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 24,
+    fontWeight: '700',
     marginBottom: 10,
     color: '#333',
     textAlign: 'center',
   },
   ratingContainer: {
     flexDirection: 'row',
-    marginBottom: 10,
+    alignItems: 'center',
+    backgroundColor: '#FFECB3',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 15,
+    marginBottom: 15,
+  },
+  ratingText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginRight: 5,
+  },
+  starIcon: {
+    marginLeft: 2,
   },
   modalAddress: {
     fontSize: 16,
-    color: '#666',
-    marginBottom: 10,
+    color: '#444',
+    marginBottom: 20,
     textAlign: 'center',
   },
   navigateButton: {
     marginTop: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 25,
-    backgroundColor: '#ffcc00',
-    borderRadius: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 30,
+    backgroundColor: '#4A90E2',
+    borderRadius: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 10,
   },
   navigateButtonText: {
-    color: '#000',
-    fontSize: 16,
+    color: '#fff',
+    fontSize: 18,
     fontWeight: 'bold',
+  },
+  ratingDistanceContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+  },
+  distanceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  distanceText: {
+    marginLeft: 5,
+    fontSize: 14,
+    color: '#333',
   },
   closeButton: {
     position: 'absolute',
     top: 40,
     right: 20,
     padding: 10,
-    backgroundColor: '#000',
-    borderRadius: 20,
-  },
-  closeButtonText: {
-    color: '#ffcc00',
-    fontSize: 16,
-    fontWeight: 'bold',
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    borderRadius: 25,
   },
   arrowLeft: {
     position: 'absolute',
-    left: 10,
+    left: 20,
     top: '50%',
     transform: [{ translateY: -25 }],
     zIndex: 1,
     padding: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    borderRadius: 25,
   },
   arrowRight: {
     position: 'absolute',
-    right: 10,
+    right: 20,
     top: '50%',
     transform: [{ translateY: -25 }],
     zIndex: 1,
     padding: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    borderRadius: 20,
-  },
-  arrowText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    borderRadius: 25,
   },
 });
 

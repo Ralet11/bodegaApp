@@ -1,18 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, ScrollView, Alert, useColorScheme } from 'react-native';
+import {
+  View,
+  Text,
+  Image,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+  useColorScheme,
+} from 'react-native';
 import { useRoute } from '@react-navigation/native';
-import { FontAwesome } from '@expo/vector-icons';
+import { FontAwesome, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { addToCart, incrementQuantity } from '../redux/slices/cart.slice';
 
-const DiscountDetailScreen = ({ discount, onAddToCart, onBack }) => {
+const DiscountDetailScreen = ({ discount, onAddToCart, onBack, shop }) => {
   const route = useRoute();
   const dispatch = useDispatch();
   const colorScheme = useColorScheme();
   const styles = colorScheme === 'dark' ? darkStyles : lightStyles;
   const cart = useSelector(state => state.cart.items);
-
-  console.log(discount, "discount");
+  const [quantity, setQuantity] = useState(1); // Estado para manejar la cantidad
 
   // States for managing selected options and total price
   const [selectedOptions, setSelectedOptions] = useState({});
@@ -37,39 +45,62 @@ const DiscountDetailScreen = ({ discount, onAddToCart, onBack }) => {
     const extra = discount.product.extras.find(extra => extra.id === extraId);
 
     if (extra.onlyOne) {
-      // Si onlyOne es true, se reemplaza la opción seleccionada
+      // If onlyOne is true, replace the selected option
       if (selectedOptions[extraId] === option) {
         delete newOptions[extraId];
       } else {
         newOptions[extraId] = option;
       }
     } else {
-      // Si onlyOne es false, se permite la selección múltiple
+      // If onlyOne is false, allow multiple selections
       if (!newOptions[extraId]) {
         newOptions[extraId] = [];
       }
-      
-      const optionIndex = newOptions[extraId].findIndex(selectedOption => selectedOption.name === option.name);
+
+      const optionIndex = newOptions[extraId].findIndex(
+        selectedOption => selectedOption.name === option.name
+      );
 
       if (optionIndex > -1) {
-        newOptions[extraId].splice(optionIndex, 1); // Desselecciona la opción si ya estaba seleccionada
+        newOptions[extraId].splice(optionIndex, 1); // Deselect the option if it was already selected
         if (newOptions[extraId].length === 0) {
-          delete newOptions[extraId]; // Elimina el array si está vacío
+          delete newOptions[extraId]; // Remove the array if it's empty
         }
       } else {
-        newOptions[extraId].push(option); // Agrega la nueva opción
+        newOptions[extraId].push(option); // Add the new option
       }
     }
 
     setSelectedOptions(newOptions);
 
-    // Recalcula el precio total sumando las opciones seleccionadas
+    // Recalculate the total price by summing the selected options
     const extrasTotalPrice = Object.values(newOptions).reduce(
-      (total, opt) => total + (Array.isArray(opt) ? opt.reduce((sum, item) => sum + parseFloat(item.price), 0) : parseFloat(opt.price || 0)),
+      (total, opt) =>
+        total +
+        (Array.isArray(opt)
+          ? opt.reduce((sum, item) => sum + parseFloat(item.price), 0)
+          : parseFloat(opt.price || 0)),
       0
     );
 
-    setCurrentPrice((parseFloat(calculateDiscountedPrice(discount.product.price, discount.percentage)) + extrasTotalPrice).toFixed(2).toString());
+    setCurrentPrice(
+      (
+        parseFloat(calculateDiscountedPrice(discount.product.price, discount.percentage)) +
+        extrasTotalPrice
+      )
+        .toFixed(2)
+        .toString()
+    );
+  };
+
+  const increment = () => {
+    setQuantity(quantity + 1);
+  };
+
+  const decrement = () => {
+    if (quantity > 1) {
+      setQuantity(quantity - 1);
+    }
   };
 
   // Check if two extras objects are equal (deep comparison)
@@ -103,8 +134,14 @@ const DiscountDetailScreen = ({ discount, onAddToCart, onBack }) => {
     // Check if all required extras are selected
     const requiredExtras = discount.product.extras.filter(extra => extra.required);
     for (const extra of requiredExtras) {
-      if (!selectedExtras[extra.id] || (Array.isArray(selectedExtras[extra.id]) && selectedExtras[extra.id].length === 0)) {
-        Alert.alert("Required Option", `Please select an option for "${extra.name}" before adding to the cart.`);
+      if (
+        !selectedExtras[extra.id] ||
+        (Array.isArray(selectedExtras[extra.id]) && selectedExtras[extra.id].length === 0)
+      ) {
+        Alert.alert(
+          'Required Option',
+          `Please select an option for "${extra.name}" before adding to the cart.`
+        );
         return; // Stop execution if a required extra is not selected
       }
     }
@@ -117,130 +154,162 @@ const DiscountDetailScreen = ({ discount, onAddToCart, onBack }) => {
     const originalPrice = discount.product.price.toFixed(2);
 
     if (existingProduct) {
-      dispatch(incrementQuantity(existingProduct.id));
+      // Increment quantity if the product already exists in the cart
+      dispatch(incrementQuantity({ id: existingProduct.id, quantity }));
     } else {
-      dispatch(addToCart({ 
-        ...discount.product, 
-        quantity: 1, 
-        selectedExtras, 
-        price: calculateDiscountedPrice(discount.product.price, discount.percentage), 
-        currentPrice,
-        discount: true,  // Ensure discount is always true
-        promotion: discount.promotion || false,
-        originalPrice // Assign the original price directly
-      }));
+      // Add the product with the selected quantity
+      dispatch(
+        addToCart({
+          ...discount.product,
+          quantity, // Use the selected quantity
+          selectedExtras,
+          price: calculateDiscountedPrice(discount.product.price, discount.percentage),
+          currentPrice,
+          discount: true, // Ensure discount is always true
+          promotion: discount.promotion || false,
+          originalPrice, // Assign the original price directly
+        })
+      );
     }
 
-    onBack(); // Return to ShopScreen after adding to cart
+    onBack(); // Return to previous screen after adding to cart
   };
 
   return (
-    <ScrollView style={styles.container}>
-      {/* Botón de retroceso */}
+    <View style={styles.container}>
+      {/* Back Button */}
       <TouchableOpacity style={styles.backButton} onPress={onBack}>
         <FontAwesome name="arrow-left" size={24} color={styles.backIcon.color} />
       </TouchableOpacity>
 
-      {/* Imagen del producto */}
-      <Image source={{ uri: discount.product.img }} style={styles.image} />
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* Product Image */}
+        <Image source={{ uri: discount.product.img }} style={styles.image} />
 
-      {/* Información del descuento */}
-      <View style={styles.detailsContainer}>
-        <Text style={styles.productName}>{discount.productName} + {discount.product.additional}</Text>
-        <Text style={styles.discountDescription}>
-          {discount.product.description}{"\n"}
-          <Text style={styles.noteText}>*No combinable con otras promociones.</Text>
-        </Text>
-        <View style={styles.priceContainer}>
-          <Text style={styles.strikethroughPrice}>${discount.product.price.toFixed(2)}</Text>
-          <View style={styles.discountBadge}>
-            <Text style={styles.discountText}>-{discount.percentage}%</Text>
-          </View>
-        </View>
-        <Text style={styles.discountPrice}>
-          ${currentPrice}
-        </Text>
-      </View>
-
-      {/* Sección para mostrar los extras del producto */}
-      {discount.product.extras && discount.product.extras.length > 0 && (
-        <View style={styles.extrasContainer}>
-          {discount.product.extras.map((extra) => (
-            <View key={extra.id} style={styles.extraSection}>
-              <View style={styles.extraTitleContainer}>
-                <Text style={styles.extraTitle}>{extra.name}</Text>
-                {extra.required && <Text style={styles.requiredText}>(requerido)</Text>}
-              </View>
-              {extra.options.map((option, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={[
-                    styles.optionButton,
-                    (Array.isArray(selectedOptions[extra.id])
-                      ? selectedOptions[extra.id].some(selectedOption => selectedOption.name === option.name)
-                      : selectedOptions[extra.id] === option) && styles.selectedOptionButton,
-                  ]}
-                  onPress={() => handleSelectOption(extra.id, option)}
-                >
-                  <Text
-                    style={[
-                      styles.optionText,
-                      (Array.isArray(selectedOptions[extra.id])
-                        ? selectedOptions[extra.id].some(selectedOption => selectedOption.name === option.name)
-                        : selectedOptions[extra.id] === option) && styles.selectedOptionText,
-                    ]}
-                  >
-                    {option.name} (+${option.price})
-                  </Text>
-                </TouchableOpacity>
-              ))}
+        {/* Discount Information */}
+        <View style={styles.detailsContainer}>
+          <Text style={styles.productName}>
+            {discount.productName} + {discount.product.additional}
+          </Text>
+          <Text style={styles.discountDescription}>
+            {discount.product.description}
+            {'\n'}
+            <Text style={styles.noteText}>*Not combinable with other promotions.</Text>
+          </Text>
+          <View style={styles.priceContainer}>
+            <Text style={styles.strikethroughPrice}>${discount.product.price.toFixed(2)}</Text>
+            <View style={styles.discountBadge}>
+              <Text style={styles.discountText}>-{discount.percentage}%</Text>
             </View>
-          ))}
+          </View>
+          <Text style={styles.discountPrice}>${currentPrice}</Text>
         </View>
-      )}
 
-      {/* Información adicional */}
-      <View style={styles.additionalInfoContainer}>
-        <Text style={styles.subTitle}>Disponible solo para:</Text>
-        <View style={styles.optionsRow}>
-          <View style={styles.option}>
-            <FontAwesome name="cutlery" size={20} color={styles.iconColor.color} />
-            <Text style={styles.optionText}>Dine-in</Text>
+        {/* Section to display product extras */}
+        {discount.product.extras && discount.product.extras.length > 0 && (
+          <View style={styles.extrasContainer}>
+            {discount.product.extras.map(extra => (
+              <View key={extra.id} style={styles.extraSection}>
+                <View style={styles.extraTitleContainer}>
+                  <Text style={styles.extraTitle}>{extra.name}</Text>
+                  {extra.required && <Text style={styles.requiredText}>(required)</Text>}
+                </View>
+                {extra.options.map((option, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={[
+                      styles.optionButton,
+                      (Array.isArray(selectedOptions[extra.id])
+                        ? selectedOptions[extra.id].some(
+                            selectedOption => selectedOption.name === option.name
+                          )
+                        : selectedOptions[extra.id] === option) && styles.selectedOptionButton,
+                    ]}
+                    onPress={() => handleSelectOption(extra.id, option)}
+                  >
+                    <Text
+                      style={[
+                        styles.optionText,
+                        (Array.isArray(selectedOptions[extra.id])
+                          ? selectedOptions[extra.id].some(
+                              selectedOption => selectedOption.name === option.name
+                            )
+                          : selectedOptions[extra.id] === option) && styles.selectedOptionText,
+                      ]}
+                    >
+                      {option.name} (+${option.price})
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ))}
           </View>
-        </View>
-        <Text style={styles.subTitle}>Métodos de pago:</Text>
-        <View style={styles.paymentOptions}>
-          <View style={styles.paymentOption}>
-            <FontAwesome name="cc-stripe" size={18} color={styles.iconColor.color} />
-            <Text style={styles.paymentText}>Stripe</Text>
-          </View>
-          <View style={styles.paymentOption}>
-            <FontAwesome name="google-wallet" size={18} color={styles.iconColor.color} />
-            <Text style={styles.paymentText}>Google Pay</Text>
-          </View>
-          <View style={styles.paymentOption}>
-            <FontAwesome name="apple" size={18} color={styles.iconColor.color} />
-            <Text style={styles.paymentText}>Apple Pay</Text>
-          </View>
-        </View>
-        <TouchableOpacity>
-          <Text style={styles.helpLink}>¿Cómo funciona la compra?</Text>
-        </TouchableOpacity>
-      </View>
+        )}
 
-      {/* Botón para agregar al carrito */}
+        {/* Additional Information */}
+        <View style={styles.additionalInfoContainer}>
+          <Text style={styles.subTitle}>Available only for:</Text>
+          <View style={styles.optionsRow}>
+            {shop.orderIn && (
+              <View style={styles.option}>
+                <FontAwesome name="cutlery" size={20} color={styles.iconColor.color} />
+                <Text style={styles.optionText}>Dine-in</Text>
+              </View>
+            )}
+            {shop.pickUp && (
+              <View style={styles.option}>
+                <MaterialCommunityIcons name="walk" size={20} color={styles.iconColor.color} />
+                <Text style={styles.optionText}>Pickup</Text>
+              </View>
+            )}
+          </View>
+          <Text style={styles.subTitle}>Payment Methods:</Text>
+          <View style={styles.paymentOptions}>
+            <View style={styles.paymentOption}>
+              <FontAwesome name="cc-stripe" size={18} color={styles.iconColor.color} />
+              <Text style={styles.paymentText}>Stripe</Text>
+            </View>
+            <View style={styles.paymentOption}>
+              <FontAwesome name="google-wallet" size={18} color={styles.iconColor.color} />
+              <Text style={styles.paymentText}>Google Pay</Text>
+            </View>
+            <View style={styles.paymentOption}>
+              <FontAwesome name="apple" size={18} color={styles.iconColor.color} />
+              <Text style={styles.paymentText}>Apple Pay</Text>
+            </View>
+          </View>
+          <TouchableOpacity>
+            <Text style={styles.helpLink}>How does the purchase work?</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+
+      {/* Fixed Add to Cart Button */}
       <View style={styles.addButtonContainer}>
+        <View style={styles.quantityContainer}>
+          <TouchableOpacity style={styles.quantityButton} onPress={decrement}>
+            <Text style={styles.quantityButtonText}>-</Text>
+          </TouchableOpacity>
+          <Text style={styles.quantityText}>{quantity}</Text>
+          <TouchableOpacity style={styles.quantityButton} onPress={increment}>
+            <Text style={styles.quantityButtonText}>+</Text>
+          </TouchableOpacity>
+        </View>
         <TouchableOpacity style={styles.addButton} onPress={handleAddToCart}>
-          <Text style={styles.addButtonText}>Agregar ${currentPrice}</Text>
+          <Text style={styles.addButtonText}>Add to Cart ${currentPrice}</Text>
         </TouchableOpacity>
       </View>
-    </ScrollView>
+    </View>
   );
 };
+
 
 const commonStyles = {
   container: {
     flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 100, // Ensure content is above the fixed button
   },
   image: {
     width: '100%',
@@ -358,16 +427,54 @@ const commonStyles = {
     textAlign: 'center',
   },
   addButtonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     padding: 16,
     borderTopWidth: 1,
+    borderColor: '#E0E0E0',
+    backgroundColor: '#FFFFFF', // Fondo blanco para el contenedor
   },
-  addButton: {
-    borderRadius: 5,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
+  quantityContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF', // Fondo blanco para el contador
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 50,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    minWidth: 100,
+  },
+  quantityButton: {
+    paddingHorizontal: 15,
+    paddingVertical: 5,
+    borderRadius: 50,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E0E0E0',
+    borderWidth: 1,
     alignItems: 'center',
   },
+  quantityButtonText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#000000',
+  },
+  quantityText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#000000',
+    marginHorizontal: 10,
+  },
+  addButton: {
+    backgroundColor: '#000000', // Botón negro como en la imagen
+    borderRadius: 50,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+  },
   addButtonText: {
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -390,7 +497,7 @@ const commonStyles = {
   },
 };
 
-// Estilos para modo claro
+// Styles for light mode
 const lightStyles = StyleSheet.create({
   ...commonStyles,
   container: {
@@ -499,9 +606,25 @@ const lightStyles = StyleSheet.create({
   backIcon: {
     color: '#FFFFFF',
   },
+  quantityContainer: {
+    ...commonStyles.quantityContainer,
+    backgroundColor: '#FFFFFF',
+  },
+  quantityButton: {
+    ...commonStyles.quantityButton,
+    backgroundColor: '#FFFFFF',
+  },
+  quantityButtonText: {
+    ...commonStyles.quantityButtonText,
+    color: '#000000',
+  },
+  quantityText: {
+    ...commonStyles.quantityText,
+    color: '#000000',
+  },
 });
 
-// Estilos para modo oscuro
+// Styles for dark mode
 const darkStyles = StyleSheet.create({
   ...commonStyles,
   container: {
@@ -608,6 +731,22 @@ const darkStyles = StyleSheet.create({
     color: '#FFFFFF',
   },
   backIcon: {
+    color: '#FFFFFF',
+  },
+  quantityContainer: {
+    ...commonStyles.quantityContainer,
+    backgroundColor: '#333333',
+  },
+  quantityButton: {
+    ...commonStyles.quantityButton,
+    backgroundColor: '#FFC107',
+  },
+  quantityButtonText: {
+    ...commonStyles.quantityButtonText,
+    color: '#000000',
+  },
+  quantityText: {
+    ...commonStyles.quantityText,
     color: '#FFFFFF',
   },
 });

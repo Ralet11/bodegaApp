@@ -21,17 +21,17 @@ const SearchShops = () => {
     useEffect(() => {
         if (shopsByCategory && categoryId && !initialFilteredShops) {
             const shops = shopsByCategory[categoryId] || [];
-            console.log('Tiendas originales:', shops);
+            console.log('Original Shops:', shops);
 
-            // Verificar si los IDs son únicos
+            // Check for unique IDs
             const shopIds = shops.map(shop => shop.id);
             const uniqueShopIds = new Set(shopIds);
 
             if (shopIds.length !== uniqueShopIds.size) {
-                console.warn('Hay IDs de tiendas duplicados o faltantes.');
+                console.warn('There are duplicate or missing shop IDs.');
             }
 
-            // Eliminar tiendas duplicadas
+            // Remove duplicate shops
             const uniqueShops = shops.filter((shop, index, self) =>
                 index === self.findIndex((s) =>
                     s.id === shop.id || (s.name === shop.name && s.address === shop.address)
@@ -46,7 +46,7 @@ const SearchShops = () => {
         }
     }, [shopsByCategory, categoryId, initialFilteredShops]);
 
-    // Extraer todas las etiquetas y eliminar duplicados
+    // Extract all tags and remove duplicates
     useEffect(() => {
         if (initialShops.length > 0) {
             const tagsMap = new Map();
@@ -63,7 +63,7 @@ const SearchShops = () => {
         }
     }, [initialShops]);
 
-    // Filtrar tiendas por consulta de búsqueda y etiqueta seleccionada
+    // Filter shops by search query and selected tag
     useEffect(() => {
         filterShops(searchQuery, selectedTag);
     }, [searchQuery, selectedTag, initialShops]);
@@ -73,7 +73,8 @@ const SearchShops = () => {
 
         if (query) {
             filtered = filtered.filter(shop =>
-                shop.name.toLowerCase().includes(query.toLowerCase())
+                shop.name.toLowerCase().includes(query.toLowerCase()) ||
+                (shop.tags && shop.tags.some(t => t.name.toLowerCase().includes(query.toLowerCase())))
             );
         }
 
@@ -83,7 +84,7 @@ const SearchShops = () => {
             );
         }
 
-        // Eliminar duplicados después de filtrar
+        // Remove duplicates after filtering
         filtered = filtered.filter((shop, index, self) =>
             index === self.findIndex((s) =>
                 s.id === shop.id || (s.name === shop.name && s.address === shop.address)
@@ -120,14 +121,14 @@ const SearchShops = () => {
                 </TouchableOpacity>
                 <TextInput
                     style={styles.searchInput}
-                    placeholder="Buscar lugares, comidas..."
+                    placeholder="Search places, foods..."
                     placeholderTextColor={scheme === 'dark' ? '#888' : '#aaa'}
                     value={searchQuery}
                     onChangeText={handleSearch}
                 />
             </View>
 
-            {/* Mostrar etiquetas como botones clicables */}
+            {/* Show tags as clickable buttons */}
             <View style={styles.tagsContainer}>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                     {allTags.map(tag => (
@@ -145,7 +146,7 @@ const SearchShops = () => {
                                     selectedTag && selectedTag.id === tag.id && styles.tagTextSelected,
                                 ]}
                             >
-                                {tag.name}
+                                {tag.name} {tag.emoji}
                             </Text>
                         </TouchableOpacity>
                     ))}
@@ -153,7 +154,7 @@ const SearchShops = () => {
             </View>
 
             <View style={styles.resultsContainer}>
-                <Text style={styles.resultsTitle}>Tiendas Encontradas</Text>
+                <Text style={styles.resultsTitle}>Shops Found</Text>
             </View>
 
             <FlatList
@@ -172,7 +173,7 @@ const SearchShops = () => {
                 )}
                 contentContainerStyle={styles.contentContainer}
                 ListEmptyComponent={
-                    <Text style={styles.noShopsText}>No hay tiendas disponibles en esta categoría</Text>
+                    <Text style={styles.noShopsText}>No shops available in this category</Text>
                 }
             />
         </SafeAreaView>

@@ -30,6 +30,7 @@ import DashboardDiscounts from './views/DashboardDiscounts';
 import OrderSummary from './views/PickUpOrderFinish';
 import DiscountDetailScreen from './components/DiscountDetail';
 import ReviewScreen from './views/ReviewsScreen';
+import PromoMealScreen from './views/PromoMealScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -178,6 +179,11 @@ export default function Navigation() {
           <Stack.Screen
           name="ReviewSceen"
           component={ReviewScreen}
+          options={{ headerShown: false }}
+        />
+           <Stack.Screen
+          name="PromoMealScreen"
+          component={PromoMealScreen}
           options={{ headerShown: false }}
         />
       </Stack.Navigator>

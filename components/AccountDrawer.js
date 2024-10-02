@@ -12,12 +12,21 @@ const AccountDrawer = ({ user, visible, onClose, onNavigate, scheme }) => {
   const dispatch = useDispatch();
   const navigation = useNavigation();
   const slideAnim = useRef(new Animated.Value(-Dimensions.get('window').width)).current;
-
-  const handleLogout = () => {
-    dispatch(clearUser());
-    dispatch(clearOrders())
-    dispatch(clearCart())
-    navigation.navigate('Login');
+  const handleLogout = async () => {
+    try {
+      // Primero limpia el estado del usuario en la app (y cualquier otro dato sensible).
+      dispatch(clearUser());
+      dispatch(clearOrders());
+      dispatch(clearCart());
+  
+      // Luego navega a la pantalla de login después de asegurarte de que los datos estén limpios.
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Login' }], // Asegúrate de que sea la ruta correcta de login
+      });
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+    }
   };
 
   useEffect(() => {

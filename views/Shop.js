@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, Image,
-  SafeAreaView, ScrollView, Modal, BackHandler, useColorScheme, Animated, Linking
+  SafeAreaView, ScrollView, BackHandler, useColorScheme, Animated, Linking, Alert
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -16,7 +16,7 @@ import CartSkeletonLoader from '../components/SkeletonLoaderCart';
 import ShopContent from '../components/ShopContent';
 import ShopContentOrderIn from '../components/ShopContentOrderIn';
 import { stylesDark, stylesLight } from '../components/themeShop';
-import PromoMealCard from '../components/PromoMealCard';
+
 import PromoCard from '../components/PromoMealCard';
 import DiscountDetailScreen from '../components/DiscountDetail';
 import ProductDetail from '../components/ProductDetail'; // Importa el componente de detalle de productos
@@ -33,11 +33,8 @@ const ShopScreen = () => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [selectedDiscount, setSelectedDiscount] = useState(null);
   const [selectedOptions, setSelectedOptions] = useState({});
-  const [confirmationModalVisible, setConfirmationModalVisible] = useState(false);
-  const [orderTypeModalVisible, setOrderTypeModalVisible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [orderType, setOrderType] = useState('Pick-up');
-  const [pendingOrderType, setPendingOrderType] = useState(null);
   const [discounts, setDiscounts] = useState([]);
   const [groupedDiscounts, setGroupedDiscounts] = useState([]);
   const scrollViewRef = useRef(null);
@@ -50,6 +47,8 @@ const ShopScreen = () => {
   const categoryPositions = useRef([]);
   const { shop, orderTypeParam } = route.params || {};
   const styles = colorScheme === 'dark' ? stylesDark : stylesLight;
+
+  console.log(shop.delivery, "shop")
 
   const [positionsReady, setPositionsReady] = useState(false);
   const [isComponentReady, setIsComponentReady] = useState(false);
@@ -89,8 +88,6 @@ const ShopScreen = () => {
       }
     };
 
-    console.log(cart, "cart");
-
     const fetchDiscounts = async () => {
       try {
         const response = await Axios.get(`${API_URL}/api/discounts/getByLocalIdApp/${shop?.id}`, {
@@ -100,9 +97,7 @@ const ShopScreen = () => {
         });
         const discounts = response.data;
         setDiscounts(discounts);
-        if (orderType === 'Order-in') {
-          setGroupedDiscounts(groupDiscountsByCategory(discounts));
-        }
+        setGroupedDiscounts(groupDiscountsByCategory(discounts)); // Agrupamos los descuentos siempre
       } catch (error) {
         console.log(error);
       }
@@ -112,9 +107,9 @@ const ShopScreen = () => {
       fetchCategories();
       fetchDiscounts();
     }
-  }, [shop?.id]);
+  }, [shop?.id, token]);
 
-  useEffect(() => { 
+  useEffect(() => {
     const getPromotionByShop = async () => {
       try {
         const response = await Axios.get(`${API_URL}/api/promotions/getByLocal/${shop?.id}`, {
@@ -170,20 +165,37 @@ const ShopScreen = () => {
   useFocusEffect(
     React.useCallback(() => {
       const onBackPress = () => {
-        if (selectedProduct) {
-          closeProductDetail();
-          return true;
+        if (!selectedProduct && !selectedDiscount){
+          if (cart.length > 0) {
+            Alert.alert(
+              "Empty Cart",
+              "If you go back, your cart will be emptied. Do you want to continue?",
+              [
+                {
+                  text: "Cancel",
+                  onPress: () => { },
+                  style: "cancel"
+                },
+                {
+                  text: "Continue",
+                  onPress: () => {
+                    dispatch(clearCart());
+                    navigation.goBack();
+                  }
+                }
+              ]
+            );
+            return true; // Impide que el botón retroceda automáticamente
+          } else {
+            navigation.goBack();
+            return true; // Permite la navegación cuando el carrito está vacío
+          }
+        } else {
+          setSelectedProduct(null);
+          setSelectedDiscount(null);
+          return true; // Permite la navegación cuando hay un producto o descuento seleccionado
         }
-        if (selectedDiscount) {
-          closeDiscountDetail();
-          return true;
-        }
-        if (cart.length > 0) {
-          setConfirmationModalVisible(true);
-          return true;
-        }
-        navigation.goBack();
-        return true;
+       
       };
 
       BackHandler.addEventListener('hardwareBackPress', onBackPress);
@@ -193,34 +205,8 @@ const ShopScreen = () => {
     }, [cart, selectedProduct, selectedDiscount])
   );
 
-  const handleConfirmExit = () => {
-    dispatch(clearCart());
-    setConfirmationModalVisible(false);
-    navigation.goBack();
-  };
-
-  const alertCannotAddProduct = () => {
-    alert('No puedes agregar este producto al carrito para el tipo de pedido actual.');
-  };
-
   const handleOrderTypeChange = (type) => {
-    const hasIncompatibleItems = type === 'Order-in'
-      ? cart.some(item => item.delivery !== 1)
-      : cart.some(item => item.delivery === 1);
-
-    if (hasIncompatibleItems) {
-      setPendingOrderType(type);
-      setOrderTypeModalVisible(true);
-    } else {
-      setOrderType(type);
-    }
-  };
-
-  const confirmOrderTypeChange = () => {
-    setOrderType(pendingOrderType);
-    setPendingOrderType(null);
-    dispatch(clearCart());
-    setOrderTypeModalVisible(false);
+    setOrderType(type);
   };
 
   const handleScroll = (event) => {
@@ -296,15 +282,13 @@ const ShopScreen = () => {
     return Object.values(grouped);
   };
 
-  const goReviewScreen = () => { 
+  const goReviewScreen = () => {
     navigation.navigate('ReviewSceen', { shop });
   }
 
   useEffect(() => {
-    if (orderType === 'Order-in') {
-      setGroupedDiscounts(groupDiscountsByCategory(discounts));
-    }
-  }, [discounts, orderType]);
+    setGroupedDiscounts(groupDiscountsByCategory(discounts));
+  }, [discounts]);
 
   useEffect(() => {
     Animated.timing(stickyAnim, {
@@ -315,21 +299,19 @@ const ShopScreen = () => {
   }, [showStickyCategoryScroll]);
 
   const renderOrderTypeButtons = () => {
-    if (orderTypeParam === 0) {
-      return (
-        <TouchableOpacity
-          style={[styles.orderTypeButton, orderType === 'Order-in' && styles.selectedOrderTypeButton]}
-          onPress={() => handleOrderTypeChange('Order-in')}
-        >
-          <FontAwesome name="cutlery" size={15} color={orderType === 'Order-in' ? '#8C6D00' : '#333'} />
-          <Text style={styles.orderTypeText}>Dine-in</Text>
-        </TouchableOpacity>
-      );
-    }
-
-    if (orderTypeParam === 1 || orderTypeParam === 2) {
+    if (shop?.orderIn && shop?.pickUp) {
       return (
         <>
+          {/* Botón para Order-in */}
+          <TouchableOpacity
+            style={[styles.orderTypeButton, orderType === 'Order-in' && styles.selectedOrderTypeButton]}
+            onPress={() => handleOrderTypeChange('Order-in')}
+          >
+            <FontAwesome name="cutlery" size={15} color={orderType === 'Order-in' ? '#8C6D00' : '#333'} />
+            <Text style={styles.orderTypeText}>Dine-in</Text>
+          </TouchableOpacity>
+
+          {/* Botón para Pick-up */}
           <TouchableOpacity
             style={[styles.orderTypeButton, orderType === 'Pick-up' && styles.selectedOrderTypeButton]}
             onPress={() => handleOrderTypeChange('Pick-up')}
@@ -337,12 +319,30 @@ const ShopScreen = () => {
             <FontAwesome name="shopping-basket" size={15} color={orderType === 'Pick-up' ? '#8C6D00' : '#333'} />
             <Text style={styles.orderTypeText}>Pick-up</Text>
           </TouchableOpacity>
-          
         </>
+      );
+    } else if (shop?.delivery?.orderIn) {
+      return (
+        <TouchableOpacity
+          style={[styles.orderTypeButton, orderType === 'Order-in' && styles.selectedOrderTypeButton]}
+          onPress={() => handleOrderTypeChange('Order-in')}
+        >
+          <FontAwesome name="cutlery" size={15} color={orderType === 'Order-in' ? '#8C6D00' : '#333'} />
+          <Text style={styles.orderTypeText}>Order-in</Text>
+        </TouchableOpacity>
+      );
+    } else if (shop?.delivery?.pickUp) {
+      return (
+        <TouchableOpacity
+          style={[styles.orderTypeButton, orderType === 'Pick-up' && styles.selectedOrderTypeButton]}
+          onPress={() => handleOrderTypeChange('Pick-up')}
+        >
+          <FontAwesome name="shopping-basket" size={15} color={orderType === 'Pick-up' ? '#8C6D00' : '#333'} />
+          <Text style={styles.orderTypeText}>Pick-up</Text>
+        </TouchableOpacity>
       );
     }
   };
-
   const totalItems = cart.reduce((total, item) => total + item.quantity, 0);
   const totalAmount = cart.reduce((total, item) => total + item.currentPrice * item.quantity, 0).toFixed(2);
 
@@ -361,6 +361,7 @@ const ShopScreen = () => {
           discount={selectedDiscount}
           onAddToCart={handleAddDiscountToCart}
           onBack={closeDiscountDetail}
+          shop={shop}
         />
       ) : (
         <>
@@ -374,11 +375,40 @@ const ShopScreen = () => {
             {/* Header con la Imagen */}
             <View style={styles.headerImageContainer}>
               <Image
-                source={{ uri: "https://aiqvideos.s3.amazonaws.com/discount/1726186375942_supermarket1.jpeg" }}
+                source={{ uri: shop?.deliveryImage }}
                 style={styles.headerImage}
               />
               <TouchableOpacity
-                onPress={() => navigation.goBack()}
+                onPress={() => {
+                  // Solo mostrar el Alert si no hay un producto o descuento seleccionado
+                  if (!selectedProduct && !selectedDiscount) {
+                    if (cart.length > 0) {
+                      Alert.alert(
+                        "Empty Cart",
+                        "If you go back, your cart will be emptied. Do you want to continue?",
+                        [
+                          {
+                            text: "Cancel",
+                            onPress: () => { },
+                            style: "cancel"
+                          },
+                          {
+                            text: "Continue",
+                            onPress: () => {
+                              dispatch(clearCart());
+                              navigation.goBack();
+                            }
+                          }
+                        ]
+                      );
+                    } else {
+                      navigation.goBack();
+                    }
+                  } else {
+                    setSelectedProduct(null);
+                    setSelectedDiscount(null);
+                  }
+                }}
                 style={styles.backButton}
               >
                 <FontAwesome name="arrow-left" size={28} color="#fff" />
@@ -425,7 +455,7 @@ const ShopScreen = () => {
                   showsHorizontalScrollIndicator={false}
                   style={styles.contentContainer}
                 >
-                  {(orderType === 'Order-in' ? groupedDiscounts : categories).map((item, index) => (
+                  {groupedDiscounts.map((item, index) => (
                     <TouchableOpacity
                       key={item.category?.id || item.id}
                       onPress={() => positionsReady && isComponentReady && scrollToCategory(index)}
@@ -450,21 +480,21 @@ const ShopScreen = () => {
             )}
 
             {promotion && (
-              <PromoCard user={user} token={token} promotion={promotion} />
+              <PromoCard user={user} shop={shop} token={token} promotion={promotion} />
             )}
 
             {/* Contenido de las categorías */}
             {loading ? (
               <CartSkeletonLoader />
             ) : (
-              orderType === 'Order-in' ? (
+              (orderType === 'Order-in' || orderType === 'Pick-up') ? (
                 <ShopContentOrderIn
                   selectedProduct={selectedProduct}
                   setSelectedProduct={setSelectedProduct}
                   selectedDiscount={selectedDiscount}
                   setSelectedDiscount={setSelectedDiscount}
                   cart={cart}
-                  discounts={groupedDiscounts}
+                  discounts={groupedDiscounts} // Ya agrupados independientemente del orderType
                   handleAddToCart={handleAddToCart}
                   handleAddDiscountToCart={handleAddDiscountToCart}
                   selectedOptions={selectedOptions}
@@ -476,6 +506,7 @@ const ShopScreen = () => {
                   categoryPositions={categoryPositions}
                   setPositionsReady={setPositionsReady}
                   promotion={promotion}
+                  shop={shop}
                 />
               ) : (
                 <ShopContent
@@ -496,6 +527,7 @@ const ShopScreen = () => {
                   categoryPositions={categoryPositions}
                   setPositionsReady={setPositionsReady}
                   promotion={promotion}
+                  shop={shop}
                 />
               )
             )}
@@ -516,7 +548,7 @@ const ShopScreen = () => {
           ]}>
             <View style={styles.stickyHeader}>
               <TouchableOpacity onPress={() => navigation.goBack()} style={styles.stickyBackButton}>
-                <FontAwesome name="arrow-left" size={20} color="#fff" /> 
+                <FontAwesome name="arrow-left" size={20} color="#fff" />
               </TouchableOpacity>
               <View style={{ flex: 1, alignItems: "center" }}>
                 <Text style={styles.stickyHeaderText}>
@@ -567,62 +599,6 @@ const ShopScreen = () => {
           </TouchableOpacity>
         </View>
       )}
-      {cart.length > 0 && (
-        <Modal
-          visible={confirmationModalVisible}
-          transparent={true}
-          animationType="slide"
-          onRequestClose={() => setConfirmationModalVisible(false)}
-        >
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalText}>If you continue, the cart will be emptied. Are you sure?</Text>
-              <View style={styles.modalActions}>
-                <TouchableOpacity
-                  style={styles.modalButton}
-                  onPress={handleConfirmExit}
-                >
-                  <Text style={styles.modalButtonText}>Aceptar</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.modalButton, { backgroundColor: '#ccc' }]}
-                  onPress={() => setConfirmationModalVisible(false)}
-                >
-                  <Text style={styles.modalButtonText}>Cancelar</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
-      )}
-      <Modal
-        visible={orderTypeModalVisible}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setOrderTypeModalVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalText}>
-              Cambiar el tipo de pedido vaciará tu carrito. ¿Deseas continuar?
-            </Text>
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={styles.modalButton}
-                onPress={confirmOrderTypeChange}
-              >
-                <Text style={styles.modalButtonText}>Aceptar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, { backgroundColor: '#ccc' }]}
-                onPress={() => setOrderTypeModalVisible(false)}
-              >
-                <Text style={styles.modalButtonText}>Cancelar</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </SafeAreaView>
   );
 };

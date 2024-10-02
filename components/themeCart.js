@@ -10,6 +10,54 @@ const commonStyles = {
     justifyContent: 'center',
     alignItems: 'center',
   },
+quantityControl: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  quantityButton: {
+    backgroundColor: '#FFCC00', // Color amarillo para el fondo
+    paddingHorizontal: 4, // Tamaño del padding más pequeño
+    paddingVertical: 2,
+    borderRadius: 1,
+  },
+  quantityButtonText: {
+    fontSize: 16, // Ajusta el tamaño del texto
+    fontWeight: 'bold',
+    color: '#000', // Texto negro
+  },
+  quantityText: {
+    marginHorizontal: 10,
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  cartItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 10,
+  },
+  cartItemImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+  },
+  cartItemDetails: {
+    flex: 1,
+    marginLeft: 10,
+  },
+  cartItemName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  cartItemPrice: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   container: {
     flexGrow: 1,
     justifyContent: 'space-between',
@@ -22,13 +70,13 @@ const commonStyles = {
     marginBottom: 20,
   },
   removeButton: {
-  position: 'absolute',
-  right: 30,
-  top: '50%',
-  transform: [{ translateY: -12 }], // Centra verticalmente el botón
-  backgroundColor: 'transparent',
-  padding: 10,
-},
+    position: 'absolute',
+    right: 30,
+    top: '50%',
+    transform: [{ translateY: -12 }], // Centra verticalmente el botón
+    backgroundColor: 'transparent',
+    padding: 10,
+  },
   goBackButton: {
     marginRight: 10,
   },
@@ -486,25 +534,6 @@ const stylesDark = StyleSheet.create({
     ...commonStyles.loaderContainer,
     backgroundColor: '#1c1c1c',
   },
-  cartItemExtraText: {
-    color: 'white'
-  },
-  modalSectionTitle: {
-    ...commonStyles.modalSectionTitle,
-    color: "white"
-  },
-  modalCartItemName: {
-     color: "white"
-  },
-  modalCartItemExtraText: {
-    color: "white"
-  },
-  modalCartItemQuantity: {
-     color: "white"
-  },
-  modalCartItemPrice: {
-color: "white"
-  },
   container: {
     ...commonStyles.container,
     backgroundColor: '#1c1c1c',
@@ -515,16 +544,15 @@ color: "white"
   },
   balanceContainer: {
     ...commonStyles.balanceContainer,
-    backgroundColor: '#333', // Fondo claro para el modo claro
-    color: '#fff'
+    backgroundColor: '#333', // Fondo oscuro para el modo oscuro
   },
   balanceText: {
     ...commonStyles.balanceText,
-    color: 'white', // Texto oscuro para contraste en modo claro
+    color: 'white', // Texto claro para contraste en modo oscuro
   },
   useBalanceLabel: {
     ...commonStyles.useBalanceLabel,
-    color: '#666', // Color gris en modo claro
+    color: '#fff',
   },
   addressContainer: {
     ...commonStyles.addressContainer,
@@ -609,10 +637,6 @@ color: "white"
   },
   adText: {
     ...commonStyles.adText,
-    color: '#fff',
-  },
-  useBalanceLabel: {
-    ...commonStyles.useBalanceLabel,
     color: '#fff',
   },
   orderTypeContainer: {

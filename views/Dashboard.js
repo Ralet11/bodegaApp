@@ -37,7 +37,8 @@ const Dashboard = () => {
   const token = useSelector((state) => state?.user?.userInfo?.data?.token);
   const ordersIn = useSelector((state) => state?.orders?.ordersIn);
   const auxShops = useSelector((state) => state?.setUp?.auxShops);
-
+  const [allTags, setAllTags] = useState([]);
+  const [filteredShopsByTags, setFilteredShopsByTags] = useState({});
   const orderTypeParam = deliveryMode === 'Delivery' ? 2 : deliveryMode === 'Pickup' ? 1 : null;
   console.log(address, "address")
 
@@ -70,6 +71,8 @@ const Dashboard = () => {
       console.log("acstualizando shop")
       const response = await Axios.get(`${API_URL}/api/local/app/getShopsOrderByCat`);
       setShopsByCategory(response.data);
+      extractTags(response.data); // Extraer y guardar los tags
+      filterShopsByTags(response.data, deliveryMode);
       filterShops(response.data, deliveryMode);
       setLoading(false);
       dispatch(setShops(response.data));
@@ -184,8 +187,23 @@ const Dashboard = () => {
     navigation.navigate('Shop', { shop, orderTypeParam });
   };
 
-  const handleCategoryPress = (category) => {
-    navigation.navigate('CategoryShops', { categoryId: category.id, categoryName: category.name });
+  const extractTags = (shops) => {
+    const tags = new Set(); // Usamos un Set para evitar duplicados
+    Object.keys(shops).forEach((categoryId) => {
+        shops[categoryId].forEach((shop) => {
+            if (shop.tags && Array.isArray(shop.tags)) {
+                shop.tags.forEach((tag) => tags.add(JSON.stringify(tag))); // Convertimos el objeto tag a string para que Set pueda detectar duplicados
+            }
+        });
+    });
+    const uniqueTagsArray = Array.from(tags).map(tag => JSON.parse(tag)); // Volvemos a convertir los tags a objetos
+    setAllTags(uniqueTagsArray); // Guardamos los tags completos en el estado
+};
+
+  const handleCategoryPress = (selectedTag) => {
+    console.log(selectedTag, "tag")
+   /*  navigation.navigate('CategoryShops', { categoryId: category.id, categoryName: category.name }); */
+   navigation.navigate( 'CategoryShops', {selectedTag, allTags });
   };
 
   const toggleDrawer = () => {
@@ -196,22 +214,55 @@ const Dashboard = () => {
     setDrawerVisible(false);
     navigation.navigate(screen);
   };
-
   const handleSearchSubmit = () => {
     if (searchQuery.trim()) {
-      const filteredShops = [];
-      Object.keys(filteredShopsByCategory).forEach((categoryId) => {
-        const shops = filteredShopsByCategory[categoryId].filter((shop) =>
-          shop.name.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-        if (shops.length > 0) {
-          filteredShops.push(...shops);
-        }
-      });
-      navigation.navigate('SearchShops', { filteredShops, searchQuery });
-    }
-  };
+        const filteredShops = [];
 
+        // Filtrar los shops por el input de búsqueda
+        Object.keys(filteredShopsByTags).forEach((tagName) => {
+            const shops = filteredShopsByTags[tagName].filter((shop) =>
+                shop.name.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+            if (shops.length > 0) {
+                filteredShops.push(...shops);
+            }
+        });
+
+        // Navegar a CategoryShops, pasando el searchQuery y un selectedTag como null
+        navigation.navigate('CategoryShops', { filteredShops, searchQuery, selectedTag: null, allTags });
+    }
+};
+
+const filterShopsByTags = (shops, mode) => {
+  const currentDateTime = new Date();
+  const currentDay = currentDateTime.toLocaleString('en-US', { weekday: 'short' }).toLowerCase();
+  const currentTime = currentDateTime.toTimeString().slice(0, 8);
+
+  const filtered = {};
+  Object.keys(shops).forEach((categoryId) => {
+      shops[categoryId].forEach((shop) => {
+          const isModeMatch = mode === 'orderIn' ? shop.orderIn : shop.pickUp;
+          const isOpen = shop.openingHours.some((hour) => {
+              return (
+                  hour.day === currentDay &&
+                  hour.open_hour <= currentTime &&
+                  hour.close_hour >= currentTime
+              );
+          });
+
+          if (isModeMatch && isOpen) {
+              shop.tags.forEach((tag) => {
+                  if (!filtered[tag.name]) {
+                      filtered[tag.name] = [];
+                  }
+                  filtered[tag.name].push(shop);
+              });
+          }
+      });
+  });
+
+  setFilteredShopsByTags(filtered);
+};
   const handleToggle = (mode) => {
     setDeliveryMode(mode);
     filterShops(shopsByCategory, mode);
@@ -302,7 +353,7 @@ const Dashboard = () => {
             What are you looking for today?
           </Text>
         </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        {/* <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           {categories.map((category) => (
             <TouchableOpacity
               key={category.id}
@@ -318,7 +369,24 @@ const Dashboard = () => {
               </Text>
             </TouchableOpacity>
           ))}
-        </ScrollView>
+        </ScrollView> */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+  {allTags.map((tag) => (
+    <TouchableOpacity
+      key={tag.id}
+      style={scheme === 'dark' ? darkTheme.category : lightTheme.category}
+      onPress={() => handleCategoryPress(tag)} // Pasamos 'null' como categoría si no tienes la categoría asociada aún
+    >
+      <Image
+        source={{ uri: tag?.img || 'https://res.cloudinary.com/doqyrz0sg/image/upload/v1628580001/placeholder.png' }}
+        style={scheme === 'dark' ? darkTheme.categoryImage : lightTheme.categoryImage}
+      />
+      <Text style={scheme === 'dark' ? darkTheme.categoryText : lightTheme.categoryText}>
+        {tag.name}
+      </Text>
+    </TouchableOpacity>
+  ))}
+</ScrollView>
         {ordersIn && ordersIn.length > 0 && <OrderStatus />}
         {noShopsAvailable ? (
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 50 }}>

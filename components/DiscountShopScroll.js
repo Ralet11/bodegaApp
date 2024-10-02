@@ -1,5 +1,3 @@
-// DiscountShopScroll.js
-
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -15,10 +13,12 @@ import { FontAwesome } from '@expo/vector-icons';
 import { useSelector } from 'react-redux';
 import Axios from 'react-native-axios';
 
-const DiscountShopScroll = ({ title, items, handleItemPress }) => {
+const DiscountShopScroll = ({ title, items, handleItemPress, allTags }) => {
   const scheme = useColorScheme();
   const colors = getColors(scheme);
   const styles = scheme === 'dark' ? darkTheme(colors) : lightTheme(colors);
+
+  const tag = allTags.find(tag => tag.name === title);
 
   const [distances, setDistances] = useState({});
   const [isLoading, setIsLoading] = useState(true);
@@ -38,10 +38,16 @@ const DiscountShopScroll = ({ title, items, handleItemPress }) => {
                 address
               )}&destinations=${encodeURIComponent(item.address)}&key=${GOOGLE_MAPS_API_KEY}`
             );
-            const distanceText = response.data.rows[0].elements[0].distance.text;
-            const distanceValue = response.data.rows[0].elements[0].distance.value / 1000; // Convert to kilometers
-            if (distanceValue <= 20) {
-              newDistances[item.address] = distanceText;
+            const distanceTextKm = response.data.rows[0].elements[0].distance.text;
+            const distanceValueKm = response.data.rows[0].elements[0].distance.value / 1000;
+
+            // Convert kilometers to miles (1 kilometer = 0.621371 miles)
+            const distanceValueMiles = distanceValueKm * 0.621371;
+            const distanceTextMiles = `${distanceValueMiles.toFixed(2)} mi`;
+
+            // Only add to distances if it's within 20 miles
+            if (distanceValueMiles <= 20) {
+              newDistances[item.address] = distanceTextMiles;
             }
           } catch (error) {
             console.error('Error fetching distance:', error);
@@ -57,28 +63,54 @@ const DiscountShopScroll = ({ title, items, handleItemPress }) => {
     }
   }, [address, items]);
 
-  // Function to get a custom message with emojis for each category
-  const getCategoryMessage = (title) => {
-    switch (title.toLowerCase()) {
+  // Function to get category message with emoji
+  const getCategoryMessage = (tag) => {
+    const { name, emoji } = tag;
+
+    switch (name.toLowerCase()) {
       case 'pizza':
-        return 'Best pizza in town 🍕';
+        return `Top pizza in town ${emoji}`;
       case 'burgers':
-        return 'Juiciest burgers just for you 🍔';
+        return `Best burgers for you ${emoji}`;
       case 'sushi':
-        return '🍣 Fresh sushi for every occasion!';
+        return `${emoji} Fresh sushi for all!`;
       case 'drinks':
-        return '🥤 Refreshing drinks to enjoy!';
+        return `${emoji} Refreshing drinks!`;
       case 'desserts':
-        return '🍰 Sweetest desserts around!';
+        return `${emoji} Sweetest desserts!`;
+      case 'seafood':
+        return `${emoji} Fresh seafood ready!`;
+      case 'vegan':
+        return `${emoji} Tasty vegan options!`;
+      case 'vegetarian':
+        return `${emoji} Great vegetarian dishes!`;
+      case 'bbq':
+        return `${emoji} Perfect BBQ for you!`;
+      case 'pasta':
+        return `${emoji} Delicious pasta awaits!`;
+      case 'mexican':
+        return `${emoji} Authentic Mexican taste!`;
+      case 'indian':
+        return `${emoji} Rich Indian flavors!`;
+      case 'chinese':
+        return `${emoji} Tasty Chinese cuisine!`;
+
       default:
-        return `🌟 Explore the best ${title}!`;
+        const randomMessages = [
+          `Discover ${name} options ${emoji}`,
+          `Try our ${name} dishes ${emoji}`,
+          `Best ${name} recipes ${emoji}`,
+          `Enjoy ${name} specialties ${emoji}`,
+        ];
+
+        return randomMessages[Math.floor(Math.random() * randomMessages.length)];
     }
   };
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>{getCategoryMessage(title)}</Text>
+        <Text style={styles.headerTitle}>{getCategoryMessage(tag)}</Text>
         <TouchableOpacity onPress={() => {}}>
           <Text style={styles.viewMore}>See more</Text>
         </TouchableOpacity>
@@ -108,11 +140,21 @@ const DiscountShopScroll = ({ title, items, handleItemPress }) => {
                   />
                   <View style={styles.itemContent}>
                     <View style={styles.row}>
-                      <View style={[styles.logoContainer, { backgroundColor: colors.cardBackgroundColor }]}>
+                      <View
+                        style={[
+                          styles.logoContainer,
+                          { backgroundColor: colors.cardBackgroundColor },
+                        ]}
+                      >
                         <Image source={{ uri: item.logo }} style={styles.logoImage} />
                       </View>
                       <View style={styles.infoColumn}>
-                        <Text style={styles.itemName} numberOfLines={1}>
+                        <Text
+                          style={styles.itemName}
+                          numberOfLines={1}
+                          adjustsFontSizeToFit
+                          minimumFontScale={0.5}
+                        >
                           {item.name || item.product}
                         </Text>
                         <View style={styles.subInfoRow}>
@@ -142,7 +184,7 @@ const DiscountShopScroll = ({ title, items, handleItemPress }) => {
   );
 };
 
-// Function to define colors based on the color scheme
+// Function to define colors based on the theme
 const getColors = (scheme) => ({
   textColor: scheme === 'dark' ? '#FFFFFF' : '#000000',
   secondaryTextColor: scheme === 'dark' ? '#BBBBBB' : '#777777',
@@ -151,13 +193,18 @@ const getColors = (scheme) => ({
   borderColor: scheme === 'dark' ? '#333333' : '#CCCCCC',
   iconColor: scheme === 'dark' ? '#FFFFFF' : '#000000',
   accentColor: scheme === 'dark' ? '#FFD700' : 'tomato',
-  starColor: '#FFD700', // Gold color for the star icon
+  starColor: '#FFD700',
 });
 
 // Common styles shared between themes
 const commonStyles = {
   container: { marginVertical: 20, paddingHorizontal: 10 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
   headerTitle: { fontSize: 18, fontWeight: 'bold' },
   scrollView: { paddingVertical: 10 },
   viewMore: { fontSize: 14 },
@@ -184,23 +231,37 @@ const commonStyles = {
   logoContainer: {
     width: 50,
     height: 50,
-    borderRadius: 15,
+    borderRadius: 25,
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
     marginRight: 10,
   },
-  logoImage: { width: '100%', height: '100%', resizeMode: 'contain' },
-  infoColumn: { flexDirection: 'column', justifyContent: 'center' },
-  itemName: { fontSize: 16, fontWeight: '900', marginBottom: 5 },
-  subInfoRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  logoImage: { width: '100%', height: '100%', resizeMode: 'cover' },
+  infoColumn: {
+    flexDirection: 'column',
+    justifyContent: 'center',
+    flex: 1,
+  },
+  itemName: {
+    fontSize: 16,
+    fontWeight: '900',
+    marginBottom: 5,
+    color: '#000',
+    width: '100%',
+  },
+  subInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   iconRow: { flexDirection: 'row', alignItems: 'center' },
   ratingContainer: { flexDirection: 'row', alignItems: 'center' },
   ratingText: { marginLeft: 5, fontSize: 14, fontWeight: '600' },
   distanceText: { fontSize: 14, marginLeft: 5 },
 };
 
-// Light theme styles
+// Styles for light theme
 const lightTheme = (colors) =>
   StyleSheet.create({
     ...commonStyles,
@@ -218,7 +279,7 @@ const lightTheme = (colors) =>
     itemContent: { ...commonStyles.itemContent, backgroundColor: colors.cardBackgroundColor },
   });
 
-// Dark theme styles
+// Styles for dark theme
 const darkTheme = (colors) =>
   StyleSheet.create({
     ...commonStyles,

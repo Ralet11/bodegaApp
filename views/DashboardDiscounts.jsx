@@ -198,11 +198,11 @@ const DashboardDiscount = () => {
     const handleShopPress = (shop) => {
         navigation.navigate('Shop', { shop, orderTypeParam });
     };
-
-    const handleCategoryPress = (category) => {
-        navigation.navigate('CategoryShops', { categoryId: category.id, categoryName: category.name });
+    const handleCategoryPress = (selectedTag) => {
+        console.log(selectedTag, "tag")
+        /*  navigation.navigate('CategoryShops', { categoryId: category.id, categoryName: category.name }); */
+        navigation.navigate('CategoryShops', { selectedTag, allTags });
     };
-
     const toggleDrawer = () => {
         setDrawerVisible(!drawerVisible);
     };
@@ -215,6 +215,8 @@ const DashboardDiscount = () => {
     const handleSearchSubmit = () => {
         if (searchQuery.trim()) {
             const filteredShops = [];
+
+            // Filtrar los shops por el input de búsqueda
             Object.keys(filteredShopsByTags).forEach((tagName) => {
                 const shops = filteredShopsByTags[tagName].filter((shop) =>
                     shop.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -223,7 +225,9 @@ const DashboardDiscount = () => {
                     filteredShops.push(...shops);
                 }
             });
-            navigation.navigate('SearchShops', { filteredShops, searchQuery });
+
+            // Navegar a CategoryShops, pasando el searchQuery y un selectedTag como null
+            navigation.navigate('CategoryShops', { filteredShops, searchQuery, selectedTag: null, allTags });
         }
     };
 
@@ -310,7 +314,7 @@ const DashboardDiscount = () => {
                         placeholderTextColor="#aaa"
                         value={searchQuery}
                         onChangeText={setSearchQuery}
-                        onSubmitEditing={handleSearchSubmit}
+                        onSubmitEditing={handleSearchSubmit} // Al enviar, se llama a handleSearchSubmit
                     />
                 </View>
             </View>
@@ -329,7 +333,7 @@ const DashboardDiscount = () => {
                         <TouchableOpacity
                             key={tag.id}
                             style={scheme === 'dark' ? darkTheme.category : lightTheme.category}
-
+                            onPress={() => handleCategoryPress(tag)}
                         >
                             <Image
                                 source={{ uri: tag?.img || 'https://res.cloudinary.com/doqyrz0sg/image/upload/v1628580001/placeholder.png' }}
@@ -363,6 +367,7 @@ const DashboardDiscount = () => {
                                 items={filteredShopsByTags[name]}
                                 scheme={scheme}
                                 handleItemPress={handleShopPress}
+                                allTags={allTags}
                             />
                         )
                     ))

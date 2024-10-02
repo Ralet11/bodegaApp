@@ -1,5 +1,3 @@
-// ReviewScreen.js
-
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -15,6 +13,7 @@ import { API_URL } from '@env'; // Ensure you have your API URL configured
 import ReviewCard from '../components/ReviewsCards'; // Adjust the import path as needed
 import Axios from 'react-native-axios';
 import { useSelector } from 'react-redux';
+import { SafeAreaView } from 'react-native-safe-area-context'; // Import SafeAreaView
 
 const filters = ['Relevant', 'Recent', 'Highest Rated', 'Lowest Rated'];
 
@@ -44,7 +43,7 @@ const ReviewScreen = () => {
   }, [shop.id, token]);
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.safeArea}>
       {/* Header with the title */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -106,25 +105,25 @@ const ReviewScreen = () => {
           </View>
         )}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
 // Styles
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
     backgroundColor: '#F9F9F9',
   },
   header: {
-    paddingVertical: 30,
+    paddingVertical: 15,
     paddingHorizontal: 15,
     backgroundColor: '#333',
     alignItems: 'center',
     justifyContent: 'flex-start',
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
-    flexDirection: 'row', // Ensure items are in a row
+    flexDirection: 'row',
     elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -138,7 +137,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 10, // Added margin to separate from the title
+    marginRight: 10,
   },
   headerTitle: {
     fontSize: 20,

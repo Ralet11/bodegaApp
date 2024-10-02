@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
   useColorScheme,
 } from 'react-native';
-import { FontAwesome } from '@expo/vector-icons';
+import { FontAwesome } from 'react-native-vector-icons';
 import { useSelector } from 'react-redux';
 import Axios from 'react-native-axios';
 import { useNavigation } from '@react-navigation/native';
@@ -38,10 +38,15 @@ const HorizontalScroll = ({ title, items, handleItemPress, categoryId }) => {
                 address
               )}&destinations=${encodeURIComponent(item.address)}&key=${GOOGLE_MAPS_API_KEY}`
             );
-            const distanceText = response.data.rows[0].elements[0].distance.text;
-            const distanceValue = response.data.rows[0].elements[0].distance.value / 1000; // Convert to kilometers
-            if (distanceValue <= 20) {
-              newDistances[item.address] = distanceText;
+            const distanceValueKm = response.data.rows[0].elements[0].distance.value / 1000;
+
+            // Convert kilometers to miles (1 kilometer = 0.621371 miles)
+            const distanceValueMiles = distanceValueKm * 0.621371;
+            const distanceTextMiles = `${distanceValueMiles.toFixed(2)} mi`;
+
+            // Only add to distances if it's within 20 miles
+            if (distanceValueMiles <= 20) {
+              newDistances[item.address] = distanceTextMiles;
             }
           } catch (error) {
             console.error('Error fetching distance:', error);
