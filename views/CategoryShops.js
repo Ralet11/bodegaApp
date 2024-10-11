@@ -20,32 +20,38 @@ const CategoryShops = () => {
   const route = useRoute();
 
   // Recibimos el tag seleccionado, todos los tags y el searchQuery desde route.params
-  const { selectedTag = null, allTags, searchQuery: initialSearchQuery = '' } = route.params;
+  const { selectedTag = null, allTags = [], searchQuery: initialSearchQuery = '' } = route.params;
+
+  console.log(selectedTag, "selectedTag");
 
   // Estado para manejar el tag activo y el query de búsqueda
   const [activeTag, setActiveTag] = useState(selectedTag);
   const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
 
   // Unificamos todos los shops en un solo array
-  const shopsByCategory = useSelector((state) => state.setUp.shops);
+  const shopsByCategory = useSelector((state) => state.setUp.shopsDiscounts);
   const allShops = Object.values(shopsByCategory).flat();
 
-  // Función para filtrar los shops según el searchQuery y el tag activo
-  const filteredShops = allShops.filter(shop => {
-    const matchesName = shop.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesTag = shop.tags.some(tag =>
-      tag.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
 
+
+  // Función para filtrar los shops según el searchQuery y el tag activo
+  const filteredShops = allShops.filter((shop) => {
+    const matchesName = shop.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesTag =
+      Array.isArray(shop.tags) &&
+      shop.tags.some((tag) => tag.name.toLowerCase().includes(searchQuery.toLowerCase()));
+  
     if (activeTag) {
       // Si hay un tag activo, filtramos los shops que tengan ese tag y que coincidan con el input
-      const matchesActiveTag = shop.tags.some(tag => tag.name === activeTag.name);
+      const matchesActiveTag =
+        Array.isArray(shop.tags) && shop.tags.some((tag) => tag.name === activeTag.name);
       return matchesActiveTag && (matchesName || matchesTag);
     } else {
       // Si no hay tag activo, buscamos en los nombres y en los tags de los shops
       return matchesName || matchesTag;
     }
   });
+  console.log(filteredShops, "shopsByCategory");
 
   const handleShopPress = (shop) => {
     navigation.navigate('Shop', { shop });
@@ -65,9 +71,7 @@ const CategoryShops = () => {
   };
 
   // Reordenamos los tags para que el selectedTag esté primero
-  const sortedTags = activeTag
-    ? [activeTag, ...allTags.filter(tag => tag.id !== activeTag.id)]
-    : allTags; // Si no hay tag seleccionado, simplemente mostramos todos los tags
+  const sortedTags = allTags;
 
   // useEffect para setear el searchQuery inicial cuando el componente se monte
   useEffect(() => {
@@ -85,23 +89,23 @@ const CategoryShops = () => {
           <FontAwesome name="arrow-left" size={24} color={scheme === 'dark' ? '#000' : '#000'} />
         </TouchableOpacity>
         <View style={styles.headerTitleContainer}>
-          <Text style={styles.headerTitle}>{activeTag ? activeTag.name : 'All Shops'}</Text>
+          <Text style={styles.headerTitle}>{activeTag ? activeTag.name : 'Todos los Negocios'}</Text>
         </View>
         <View style={{ width: 24 }} />
       </View>
 
-      {/* Search Input */}
+      {/* Campo de búsqueda */}
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
-          placeholder="Search shops..."
+          placeholder="Search restaurants..."
           placeholderTextColor={scheme === 'dark' ? '#888' : '#aaa'}
           value={searchQuery}
           onChangeText={handleSearch} // Aquí actualizamos el input de búsqueda
         />
       </View>
 
-      {/* Tag Filters */}
+      {/* Filtros de Tags */}
       <View style={styles.tagsContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           {sortedTags.map((tag) => (
@@ -126,7 +130,7 @@ const CategoryShops = () => {
         </ScrollView>
       </View>
 
-      {/* Shops List */}
+      {/* Lista de Shops */}
       <ScrollView contentContainerStyle={styles.contentContainer}>
         {filteredShops.length > 0 ? (
           filteredShops.map((shop) => (
@@ -141,12 +145,13 @@ const CategoryShops = () => {
             </TouchableOpacity>
           ))
         ) : (
-          <Text style={styles.noShopsText}>No shops available</Text>
+          <Text style={styles.noShopsText}>No hay negocios disponibles</Text>
         )}
       </ScrollView>
     </SafeAreaView>
   );
 };
+
 const commonStyles = {
   safeArea: {
     flex: 1,

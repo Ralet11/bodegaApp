@@ -12,12 +12,13 @@ import {
 import { FontAwesome } from '@expo/vector-icons';
 import { useSelector } from 'react-redux';
 import Axios from 'react-native-axios';
+import { useNavigation } from '@react-navigation/native';
 
 const DiscountShopScroll = ({ title, items, handleItemPress, allTags }) => {
   const scheme = useColorScheme();
   const colors = getColors(scheme);
   const styles = scheme === 'dark' ? darkTheme(colors) : lightTheme(colors);
-
+  const navigation = useNavigation()
   const tag = allTags.find(tag => tag.name === title);
 
   const [distances, setDistances] = useState({});
@@ -107,11 +108,15 @@ const DiscountShopScroll = ({ title, items, handleItemPress, allTags }) => {
     }
   };
 
+  const handleSeeMore = (tag) => {
+    navigation.navigate('CategoryShops', { selectedTag: tag, allTags });
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>{getCategoryMessage(tag)}</Text>
-        <TouchableOpacity onPress={() => {}}>
+        <TouchableOpacity onPress={() => {handleSeeMore(tag)}}>
           <Text style={styles.viewMore}>See more</Text>
         </TouchableOpacity>
       </View>
@@ -168,7 +173,7 @@ const DiscountShopScroll = ({ title, items, handleItemPress, allTags }) => {
                           </View>
                           <View style={styles.ratingContainer}>
                             <FontAwesome name="star" size={14} color={colors.starColor} />
-                            <Text style={styles.ratingText}>4.7</Text>
+                            <Text style={styles.ratingText}>{item.rating.toFixed(2)}</Text>
                           </View>
                         </View>
                       </View>

@@ -65,7 +65,7 @@ useEffect(() => {
   return (
     <View style={styles.container}>
       <Animated.Image
-        source={{ uri: 'https://res.cloudinary.com/doqyrz0sg/image/upload/v1717527579/WhatsApp_Image_2024-05-25_at_17.24.54_lpri1m.jpg' }}
+        source={{ uri: 'https://res.cloudinary.com/doqyrz0sg/image/upload/v1728602580/WhatsApp_Image_2024-08-31_at_14.14.14_jhjq2g.jpg' }}
         style={[styles.logo, { transform: [{ scale: scaleAnim }] }]}
         resizeMode="contain"
       />

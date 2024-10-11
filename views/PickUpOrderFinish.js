@@ -8,10 +8,11 @@ import {
   TouchableOpacity,
   Linking,
   Modal,
-  TextInput,
   useColorScheme,
   StyleSheet,
-  BackHandler, // Import BackHandler
+  BackHandler,
+  Platform,
+  Alert
 } from 'react-native';
 import { FontAwesome5, Ionicons, FontAwesome } from '@expo/vector-icons';
 import { useDispatch, useSelector } from 'react-redux';
@@ -21,15 +22,20 @@ import socketIOClient from 'socket.io-client';
 import Axios from 'react-native-axios';
 import { API_URL } from '@env';
 import { updateOrderIn, setCurrentOrder } from '../redux/slices/orders.slice';
+import {
+  Package,
+  ArrowRight,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Truck,
+} from 'lucide-react-native';
 
 const OrderSummary = () => {
   const order = useSelector((state) => state.orders.currentOrder);
   const token = useSelector((state) => state.user.userInfo.data.token);
   const [shopData, setShopData] = useState(null);
   const [showRatingModal, setShowRatingModal] = useState(false);
-  const [rating, setRating] = useState(0);
-  const [comment, setComment] = useState('');
-  const [isReviewSubmitted, setIsReviewSubmitted] = useState(false);
   const orderRef = useRef(order);
   const navigation = useNavigation();
   const dispatch = useDispatch();
@@ -50,6 +56,8 @@ const OrderSummary = () => {
     fetchShopData();
   }, [order]);
 
+  console.log(order.type, "order");
+
   useEffect(() => {
     const socket = socketIOClient(`${API_URL}`);
 
@@ -64,10 +72,7 @@ const OrderSummary = () => {
         dispatch(setCurrentOrder(updatedOrder));
         dispatch(updateOrderIn({ orderId: updatedOrder.id, status: updatedOrder.status }));
 
-        if (updatedOrder.status === 'rejected') {
-          setShowRatingModal(true);
-          setModalMessage('Your order has been canceled by the store. You will receive a refund within 48 hours, or the balance will be credited to your account immediately.');
-        } else if (updatedOrder.status === 'finished') {
+        if (updatedOrder.status === 'rejected' || updatedOrder.status === 'finished') {
           setShowRatingModal(true);
         }
       } catch (error) {
@@ -130,27 +135,39 @@ const OrderSummary = () => {
   };
 
   const calculateTotalSavings = () => {
-    return order.order_details.reduce((totalSavings, item) => {
-      if (item.discount || item.promotion) {
-        const savings = (parseFloat(item.originalPrice) - parseFloat(item.price)) * item.quantity;
-        return totalSavings + savings;
-      }
-      return totalSavings;
-    }, 0).toFixed(2);
-  };
-
-  const openAddressInGoogleMaps = (address) => {
-    const encodedAddress = encodeURIComponent(address);
-    const url = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
-    Linking.canOpenURL(url)
-      .then((supported) => {
-        if (supported) {
-          Linking.openURL(url);
-        } else {
-          console.log('Cannot open the link:', url);
+    return order.order_details
+      .reduce((totalSavings, item) => {
+        if (item.discount || item.promotion) {
+          const savings = (parseFloat(item.originalPrice) - parseFloat(item.price)) * item.quantity;
+          return totalSavings + savings;
         }
-      })
-      .catch((err) => console.error('Error opening the link:', err));
+        return totalSavings;
+      }, 0)
+      .toFixed(2);
+  };
+  const openAddressInMaps = (address) => {
+    const encodedAddress = encodeURIComponent(address);
+    const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+    const appleMapsUrl = `http://maps.apple.com/?q=${encodedAddress}`;
+
+    if (Platform.OS === 'ios') {
+      Alert.alert(
+        'Open in Maps',
+        'Would you like to open the address in Google Maps or Apple Maps?',
+        [
+          {
+            text: 'Google Maps',
+            onPress: () => Linking.openURL(googleMapsUrl),
+          },
+          {
+            text: 'Apple Maps',
+            onPress: () => Linking.openURL(appleMapsUrl),
+          },
+        ]
+      );
+    } else {
+      Linking.openURL(googleMapsUrl);
+    }
   };
 
   const getTodayOpeningHours = () => {
@@ -181,32 +198,6 @@ const OrderSummary = () => {
     </View>
   );
 
-  const submitRating = async () => {
-    try {
-      const response = await fetch(`${API_URL}/api/reviews/create`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          local_id: order.local_id,
-          rating,
-          message: comment,
-          order_id: order.id,
-        }),
-      });
-
-      if (response.ok) {
-        setIsReviewSubmitted(true);
-      } else {
-        console.error('Error submitting the rating');
-      }
-    } catch (error) {
-      console.error('Error submitting the rating:', error);
-    }
-  };
-
   const handleSupport = () => {
     Linking.openURL('https://your-support-link.com');
   };
@@ -216,8 +207,50 @@ const OrderSummary = () => {
     navigation.navigate('Main');
   };
 
+  // Function to get order status info similar to OrderStatus component
+  const getOrderStatusInfo = (order) => {
+    const { status } = order;
+    let mainText = '';
+    let icon = null;
+    let color = '';
+
+    switch (status) {
+      case 'new order':
+        mainText = 'Order placed';
+        icon = <Clock color="#3498db" size={24} />;
+        color = '#3498db';
+        break;
+      case 'accepted':
+        mainText = 'Order accepted';
+        icon = <CheckCircle color="#2ecc71" size={24} />;
+        color = '#2ecc71';
+        break;
+      case 'sending':
+        mainText = 'Order is ready for pickup';
+        icon = <Package color="#e67e22" size={24} />;
+        color = '#e67e22';
+        break;
+      case 'rejected':
+        mainText = 'Order rejected';
+        icon = <XCircle color="#e74c3c" size={24} />;
+        color = '#e74c3c';
+        break;
+      case 'finished':
+        mainText = 'Order completed';
+        icon = <CheckCircle color="#27ae60" size={24} />;
+        color = '#27ae60';
+        break;
+      default:
+        mainText = 'Unknown status';
+        icon = <Clock color="#95a5a6" size={24} />;
+        color = '#95a5a6';
+    }
+
+    return { mainText, icon, color };
+  };
+
   return (
-    <View style={styles.screen}>
+    <ScrollView style={styles.screen}>
       <LinearGradient
         colors={colorScheme === 'dark' ? ['#333333', '#1E1E1E'] : ['#ff9900', '#FFFFFF']}
         style={styles.gradient}
@@ -230,7 +263,7 @@ const OrderSummary = () => {
               <TouchableOpacity onPress={() => navigation.navigate('Main')}>
                 <Ionicons name="arrow-back" size={24} color={styles.iconColor.color} />
               </TouchableOpacity>
-              <Text style={styles.status}>Pending Order</Text>
+              <Text style={styles.status}>{order.status}</Text>
             </View>
 
             <View style={styles.yellowBackground}>
@@ -247,11 +280,13 @@ const OrderSummary = () => {
 
             <TouchableOpacity
               style={styles.storeInfo}
-              onPress={() => openAddressInGoogleMaps(shopData?.address)}
+              onPress={() => openAddressInMaps(shopData?.address)}
             >
               <Image
                 source={{
-                  uri: shopData?.logo || 'https://res.cloudinary.com/doqyrz0sg/image/upload/v1723576023/product/qlqgmmfijktkn17oqinu.jpg',
+                  uri:
+                    shopData?.logo ||
+                    'https://res.cloudinary.com/doqyrz0sg/image/upload/v1723576023/product/qlqgmmfijktkn17oqinu.jpg',
                 }}
                 style={styles.storeIcon}
               />
@@ -263,12 +298,25 @@ const OrderSummary = () => {
               <FontAwesome name="arrow-right" size={20} color={styles.iconColor.color} />
             </TouchableOpacity>
 
-            <View style={styles.deliveryInfo}>
-              <Text style={styles.deliveryTitle}>{getTodayOpeningHours()}</Text>
-              <Text style={styles.deliverySubtitle}>
-                Only the account holder can receive the order during this time slot.
-              </Text>
-            </View>
+            {/* Conditional Rendering Based on Order Type */}
+            {order.type === 'Order-in' ? (
+              <View style={styles.deliveryInfo}>
+                <Text style={styles.deliveryTitle}>{getTodayOpeningHours()}</Text>
+                <Text style={styles.deliverySubtitle}>
+                  Only the account holder can receive the order during this time slot.
+                </Text>
+              </View>
+            ) : order.type === 'Pick-up' ? (
+              <View style={styles.statusInfo}>
+                <View style={styles.statusHeader}>
+                  {getOrderStatusInfo(order).icon}
+                  <Text style={[styles.statusText, { color: getOrderStatusInfo(order).color }]}>
+                    {getOrderStatusInfo(order).mainText}
+                  </Text>
+                </View>
+               
+              </View>
+            ) : null}
 
             <View style={styles.summary}>
               <Text style={styles.summaryTitle}>Order Summary</Text>
@@ -304,54 +352,15 @@ const OrderSummary = () => {
         </ScrollView>
       </LinearGradient>
 
-      <Modal
-        visible={showRatingModal}
-        transparent
-        animationType="slide"
-      >
+      <Modal visible={showRatingModal} transparent animationType="slide">
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
-              {isReviewSubmitted ? 'Thank you for your rating!' : 'Your order has been marked as delivered'}
-            </Text>
-            <Text style={styles.modalSubtitle}>
-              {isReviewSubmitted ? 'Your rating has been submitted successfully.' : 'You can leave a review'}
-            </Text>
+            <Text style={styles.modalTitle}>{'Your order has been marked as delivered'}</Text>
+            <Text style={styles.modalSubtitle}>{'If you need assistance, contact support.'}</Text>
 
-            {!isReviewSubmitted && (
-              <>
-                <View style={styles.ratingContainer}>
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <TouchableOpacity key={star} onPress={() => setRating(star)}>
-                      <FontAwesome
-                        name="star"
-                        size={32}
-                        color={star <= rating ? '#FFD700' : '#E0E0E0'}
-                      />
-                    </TouchableOpacity>
-                  ))}
-                </View>
-
-                <TextInput
-                  style={styles.commentInput}
-                  placeholder="Leave a comment (optional)"
-                  placeholderTextColor={colorScheme === 'dark' ? '#888888' : '#CCCCCC'}
-                  value={comment}
-                  onChangeText={setComment}
-                  multiline
-                />
-
-                <TouchableOpacity style={styles.submitButton} onPress={submitRating}>
-                  <Text style={styles.submitButtonText}>Submit Review</Text>
-                </TouchableOpacity>
-              </>
-            )}
-
-            {isReviewSubmitted && (
-              <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
-                <Text style={styles.closeButtonText}>Close</Text>
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
+              <Text style={styles.closeButtonText}>Close</Text>
+            </TouchableOpacity>
 
             <TouchableOpacity style={styles.supportButton} onPress={handleSupport}>
               <Text style={styles.supportButtonText}>Something wrong? Contact support</Text>
@@ -359,7 +368,7 @@ const OrderSummary = () => {
           </View>
         </View>
       </Modal>
-    </View>
+    </ScrollView>
   );
 };
 
@@ -382,7 +391,7 @@ const commonStyles = {
     shadowOpacity: 0.1,
     shadowRadius: 6,
     elevation: 5,
-    margin: 10,
+    margin: 40,
     width: '90%',
   },
   header: {
@@ -597,6 +606,25 @@ const commonStyles = {
   iconColor: {
     color: '#000',
   },
+  statusInfo: {
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  statusHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statusText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginLeft: 10,
+  },
+  orderCodeText: {
+    fontSize: 16,
+    marginTop: 10,
+  },
 };
 
 const lightStyles = StyleSheet.create({
@@ -730,6 +758,18 @@ const lightStyles = StyleSheet.create({
   iconColor: {
     color: '#000000',
   },
+  statusInfo: {
+    ...commonStyles.statusInfo,
+    backgroundColor: '#FFF8E1',
+  },
+  statusText: {
+    ...commonStyles.statusText,
+    color: '#333333',
+  },
+  orderCodeText: {
+    ...commonStyles.orderCodeText,
+    color: '#333333',
+  },
 });
 
 const darkStyles = StyleSheet.create({
@@ -762,6 +802,10 @@ const darkStyles = StyleSheet.create({
   storeInfo: {
     ...commonStyles.storeInfo,
     borderColor: '#333333',
+  },
+  summaryTitle: {
+    ...commonStyles.summaryTitle,
+    color: '#FFFFFF'
   },
   storeIcon: {
     ...commonStyles.storeIcon,
@@ -863,10 +907,18 @@ const darkStyles = StyleSheet.create({
   iconColor: {
     color: '#FFFFFF',
   },
-  summaryTitle: {
-   ...commonStyles.summaryTitle,
-   color:"#FFF"
-  }
+  statusInfo: {
+    ...commonStyles.statusInfo,
+    backgroundColor: '#2A2A2A',
+  },
+  statusText: {
+    ...commonStyles.statusText,
+    color: '#FFFFFF',
+  },
+  orderCodeText: {
+    ...commonStyles.orderCodeText,
+    color: '#FFFFFF',
+  },
 });
 
 export default OrderSummary;

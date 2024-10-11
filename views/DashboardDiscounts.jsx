@@ -39,6 +39,8 @@ const DashboardDiscount = () => {
     const auxShops = useSelector((state) => state?.setUp?.auxShops);
     const [allTags, setAllTags] = useState([]);
 
+    console.log(shopsByCategory, "shopsByCategory");
+
     const orderTypeParam = deliveryMode === 'orderIn' ? 0 : deliveryMode === 'Pickup' ? 1 : null;
     console.log(allTags, 'allTags');
     const extractTags = (shops) => {
@@ -346,7 +348,7 @@ const DashboardDiscount = () => {
                     ))}
                 </ScrollView>
 
-                {ordersIn && ordersIn.length > 0 && <OrderStatus />}
+              
 
                 {noShopsAvailable ? (
                     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 50 }}>

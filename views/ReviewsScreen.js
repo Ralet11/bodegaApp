@@ -19,28 +19,13 @@ const filters = ['Relevant', 'Recent', 'Highest Rated', 'Lowest Rated'];
 
 const ReviewScreen = () => {
   const [selectedFilter, setSelectedFilter] = useState('Relevant');
-  const [reviews, setReviews] = useState([]);
+  
   const navigation = useNavigation();
   const route = useRoute();
-  const { shop } = route.params || {};
+  const { shop, reviews } = route.params || {};
   const token = useSelector((state) => state?.user?.userInfo.data.token);
 
-  useEffect(() => {
-    const fetchReviews = async () => {
-      try {
-        const response = await Axios.get(`${API_URL}/api/reviews/getByLocal/${shop.id}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        setReviews(response.data);
-      } catch (error) {
-        console.error(error);
-      }
-    };
 
-    fetchReviews();
-  }, [shop.id, token]);
 
   return (
     <SafeAreaView style={styles.safeArea}>

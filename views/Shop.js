@@ -19,7 +19,7 @@ import { stylesDark, stylesLight } from '../components/themeShop';
 
 import PromoCard from '../components/PromoMealCard';
 import DiscountDetailScreen from '../components/DiscountDetail';
-import ProductDetail from '../components/ProductDetail'; // Importa el componente de detalle de productos
+import ProductDetail from '../components/ProductDetail'; // Import the product detail component
 
 const ShopScreen = () => {
   const route = useRoute();
@@ -45,10 +45,13 @@ const ShopScreen = () => {
   const stickyAnim = useRef(new Animated.Value(0)).current;
   const categoryRefs = useRef([]);
   const categoryPositions = useRef([]);
-  const { shop, orderTypeParam } = route.params || {};
+  const params = route.params || {};
+  const shop = params.shop || null;
+  const orderTypeParam = params.orderTypeParam || null;
+  const orderDetails = params.orderDetails || null;
   const styles = colorScheme === 'dark' ? stylesDark : stylesLight;
-
-  console.log(shop.delivery, "shop")
+  const isNavigatingBack = useRef(false);
+  const [reviews, setReviews] = useState([]);
 
   const [positionsReady, setPositionsReady] = useState(false);
   const [isComponentReady, setIsComponentReady] = useState(false);
@@ -56,6 +59,36 @@ const ShopScreen = () => {
   useEffect(() => {
     setIsComponentReady(true);
   }, []);
+
+  useEffect(() => {
+    if (orderDetails && Array.isArray(orderDetails) && orderDetails.length > 0) {
+      orderDetails.forEach(product => {
+        dispatch(addToCart({
+          ...product,
+          quantity: product.quantity || 1,
+          selectedExtras: product.selectedExtras || {},
+          price: product.currentPrice || product.price,
+        }));
+      });
+    }
+  }, [orderDetails, dispatch]);
+
+  useEffect(() => {
+    const fetchReviews = async () => {
+      try {
+        const response = await Axios.get(`${API_URL}/api/reviews/getByLocal/${shop.id}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        setReviews(response.data);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    fetchReviews();
+  }, [shop.id, token]);
 
   useEffect(() => {
     if (orderTypeParam !== undefined) {
@@ -97,7 +130,7 @@ const ShopScreen = () => {
         });
         const discounts = response.data;
         setDiscounts(discounts);
-        setGroupedDiscounts(groupDiscountsByCategory(discounts)); // Agrupamos los descuentos siempre
+        setGroupedDiscounts(groupDiscountsByCategory(discounts)); // Always group discounts
       } catch (error) {
         console.log(error);
       }
@@ -122,9 +155,8 @@ const ShopScreen = () => {
       } catch (error) {
         console.log(error);
       }
-    }
+    };
     getPromotionByShop();
-
   }, []);
 
   useEffect(() => {
@@ -141,15 +173,15 @@ const ShopScreen = () => {
         if (supported) {
           Linking.openURL(url);
         } else {
-          console.log("No se puede abrir el enlace:", url);
+          console.log("Cannot open the URL:", url);
         }
       })
-      .catch((err) => console.error("Error al intentar abrir el enlace:", err));
+      .catch((err) => console.error("Error trying to open the URL:", err));
   };
 
   const scrollToCategory = (index) => {
     if (!positionsReady || !isComponentReady) {
-      console.log('El componente aún no está listo para desplazarse');
+      console.log('Component is not ready to scroll yet');
       return;
     }
 
@@ -158,51 +190,84 @@ const ShopScreen = () => {
       const positionY = categoryPositions.current[index];
       scrollViewRef.current.scrollTo({ y: positionY - categoryListY, animated: true });
     } else {
-      console.log('scrollViewRef.current o categoryPositions.current no está disponible');
+      console.log('scrollViewRef.current or categoryPositions.current is not available');
     }
   };
 
   useFocusEffect(
     React.useCallback(() => {
       const onBackPress = () => {
-        if (!selectedProduct && !selectedDiscount){
+        if (isNavigatingBack.current) {
+          return true;
+        }
+        isNavigatingBack.current = true;
+
+        if (!selectedProduct && !selectedDiscount) {
           if (cart.length > 0) {
+            dispatch(clearCart());
+            navigation.goBack();
+            return true;
+          } else {
+            navigation.goBack();
+            return true;
+          }
+        } else {
+          setSelectedProduct(null);
+          setSelectedDiscount(null);
+          isNavigatingBack.current = false;
+          return true;
+        }
+      };
+
+      BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      navigation.addListener('beforeRemove', (e) => {
+        if (isNavigatingBack.current) {
+          return;
+        }
+        isNavigatingBack.current = true;
+
+        const actionType = e.data.action.type;
+
+        if (cart.length > 0) {
+          if (actionType === 'POP') {
+            // User is going back (including slide-back gesture), empty the cart without asking
+            dispatch(clearCart());
+            navigation.dispatch(e.data.action);
+          } else {
+            // For other actions, show the alert
+            e.preventDefault();
             Alert.alert(
               "Empty Cart",
               "If you go back, your cart will be emptied. Do you want to continue?",
               [
                 {
                   text: "Cancel",
-                  onPress: () => { },
+                  onPress: () => {
+                    isNavigatingBack.current = false;
+                  },
                   style: "cancel"
                 },
                 {
                   text: "Continue",
                   onPress: () => {
                     dispatch(clearCart());
-                    navigation.goBack();
+                    navigation.dispatch(e.data.action);
                   }
                 }
               ]
             );
-            return true; // Impide que el botón retroceda automáticamente
-          } else {
-            navigation.goBack();
-            return true; // Permite la navegación cuando el carrito está vacío
           }
         } else {
-          setSelectedProduct(null);
-          setSelectedDiscount(null);
-          return true; // Permite la navegación cuando hay un producto o descuento seleccionado
+          navigation.dispatch(e.data.action);
         }
-       
-      };
+      });
 
-      BackHandler.addEventListener('hardwareBackPress', onBackPress);
-
-      return () =>
+      return () => {
         BackHandler.removeEventListener('hardwareBackPress', onBackPress);
-    }, [cart, selectedProduct, selectedDiscount])
+        navigation.removeListener('beforeRemove', () => { });
+        isNavigatingBack.current = false;
+      };
+    }, [cart, selectedProduct, selectedDiscount, navigation, dispatch])
   );
 
   const handleOrderTypeChange = (type) => {
@@ -283,8 +348,8 @@ const ShopScreen = () => {
   };
 
   const goReviewScreen = () => {
-    navigation.navigate('ReviewSceen', { shop });
-  }
+    navigation.navigate('ReviewSceen', { shop, reviews });
+  };
 
   useEffect(() => {
     setGroupedDiscounts(groupDiscountsByCategory(discounts));
@@ -302,7 +367,7 @@ const ShopScreen = () => {
     if (shop?.orderIn && shop?.pickUp) {
       return (
         <>
-          {/* Botón para Order-in */}
+          {/* Button for Order-in */}
           <TouchableOpacity
             style={[styles.orderTypeButton, orderType === 'Order-in' && styles.selectedOrderTypeButton]}
             onPress={() => handleOrderTypeChange('Order-in')}
@@ -311,7 +376,7 @@ const ShopScreen = () => {
             <Text style={styles.orderTypeText}>Dine-in</Text>
           </TouchableOpacity>
 
-          {/* Botón para Pick-up */}
+          {/* Button for Pick-up */}
           <TouchableOpacity
             style={[styles.orderTypeButton, orderType === 'Pick-up' && styles.selectedOrderTypeButton]}
             onPress={() => handleOrderTypeChange('Pick-up')}
@@ -349,14 +414,14 @@ const ShopScreen = () => {
   return (
     <SafeAreaView style={styles.safeArea}>
       {selectedProduct ? (
-        // Renderizar únicamente el ProductDetail si hay un producto seleccionado
+        // Render only the ProductDetail if a product is selected
         <ProductDetail
           product={selectedProduct}
           onAddToCart={handleAddToCart}
           onBack={closeProductDetail}
         />
       ) : selectedDiscount ? (
-        // Renderizar únicamente el DiscountDetailScreen si hay un descuento seleccionado
+        // Render only the DiscountDetailScreen if a discount is selected
         <DiscountDetailScreen
           discount={selectedDiscount}
           onAddToCart={handleAddDiscountToCart}
@@ -372,7 +437,7 @@ const ShopScreen = () => {
             scrollEventThrottle={16}
             onScroll={handleScroll}
           >
-            {/* Header con la Imagen */}
+            {/* Header with Image */}
             <View style={styles.headerImageContainer}>
               <Image
                 source={{ uri: shop?.deliveryImage }}
@@ -380,27 +445,11 @@ const ShopScreen = () => {
               />
               <TouchableOpacity
                 onPress={() => {
-                  // Solo mostrar el Alert si no hay un producto o descuento seleccionado
+                  // Only proceed if there's no selected product or discount
                   if (!selectedProduct && !selectedDiscount) {
                     if (cart.length > 0) {
-                      Alert.alert(
-                        "Empty Cart",
-                        "If you go back, your cart will be emptied. Do you want to continue?",
-                        [
-                          {
-                            text: "Cancel",
-                            onPress: () => { },
-                            style: "cancel"
-                          },
-                          {
-                            text: "Continue",
-                            onPress: () => {
-                              dispatch(clearCart());
-                              navigation.goBack();
-                            }
-                          }
-                        ]
-                      );
+                      dispatch(clearCart());
+                      navigation.goBack();
                     } else {
                       navigation.goBack();
                     }
@@ -414,7 +463,7 @@ const ShopScreen = () => {
                 <FontAwesome name="arrow-left" size={28} color="#fff" />
               </TouchableOpacity>
             </View>
-            {/* Información del Negocio */}
+            {/* Shop Information */}
             {!selectedProduct && !selectedDiscount && (
               <View style={styles.shopInfoContainer}>
                 <Text style={styles.shopName}>{shop?.name}</Text>
@@ -430,7 +479,7 @@ const ShopScreen = () => {
                     <TouchableOpacity onPress={goReviewScreen} style={styles.shopRatingContainer}>
                       <FontAwesome name="star" size={14} color="#ffcc00" />
                       <Text style={styles.shopRating}>{shop?.rating?.toFixed(1)}</Text>
-                      <Text style={styles.shopRatingOpinions}>({shop?.reviews || 3})</Text>
+                      <Text style={styles.shopRatingOpinions}>({reviews.length || 0})</Text>
                       <FontAwesome name="chevron-right" style={styles.shopRatingArrow} />
                     </TouchableOpacity>
                     <View style={styles.orderTypeButtonsContainer}>
@@ -441,7 +490,7 @@ const ShopScreen = () => {
               </View>
             )}
 
-            {/* Categorías */}
+            {/* Categories */}
             {!selectedProduct && !selectedDiscount && (
               <View
                 style={styles.categoryListContainer}
@@ -483,7 +532,7 @@ const ShopScreen = () => {
               <PromoCard user={user} shop={shop} token={token} promotion={promotion} />
             )}
 
-            {/* Contenido de las categorías */}
+            {/* Category Content */}
             {loading ? (
               <CartSkeletonLoader />
             ) : (
@@ -494,7 +543,7 @@ const ShopScreen = () => {
                   selectedDiscount={selectedDiscount}
                   setSelectedDiscount={setSelectedDiscount}
                   cart={cart}
-                  discounts={groupedDiscounts} // Ya agrupados independientemente del orderType
+                  discounts={groupedDiscounts} // Already grouped regardless of orderType
                   handleAddToCart={handleAddToCart}
                   handleAddDiscountToCart={handleAddDiscountToCart}
                   selectedOptions={selectedOptions}
@@ -593,7 +642,7 @@ const ShopScreen = () => {
           <Text style={styles.cartText}>{orderType}</Text>
           <TouchableOpacity
             style={styles.cartButton}
-            onPress={() => navigation.navigate('CartScreen', { orderType })}
+            onPress={() => navigation.navigate('CartScreen', { orderType, shop })}
           >
             <Text style={styles.cartButtonText}>Go to cart</Text>
           </TouchableOpacity>

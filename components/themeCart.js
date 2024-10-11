@@ -1,860 +1,717 @@
+// themeCart.js
+
 import { StyleSheet } from 'react-native';
+
+const colors = {
+  primary: '#ff9900',
+  secondary: '#ffcc00',
+  backgroundLight: '#ffffff',
+  backgroundDark: '#1c1c1c',
+  textLight: '#ffffff',
+  textDark: '#333333',
+  accent: '#ff9900',
+  borderColor: '#e0e0e0',
+  placeholderTextLight: '#888888',
+  placeholderTextDark: '#cccccc',
+  shadowColor: '#000',
+  success: '#28a745',
+  danger: '#dc3545',
+  warning: '#ffcc00',
+  cardBackground: '#f9f9f9',
+  modalBackground: '#f0f0f0',
+};
+
+const fontSizes = {
+  xs: 12,
+  small: 14,
+  medium: 16,
+  large: 18,
+  xLarge: 22,
+  xxLarge: 26,
+};
+
+const spacing = {
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 24,
+  xxl: 32,
+};
+
+const fonts = {
+  regular: 'System',
+  bold: 'System',
+};
+
+const shadowStyle = {
+  shadowColor: colors.shadowColor,
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.1,
+  shadowRadius: 4,
+  elevation: 3,
+};
 
 const commonStyles = {
   safeArea: {
     flex: 1,
-    backgroundColor: '#f9f9f9',
-  },
-  loaderContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-quantityControl: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  quantityButton: {
-    backgroundColor: '#FFCC00', // Color amarillo para el fondo
-    paddingHorizontal: 4, // Tamaño del padding más pequeño
-    paddingVertical: 2,
-    borderRadius: 1,
-  },
-  quantityButtonText: {
-    fontSize: 16, // Ajusta el tamaño del texto
-    fontWeight: 'bold',
-    color: '#000', // Texto negro
-  },
-  quantityText: {
-    marginHorizontal: 10,
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  cartItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 10,
-  },
-  cartItemImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-  },
-  cartItemDetails: {
-    flex: 1,
-    marginLeft: 10,
-  },
-  cartItemName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  cartItemPrice: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    backgroundColor: colors.backgroundLight,
   },
   container: {
     flexGrow: 1,
-    justifyContent: 'space-between',
-    padding: 20,
-    paddingTop: 30,
+    paddingHorizontal: spacing.lg,
+    backgroundColor: colors.backgroundLight,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
-  },
-  removeButton: {
-    position: 'absolute',
-    right: 30,
-    top: '50%',
-    transform: [{ translateY: -12 }], // Centra verticalmente el botón
-    backgroundColor: 'transparent',
-    padding: 10,
+    marginBottom: spacing.md,
+    paddingTop: spacing.xxl + 20,
   },
   goBackButton: {
-    marginRight: 10,
+    marginRight: spacing.sm,
   },
   headerTitle: {
-    fontSize: 26,  // Aumentado para mayor impacto
-    fontWeight: 'bold',
-    color: '#333', // Color más oscuro para contraste
+    fontSize: fontSizes.xxLarge,
+    fontWeight: '700',
+    color: colors.textDark,
   },
   orderTypeContainer: {
-    marginBottom: 15,
-    padding: 15,
-    borderRadius: 15,
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 5,
+    marginBottom: spacing.lg,
+    padding: spacing.md,
+    borderRadius: spacing.md,
+    backgroundColor: colors.cardBackground,
+    ...shadowStyle,
   },
-  orderTypeText: {
-    fontSize: 18,
+  orderTypeButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: spacing.sm,
+  },
+  orderTypeOption: {
+    flex: 1,
+    paddingVertical: spacing.sm,
+    borderRadius: spacing.sm,
+    backgroundColor: colors.backgroundLight,
+    borderWidth: 1,
+    borderColor: colors.borderColor,
+    alignItems: 'center',
+    marginHorizontal: spacing.xs,
+  },
+  selectedOption: {
+    backgroundColor: colors.primary,
+  },
+  orderTypeOptionText: {
+    fontSize: fontSizes.medium,
     fontWeight: '600',
-    color: '#333',
-    textAlign: 'center',
+    color: colors.textDark,
   },
   addressContainer: {
-    marginBottom: 20,
-    padding: 20,
-    borderRadius: 15,
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 5,
+    marginBottom: spacing.lg,
+    padding: spacing.lg,
+    borderRadius: spacing.md,
+    backgroundColor: colors.cardBackground,
+    ...shadowStyle,
   },
   addressLabel: {
-    fontSize: 18,  // Aumentado para mejor legibilidad
+    fontSize: fontSizes.large,
     fontWeight: '600',
-    color: '#333',
+    color: colors.textDark,
+    marginBottom: spacing.sm,
   },
   addressInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 10,  // Añadido para separar del label
   },
   addressInput: {
     flex: 1,
-    fontSize: 16,
+    fontSize: fontSizes.medium,
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 10,
-    padding: 10,
-    backgroundColor: '#f9f9f9',
+    borderColor: colors.borderColor,
+    borderRadius: spacing.sm,
+    padding: spacing.sm,
+    backgroundColor: colors.backgroundLight,
+    color: colors.textDark,
   },
   cartItemsContainer: {
-    marginBottom: 20,
-    marginTop: 10,
+    marginBottom: spacing.lg,
   },
   cartItem: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
-    borderRadius: 15,
-    marginBottom: 15,
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    marginBottom: 12,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 5,
     alignItems: 'center',
-    padding: 15,
+    padding: 12,
     position: 'relative',
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   cartItemImage: {
-    width: 70,  // Ajustado para mayor visibilidad
-    height: 70,
-    borderRadius: 10,
-  },
-  discountLabel: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    backgroundColor: '#ffcc00',
-    padding: 5,
-    borderRadius: 5,
-  },
-  discountLabelText: {
-    color: '#000',
-    fontWeight: 'bold',
-    fontSize: 8,  // Ajustado para mayor visibilidad
-  },
-  promotionLabel: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    backgroundColor: '#CCCCFF',
-    padding: 5,
-    borderRadius: 5,
+    width: 80,
+    height: 80,
+    borderRadius: 4,
+    marginRight: 12,
   },
   cartItemDetails: {
     flex: 1,
-    paddingHorizontal: 10,
   },
   cartItemName: {
-    fontSize: 18,  // Aumentado para mejor legibilidad
+    fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: '#333333',
+    marginBottom: 4,
   },
   cartItemPrice: {
-    fontSize: 16,
-    marginTop: 4,
-    color: '#666',  // Color más suave para contraste
+    fontSize: 14,
+    color: '#333333',
+    fontWeight: 'bold',
   },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginTop: 8,
   },
-  quantityContainer: {
+  quantityControl: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginLeft: 10,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 4,
+    overflow: 'hidden',
   },
   quantityButton: {
-    backgroundColor: '#ff9900',
-    paddingVertical: 8,
+    backgroundColor: '#f0f0f0',
+    paddingVertical: 4,
     paddingHorizontal: 12,
-    borderRadius: 8,
   },
   quantityButtonText: {
-    fontSize: 16,
-    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333333',
+  },
+  quantityTextContainer: {
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
   },
   quantityText: {
-    fontSize: 18,  // Aumentado para mejor visibilidad
-    marginHorizontal: 10,
-    color: '#333',
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333333',
   },
   tipContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 15,
-    padding: 15,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 5,
+    backgroundColor: colors.cardBackground,
+    borderRadius: spacing.md,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+    ...shadowStyle,
   },
   tipLabel: {
-    fontSize: 18,
+    fontSize: fontSizes.large,
     fontWeight: '600',
-    marginBottom: 10,
-    color: '#333',
+    marginBottom: spacing.sm,
+    color: colors.textDark,
   },
   tipOptions: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
   },
   tipButton: {
-    backgroundColor: '#f2f2f2',
-    paddingVertical: 8,
-    paddingHorizontal: 8,
-    borderRadius: 10,
+    backgroundColor: colors.backgroundLight,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    borderRadius: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.borderColor,
+    alignItems: 'center',
+    flex: 1,
+    marginHorizontal: spacing.xs,
   },
   tipButtonSelected: {
-    backgroundColor: '#ff9900',
+    backgroundColor: colors.primary,
   },
   tipButtonText: {
-    fontSize: 16,
+    fontSize: fontSizes.medium,
     fontWeight: '600',
+    color: colors.textDark,
   },
   customTipInput: {
-    marginTop: 10,
-    fontSize: 16,
+    marginTop: spacing.sm,
+    fontSize: fontSizes.medium,
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 10,
-    padding: 10,
-    backgroundColor: '#f9f9f9',
+    borderColor: colors.borderColor,
+    borderRadius: spacing.sm,
+    padding: spacing.sm,
+    backgroundColor: colors.backgroundLight,
+    color: colors.textDark,
   },
   summaryContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 15,
-    padding: 20,  // Aumentado para un diseño más espacioso
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 5,
-    marginBottom: 20,
+    backgroundColor: colors.cardBackground,
+    borderRadius: spacing.md,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+    ...shadowStyle,
   },
   summaryText: {
-    fontSize: 18,  // Aumentado para mejorar la legibilidad
-    marginBottom: 8,
-    color: '#333',
-  },
-  strikethrough: {
-    textDecorationLine: 'line-through',
-    textDecorationStyle: 'solid',
-    color: '#A9A9A9',
-  },
-  freeText: {
-    color: 'green',
-    fontWeight: 'bold',
+    fontSize: fontSizes.large,
+    marginBottom: spacing.sm,
+    color: colors.textDark,
   },
   totalText: {
-    fontSize: 20,  // Aumentado para destacar el total
+    fontSize: fontSizes.xLarge,
     fontWeight: 'bold',
-    color: '#333',
+    color: colors.textDark,
     textAlign: 'right',
-    marginTop: 10,
+    marginTop: spacing.sm,
   },
   checkoutButton: {
-    backgroundColor: '#ff9900',
-    paddingVertical: 14,  // Ajustado para mayor confort
-    borderRadius: 25,
+    backgroundColor: colors.accent,
+    paddingVertical: spacing.md,
+    borderRadius: spacing.lg,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 10,
+    marginBottom: spacing.lg,
+    ...shadowStyle,
   },
   checkoutButtonText: {
-    color: '#1a1a1a',
-    fontSize: 20,  // Aumentado para mayor impacto
+    color: colors.textLight,
+    fontSize: fontSizes.xLarge,
     fontWeight: 'bold',
   },
   savingsContainer: {
-    backgroundColor: '#fffbec',
-    borderRadius: 15,
-    padding: 15,
-    marginBottom: 20,
+    backgroundColor: colors.warning,
+    borderRadius: spacing.md,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
     alignItems: 'center',
     justifyContent: 'center',
-    borderColor: '#ffcc00',
+    borderColor: colors.secondary,
     borderWidth: 1,
   },
   savingsText: {
-    fontSize: 18,
+    fontSize: fontSizes.large,
     fontWeight: '700',
-    color: '#ff6600',
+    color: colors.textDark,
   },
   adContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 15,
-    padding: 20,  // Aumentado para mejor presencia
-    marginBottom: 20,
+    backgroundColor: colors.cardBackground,
+    borderRadius: spacing.md,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
     alignItems: 'center',
     justifyContent: 'center',
-    borderColor: '#007bff',
+    borderColor: colors.accent,
     borderWidth: 1,
+    ...shadowStyle,
   },
   adTitle: {
-    fontSize: 20,  // Aumentado para mayor impacto
+    fontSize: fontSizes.xLarge,
     fontWeight: '700',
-    marginBottom: 10,
-    color: '#333',
+    marginBottom: spacing.sm,
+    color: colors.textDark,
   },
   adText: {
-    fontSize: 16,
-    color: '#333',
+    fontSize: fontSizes.medium,
+    color: colors.textDark,
+  },
+  balanceContainer: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    backgroundColor: colors.cardBackground,
+    padding: spacing.md,
+    borderRadius: spacing.md,
+    marginVertical: spacing.md,
+    ...shadowStyle,
+  },
+  balanceText: {
+    fontSize: fontSizes.large,
+    fontWeight: 'bold',
+    color: colors.textDark,
+    marginBottom: spacing.sm,
+  },
+  useBalanceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingVertical: spacing.xs,
+  },
+  useBalanceLabel: {
+    fontSize: fontSizes.medium,
+    fontWeight: '600',
+    color: colors.textDark,
   },
   modalOverlay: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)', // This will create the dark overlay
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   largeModalContent: {
-    backgroundColor: 'white',
-    borderRadius: 10,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 5,
+    backgroundColor: colors.modalBackground,
+    borderRadius: spacing.md,
+    padding: spacing.lg,
     width: '95%',
-    height: '95%', // Ocupa el 95% de la altura disponible
+    height: '95%',
     alignSelf: 'center',
-    justifyContent: 'space-between', // Distribuye el espacio entre el contenido y los botones
+    justifyContent: 'space-between',
+    ...shadowStyle,
   },
   modalTitle: {
-    fontSize: 22,  // Aumenta ligeramente el tamaño del título
+    fontSize: fontSizes.xLarge,
     fontWeight: 'bold',
-    marginBottom: 15, // Espacio generoso debajo del título
-    textAlign: 'center', // Centra el título
+    marginBottom: spacing.md,
+    textAlign: 'center',
+    color: colors.textDark,
   },
   modalScrollView: {
-    flex: 1, // Deja que el contenido use todo el espacio disponible
+    flex: 1,
   },
   modalSection: {
-    marginBottom: 20, // Mantén un buen espacio entre secciones
+    marginBottom: spacing.lg,
   },
   modalSectionTitle: {
-    fontSize: 16,
+    fontSize: fontSizes.large,
     fontWeight: 'bold',
-    marginBottom: 8,
+    marginBottom: spacing.sm,
+    color: colors.textDark,
   },
   modalText: {
-    fontSize: 15,  // Aumenta ligeramente el tamaño de texto para mejor legibilidad
-    color: '#333',
+    fontSize: fontSizes.medium,
+    color: colors.textDark,
   },
   instructionsInput: {
-    borderColor: '#ccc',
+    borderColor: colors.borderColor,
     borderWidth: 1,
-    borderRadius: 8, // Ajusta para un diseño más suave
-    padding: 10, // Aumenta el padding para mayor confort de escritura
-    height: 100, // Ajusta la altura del campo de instrucciones
+    borderRadius: spacing.sm,
+    padding: spacing.sm,
+    height: 100,
     textAlignVertical: 'top',
-    backgroundColor: '#f9f9f9',
-    color: '#333',
+    backgroundColor: colors.backgroundLight,
+    color: colors.textDark,
   },
   modalSummaryContainer: {
-    marginTop: 15,
-    borderTopWidth: 1, // Añade una línea para separar el resumen
-    borderTopColor: '#eee',
-    paddingTop: 15,
+    marginTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderColor,
+    paddingTop: spacing.md,
   },
   modalButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingTop: 20, // Aumenta el padding para darle más espacio y separar mejor del contenido
-    paddingBottom: 10, // Espacio adicional para los botones
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.sm,
   },
   confirmButton: {
     flex: 1,
-    backgroundColor: '#ff9900',
-    padding: 18, // Aumenta el tamaño de los botones para hacerlos más cómodos
-    borderRadius: 10,
+    backgroundColor: colors.primary,
+    padding: spacing.lg,
+    borderRadius: spacing.sm,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 10,
+    marginRight: spacing.sm,
   },
   confirmButtonText: {
-    color: '#FFFFFF',
-    fontSize: 18, // Aumenta el tamaño del texto para mayor legibilidad
+    color: colors.textLight,
+    fontSize: fontSizes.large,
     fontWeight: 'bold',
   },
   cancelButton: {
     flex: 1,
-    backgroundColor: '#cccccc',
-    padding: 18, // Aumenta el tamaño de los botones para hacerlos más cómodos
-    borderRadius: 10,
+    backgroundColor: colors.borderColor,
+    padding: spacing.lg,
+    borderRadius: spacing.sm,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Fondo oscuro translúcido para el modal
-  },
-  modalContent: {
-    width: '90%',
-    borderRadius: 15,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 5,
-  },
-  modalTitle: {
-    fontSize: 22,
+  cancelButtonText: {
+    color: colors.textDark,
+    fontSize: fontSizes.large,
     fontWeight: 'bold',
-    marginBottom: 15,
-    textAlign: 'center',
-  },
-  addressItem: {
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  addressText: {
-    fontSize: 16,
   },
   closeButton: {
-    marginTop: 20,
+    marginTop: spacing.lg,
     alignItems: 'center',
   },
   closeButtonText: {
-    fontSize: 18,
+    fontSize: fontSizes.large,
     fontWeight: 'bold',
+    color: colors.primary,
   },
-  cancelButtonText: {
-    color: '#333',
-    fontSize: 18, // Aumenta el tamaño del texto para mayor legibilidad
+  discountLabel: {
+    position: 'absolute',
+    top: spacing.sm,
+    right: spacing.sm,
+    backgroundColor: colors.secondary,
+    padding: spacing.xs,
+    borderRadius: spacing.xs,
+  },
+  discountLabelText: {
+    color: colors.textDark,
     fontWeight: 'bold',
+    fontSize: fontSizes.xs,
   },
-  balanceContainer: {
-    flexDirection: 'column', // Cambiado para que los elementos estén en columna
-    alignItems: 'flex-start', // Alineación a la izquierda
-    backgroundColor: '#f2f2f2', // Fondo suave
-    padding: 15, // Mayor padding para espaciamiento
-    borderRadius: 15, // Borde redondeado
-    marginVertical: 10, // Margen vertical
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 4,
+  promotionLabel: {
+    position: 'absolute',
+    top: spacing.sm,
+    right: spacing.sm,
+    backgroundColor: '#82ccdd',
+    padding: spacing.xs,
+    borderRadius: spacing.xs,
   },
-  balanceText: {
-    fontSize: 18, // Tamaño de fuente mayor para resaltar el balance
-    fontWeight: 'bold', // Negrita para énfasis
-    color: '#333', // Color de texto
-    marginBottom: 10, // Espaciado debajo del texto
+  strikethrough: {
+    textDecorationLine: 'line-through',
+    color: colors.borderColor,
   },
-  useBalanceContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between', // Alinea el switch y el texto en los extremos
-    width: '100%',
-    paddingVertical: 5, // Pequeño padding vertical
-  },
-  useBalanceLabel: {
-    fontSize: 16, // Tamaño de fuente más pequeño para contraste
-    fontWeight: '600', // Peso medio para el texto
-    color: '#666', // Color gris para un look más sutil
-  },
-  balanceSwitch: {
-    transform: [{ scale: 1.1 }], // Aumenta ligeramente el tamaño del switch
-    marginLeft: 'auto', // Alinea el switch al final
+  freeText: {
+    color: colors.success,
+    fontWeight: 'bold',
   },
   modalOrderTypeContainer: {
-    backgroundColor: '#fff',
-    padding: 20,
-    borderRadius: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 10,
+    backgroundColor: colors.cardBackground,
+    padding: spacing.lg,
+    borderRadius: spacing.md,
+    ...shadowStyle,
   },
   modalOrderTypeText: {
-    fontSize: 18,
-    color: '#333',
+    fontSize: fontSizes.large,
+    color: colors.textDark,
     textAlign: 'center',
-    marginBottom: 15,
+    marginBottom: spacing.md,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderColor,
+    paddingBottom: spacing.xs,
+  },
+  input: {
+    flex: 1,
+    fontSize: fontSizes.medium,
+    color: colors.textDark,
+  },
+  errorText: {
+    color: colors.danger,
+    fontSize: fontSizes.small,
+    marginBottom: spacing.sm,
+  },
+  button: {
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.md,
+    borderRadius: spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: spacing.md,
+  },
+  buttonText: {
+    color: colors.textLight,
+    fontSize: fontSizes.large,
+    fontWeight: 'bold',
+  },
+  footerLink: {
+    marginTop: spacing.md,
+    alignItems: 'center',
+  },
+  footerText: {
+    color: colors.accent,
+    fontSize: fontSizes.medium,
   },
 };
+
+const stylesLight = StyleSheet.create({
+  ...commonStyles,
+});
 
 const stylesDark = StyleSheet.create({
   ...commonStyles,
   safeArea: {
     ...commonStyles.safeArea,
-    backgroundColor: '#1c1c1c',
-  },
-  loaderContainer: {
-    ...commonStyles.loaderContainer,
-    backgroundColor: '#1c1c1c',
+    backgroundColor: colors.backgroundDark,
   },
   container: {
     ...commonStyles.container,
-    backgroundColor: '#1c1c1c',
+    backgroundColor: colors.backgroundDark,
   },
   headerTitle: {
     ...commonStyles.headerTitle,
-    color: '#fff',
-  },
-  balanceContainer: {
-    ...commonStyles.balanceContainer,
-    backgroundColor: '#333', // Fondo oscuro para el modo oscuro
-  },
-  balanceText: {
-    ...commonStyles.balanceText,
-    color: 'white', // Texto claro para contraste en modo oscuro
-  },
-  useBalanceLabel: {
-    ...commonStyles.useBalanceLabel,
-    color: '#fff',
-  },
-  addressContainer: {
-    ...commonStyles.addressContainer,
-    backgroundColor: '#333',
-  },
-  addressLabel: {
-    ...commonStyles.addressLabel,
-    color: '#fff',
-  },
-  addressInput: {
-    ...commonStyles.addressInput,
-    backgroundColor: '#444',
-    color: '#fff',
-  },
-  cartItem: {
-    ...commonStyles.cartItem,
-    backgroundColor: '#333',
-  },
-  cartItemName: {
-    ...commonStyles.cartItemName,
-    color: '#fff',
-  },
-  cartItemPrice: {
-    ...commonStyles.cartItemPrice,
-    color: '#fff',
-  },
-  tipContainer: {
-    ...commonStyles.tipContainer,
-    backgroundColor: '#333',
-  },
-  tipLabel: {
-    ...commonStyles.tipLabel,
-    color: '#fff',
-  },
-  tipButton: {
-    ...commonStyles.tipButton,
-    backgroundColor: '#444',
-  },
-  tipButtonSelected: {
-    ...commonStyles.tipButtonSelected,
-    backgroundColor: '#ff9900',
-  },
-  tipButtonText: {
-    ...commonStyles.tipButtonText,
-    color: '#fff',
-  },
-  customTipInput: {
-    ...commonStyles.customTipInput,
-    backgroundColor: '#444',
-    color: '#fff',
-    borderColor: '#555',
-  },
-  summaryContainer: {
-    ...commonStyles.summaryContainer,
-    backgroundColor: '#333',
-  },
-  summaryText: {
-    ...commonStyles.summaryText,
-    color: '#fff',
-  },
-  totalText: {
-    ...commonStyles.totalText,
-    color: '#fff',
-  },
-  savingsContainer: {
-    ...commonStyles.savingsContainer,
-    backgroundColor: '#444',
-    borderColor: '#555',
-  },
-  savingsText: {
-    ...commonStyles.savingsText,
-    color: '#ffcc00',
-  },
-  adContainer: {
-    ...commonStyles.adContainer,
-    backgroundColor: '#333',
-    borderColor: '#444',
-  },
-  adTitle: {
-    ...commonStyles.adTitle,
-    color: '#fff',
-  },
-  adText: {
-    ...commonStyles.adText,
-    color: '#fff',
+    color: colors.textLight,
   },
   orderTypeContainer: {
     ...commonStyles.orderTypeContainer,
-    backgroundColor: '#333',
+    backgroundColor: '#2c2c2e',
   },
-  orderTypeText: {
-    ...commonStyles.orderTypeText,
-    color: '#fff',
+  orderTypeOption: {
+    ...commonStyles.orderTypeOption,
+    backgroundColor: '#3a3a3c',
+    borderColor: '#48484a',
   },
-  largeModalContent: {
-    ...commonStyles.largeModalContent,
-    backgroundColor: '#333',
-  },
-  modalTitle: {
-    ...commonStyles.modalTitle,
-    color: '#fff',
-  },
-  modalText: {
-    ...commonStyles.modalText,
-    color: '#fff',
-  },
-  confirmButton: {
-    ...commonStyles.confirmButton,
-    backgroundColor: '#ff9900',
-  },
-  confirmButtonText: {
-    ...commonStyles.confirmButtonText,
-    color: '#fff',
-  },
-  cancelButton: {
-    ...commonStyles.cancelButton,
-    backgroundColor: '#555',
-  },
-  cancelButtonText: {
-    ...commonStyles.cancelButtonText,
-    color: '#fff',
-  },
-  modalOrderTypeContainer: {
-    backgroundColor: '#333',
-    padding: 20,
-    borderRadius: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 10,
-  },
-  modalOrderTypeText: {
-    fontSize: 18,
-    color: '#fff',
-    textAlign: 'center',
-    marginBottom: 15,
-  },
-});
-
-const stylesLight = StyleSheet.create({
-  ...commonStyles,
-  container: {
-    ...commonStyles.container,
-    backgroundColor: '#fff',
-  },
-  balanceContainer: {
-    ...commonStyles.balanceContainer,
-    backgroundColor: '#f9f9f9', // Fondo claro para el modo claro
-  },
-  balanceText: {
-    ...commonStyles.balanceText,
-    color: '#333', // Texto oscuro para contraste en modo claro
-  },
-  useBalanceLabel: {
-    ...commonStyles.useBalanceLabel,
-    color: '#666', // Color gris en modo claro
-  },
-  loaderContainer: {
-    ...commonStyles.loaderContainer,
-    backgroundColor: '#fff',
-  },
-  headerTitle: {
-    ...commonStyles.headerTitle,
-    color: '#333',
+  orderTypeOptionText: {
+    ...commonStyles.orderTypeOptionText,
+    color: colors.textLight,
   },
   addressContainer: {
     ...commonStyles.addressContainer,
-    backgroundColor: '#fff',
+    backgroundColor: '#2c2c2e',
   },
   addressLabel: {
     ...commonStyles.addressLabel,
-    color: '#333',
+    color: colors.textLight,
   },
   addressInput: {
     ...commonStyles.addressInput,
-    backgroundColor: '#f9f9f9',
-    color: '#333',
+    backgroundColor: '#3a3a3c',
+    color: colors.textLight,
+    borderColor: '#48484a',
   },
   cartItem: {
     ...commonStyles.cartItem,
-    backgroundColor: '#fff',
+    backgroundColor: '#2c2c2e',
   },
   cartItemName: {
     ...commonStyles.cartItemName,
-    color: '#333',
+    color: colors.textLight,
   },
   cartItemPrice: {
     ...commonStyles.cartItemPrice,
-    color: '#333',
+    color: colors.primary,
+  },
+  quantityButton: {
+    ...commonStyles.quantityButton,
+    backgroundColor: colors.primary,
+  },
+  quantityButtonText: {
+    ...commonStyles.quantityButtonText,
+    color: colors.textLight,
+  },
+  quantityText: {
+    ...commonStyles.quantityText,
+    color: colors.textLight,
   },
   tipContainer: {
     ...commonStyles.tipContainer,
-    backgroundColor: '#fff',
+    backgroundColor: '#2c2c2e',
   },
   tipLabel: {
     ...commonStyles.tipLabel,
-    color: '#333',
+    color: colors.textLight,
   },
   tipButton: {
     ...commonStyles.tipButton,
-    backgroundColor: '#f2f2f2',
-  },
-  tipButtonSelected: {
-    ...commonStyles.tipButtonSelected,
-    backgroundColor: '#ff9900',
+    backgroundColor: '#3a3a3c',
+    borderColor: '#48484a',
   },
   tipButtonText: {
     ...commonStyles.tipButtonText,
-    color: '#333',
+    color: colors.textLight,
   },
   customTipInput: {
     ...commonStyles.customTipInput,
-    backgroundColor: '#f9f9f9',
-    color: '#333',
-    borderColor: '#ccc',
+    backgroundColor: '#3a3a3c',
+    color: colors.textLight,
+    borderColor: '#48484a',
   },
   summaryContainer: {
     ...commonStyles.summaryContainer,
-    backgroundColor: '#fff',
+    backgroundColor: '#2c2c2e',
   },
   summaryText: {
     ...commonStyles.summaryText,
-    color: '#333',
+    color: colors.textLight,
   },
   totalText: {
     ...commonStyles.totalText,
-    color: '#333',
+    color: colors.textLight,
+  },
+  checkoutButton: {
+    ...commonStyles.checkoutButton,
+    backgroundColor: colors.accent,
+  },
+  checkoutButtonText: {
+    ...commonStyles.checkoutButtonText,
+    color: colors.textLight,
   },
   savingsContainer: {
     ...commonStyles.savingsContainer,
-    backgroundColor: '#fffbec',
-    borderColor: '#ffcc00',
+    backgroundColor: '#3a3a3c',
   },
   savingsText: {
     ...commonStyles.savingsText,
-    color: '#ff6600',
+    color: colors.warning,
   },
   adContainer: {
     ...commonStyles.adContainer,
-    backgroundColor: '#fff',
-    borderColor: '#007bff',
+    backgroundColor: '#2c2c2e',
   },
   adTitle: {
     ...commonStyles.adTitle,
-    color: '#333',
+    color: colors.textLight,
   },
   adText: {
     ...commonStyles.adText,
-    color: '#333',
+    color: colors.textLight,
   },
-  orderTypeContainer: {
-    ...commonStyles.orderTypeContainer,
-    backgroundColor: '#fff',
+  balanceContainer: {
+    ...commonStyles.balanceContainer,
+    backgroundColor: '#2c2c2e',
   },
-  orderTypeText: {
-    ...commonStyles.orderTypeText,
-    color: '#333',
+  balanceText: {
+    ...commonStyles.balanceText,
+    color: colors.textLight,
   },
-  largeModalContent: {
-    ...commonStyles.largeModalContent,
-    backgroundColor: '#fff',
+  useBalanceLabel: {
+    ...commonStyles.useBalanceLabel,
+    color: colors.textLight,
   },
   modalTitle: {
     ...commonStyles.modalTitle,
-    color: '#333',
+    color: colors.textLight,
   },
   modalText: {
     ...commonStyles.modalText,
-    color: '#333',
-  },
-  confirmButton: {
-    ...commonStyles.confirmButton,
-    backgroundColor: '#ff9900',
+    color: colors.textLight,
   },
   confirmButtonText: {
     ...commonStyles.confirmButtonText,
-    color: '#1a1a1a',
-  },
-  cancelButton: {
-    ...commonStyles.cancelButton,
-    backgroundColor: '#cccccc',
+    color: colors.textLight,
   },
   cancelButtonText: {
     ...commonStyles.cancelButtonText,
-    color: '#1a1a1a',
+    color: colors.textLight,
   },
-  modalOrderTypeContainer: {
-    backgroundColor: '#fff',
-    padding: 20,
-    borderRadius: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 10,
+  closeButtonText: {
+    ...commonStyles.closeButtonText,
+    color: colors.primary,
   },
-  modalOrderTypeText: {
-    fontSize: 18,
-    color: '#333',
-    textAlign: 'center',
-    marginBottom: 15,
+  discountLabelText: {
+    ...commonStyles.discountLabelText,
+    color: colors.textLight,
+  },
+  strikethrough: {
+    ...commonStyles.strikethrough,
+    color: '#888888',
+  },
+  freeText: {
+    ...commonStyles.freeText,
+    color: colors.success,
+  },
+  input: {
+    ...commonStyles.input,
+    color: colors.textLight,
+  },
+  errorText: {
+    ...commonStyles.errorText,
+    color: colors.danger,
   },
 });
 

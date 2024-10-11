@@ -3,7 +3,7 @@ import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { FontAwesome } from '@expo/vector-icons';
-import { useColorScheme, StyleSheet, Platform } from 'react-native';
+import { useColorScheme, StyleSheet, Platform, View, Text } from 'react-native';
 import { useSelector } from 'react-redux';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
@@ -37,6 +37,9 @@ const Stack = createNativeStackNavigator();
 
 function TabNavigator() {
   const scheme = useColorScheme();
+  const ordersIn = useSelector((state) => state.orders.ordersIn);
+  
+  console.log(ordersIn, "in nav");
 
   return (
     <Tab.Navigator
@@ -51,12 +54,20 @@ function TabNavigator() {
             iconName = focused ? 'ticket-percent' : 'ticket-percent';
           } else if (route.name === 'Orders') {
             iconName = focused ? 'view-list' : 'view-list';
-          }else if (route.name === 'Map') {
+          } else if (route.name === 'Map') {
             iconName = focused ? 'map' : 'map';
           }
 
-          return <MaterialCommunityIcons name={iconName} size={size} color={color} />;
-
+          return (
+            <View>
+              <MaterialCommunityIcons name={iconName} size={size} color={color} />
+              {route.name === 'Orders' && ordersIn.length > 0 && (
+                <View style={styles.notificationBadge}>
+                  <Text style={styles.notificationText}>{ordersIn.length}</Text>
+                </View>
+              )}
+            </View>
+          );
         },
         tabBarActiveTintColor: '#FFC300',
         tabBarInactiveTintColor: 'gray',
@@ -65,17 +76,16 @@ function TabNavigator() {
         tabBarIconStyle: styles.tabBarIcon,
       })}
     >
-
       <Tab.Screen
         name="Discounts"
         component={DashboardDiscounts}
-        options={{ tabBarLabel: 'Dine-in' }}
+        options={{ tabBarLabel: 'Restaurants' }}
       />
-      <Tab.Screen
+  {/*     <Tab.Screen
         name="Home"
         component={Dashboard}
         options={{ tabBarLabel: 'Pickup' }}
-      />
+      /> */}
       <Tab.Screen
         name="Map"
         component={MapViewComponent}
@@ -176,12 +186,12 @@ export default function Navigation() {
           component={OrderSummary}
           options={{ headerShown: false }}
         />
-          <Stack.Screen
+        <Stack.Screen
           name="ReviewSceen"
           component={ReviewScreen}
           options={{ headerShown: false }}
         />
-           <Stack.Screen
+        <Stack.Screen
           name="PromoMealScreen"
           component={PromoMealScreen}
           options={{ headerShown: false }}
@@ -232,5 +242,21 @@ const styles = StyleSheet.create({
   },
   tabBarIcon: {
     marginTop: Platform.OS === 'ios' ? -10 : 5, // Ensures icon position for iOS
+  },
+  notificationBadge: {
+    position: 'absolute',
+    right: -6,
+    top: -3,
+    backgroundColor: 'red',
+    borderRadius: 8,
+    width: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  notificationText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
 });

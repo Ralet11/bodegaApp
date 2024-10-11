@@ -18,6 +18,7 @@ const AccountDrawer = ({ user, visible, onClose, onNavigate, scheme }) => {
       dispatch(clearUser());
       dispatch(clearOrders());
       dispatch(clearCart());
+      dispatch(clearUser());
   
       // Luego navega a la pantalla de login después de asegurarte de que los datos estén limpios.
       navigation.reset({
