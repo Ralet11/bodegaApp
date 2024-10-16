@@ -17,11 +17,16 @@ const AccountDrawer = ({ user, visible, onClose, onNavigate, scheme }) => {
       dispatch(clearUser());
       dispatch(clearOrders());
       dispatch(clearCart());
-      onClose(); // Cierra el Modal antes de navegar.
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Login' }],
-      });
+      
+      onClose(); // Cierra el modal
+  
+      // Retrasa la navegación unos milisegundos para asegurarte de que el modal se haya cerrado
+      setTimeout(() => {
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'Login' }],
+        });
+      }, 300);  // Ajusta el tiempo si es necesario
     } catch (error) {
       console.error('Error al cerrar sesión:', error);
     }
