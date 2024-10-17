@@ -1,68 +1,68 @@
 import { StyleSheet } from 'react-native';
 
-
 const lightTheme = StyleSheet.create({
+  // Light theme styles remain unchanged
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',  // Fondo blanco
+    backgroundColor: '#FFFFFF',
   },
   header: {
-    flexDirection: 'column',  // Cambiar a columna para que los elementos se apilen
-    alignItems: 'flex-start',  // Alinear elementos a la izquierda
-    justifyContent: 'flex-start',  // Evitar espacios entre ellos
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
     paddingHorizontal: 15,
     paddingVertical: 10,
-    backgroundColor: '#FFFFFF',  // Fondo blanco
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',  // Línea sutil en la parte inferior
+    borderBottomColor: '#E0E0E0',
   },
   addressToggleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',  // Asegura que la dirección y el botón de selección estén alineados
-    width: '100%',  // Ocupar todo el ancho disponible
-    marginBottom: 10,  // Espacio entre la dirección y la barra de búsqueda
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 10,
   },
   addressText: {
     fontSize: 14,
-    color: '#333',  // Color oscuro para mayor contraste
-    maxWidth: 180,  // Limitar el ancho del texto
+    color: '#333',
+    maxWidth: 180,
   },
   searchInput: {
-    width: '90%',  // Hacer que ocupe todo el ancho disponible debajo de la dirección
+    width: '90%',
     height: 40,
-    borderColor: '#E0E0E0',  // Borde claro
+    borderColor: '#E0E0E0',
     borderWidth: 1,
-    borderRadius: 8,  // Bordes suavizados
+    borderRadius: 8,
     paddingHorizontal: 15,
-    backgroundColor: '#F9F9F9',  // Fondo claro
+    backgroundColor: '#F9F9F9',
     color: '#333',
     fontSize: 14,
   },
   deliveryToggleContainer: {
     flexDirection: 'row',
-    backgroundColor: '#F9F9F9',  // Fondo claro para los botones de alternancia
-    borderRadius: 12,  // Bordes más suaves
+    backgroundColor: '#F9F9F9',
+    borderRadius: 12,
     padding: 3,
-    marginTop: 10,  // Separación entre la barra de búsqueda y los botones de alternancia
+    marginTop: 10,
   },
   deliveryToggleButton: {
     paddingVertical: 5,
     paddingHorizontal: 15,
     borderRadius: 12,
     marginHorizontal: 5,
-    backgroundColor: '#FFFFFF',  // Fondo blanco para botones no seleccionados
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E0E0E0',  // Bordes ligeros
+    borderColor: '#E0E0E0',
   },
   deliveryToggleText: {
     fontSize: 14,
-    color: '#333',  // Texto oscuro
+    color: '#333',
   },
   contentContainer: {
     padding: 10,
     paddingBottom: 80,
-    backgroundColor: '#FFFFFF',  // Fondo blanco puro para todo el contenido
+    backgroundColor: '#FFFFFF',
   },
   sectionTitle: {
     fontSize: 18,
@@ -85,12 +85,12 @@ const lightTheme = StyleSheet.create({
     paddingHorizontal: 10,
     marginRight: 10,
     marginBottom: 10,
-    backgroundColor: '#FFFFFF',  // Fondo blanco puro para las categorías
+    backgroundColor: '#FFFFFF',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.1,
     shadowRadius: 5,
-    elevation: 3,  // Sombra ligera para dar profundidad
+    elevation: 3,
   },
   categoryImage: {
     width: 100,
@@ -202,8 +202,6 @@ const lightTheme = StyleSheet.create({
     color: '#333',
     textAlign: 'center',
   },
-
-  // Modal styles
   modalBackground: {
     flex: 1,
     justifyContent: 'center',
@@ -216,7 +214,7 @@ const lightTheme = StyleSheet.create({
     padding: 20,
     borderRadius: 10,
     alignItems: 'center',
-    backgroundColor: '#fff',  // Fondo para modo claro
+    backgroundColor: '#fff',
   },
   closeButton: {
     alignSelf: 'flex-end',
@@ -256,7 +254,7 @@ const lightTheme = StyleSheet.create({
     marginTop: 20,
     paddingVertical: 10,
     paddingHorizontal: 20,
-    backgroundColor: '#FFC300',  // Amarillo para el botón
+    backgroundColor: '#FFC300',
     borderRadius: 5,
   },
   addButtonText: {
@@ -265,17 +263,15 @@ const lightTheme = StyleSheet.create({
   },
 });
 
-
-
 const darkTheme = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#1c1c1c',
+    backgroundColor: '#121212', // Deep dark background
   },
   header: {
     flexDirection: 'column',
     alignItems: 'center',
-    backgroundColor: '#2e2e2e',
+    backgroundColor: '#1E1E1E', // Slightly lighter than the main background
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
     shadowColor: '#000',
@@ -284,6 +280,7 @@ const darkTheme = StyleSheet.create({
     shadowRadius: 5,
     elevation: 5,
     paddingTop: 10,
+    paddingBottom: 15,
   },
   iconButton: {
     marginHorizontal: 10,
@@ -292,12 +289,12 @@ const darkTheme = StyleSheet.create({
   searchInput: {
     flex: 1,
     height: 40,
-    borderColor: '#555',
+    borderColor: '#333',
     borderWidth: 1,
     borderRadius: 20,
     paddingHorizontal: 15,
-    backgroundColor: '#333',
-    color: 'white',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)', // Subtle light background
+    color: '#E0E0E0',
     fontSize: 14,
   },
   addressToggleContainer: {
@@ -305,43 +302,42 @@ const darkTheme = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 5,
-    gap: 30
+    paddingVertical: 10,
+    width: '100%',
   },
   addressText: {
     fontSize: 14,
-    color: '#fff',
+    color: '#E0E0E0',
     marginRight: 10,
-    maxWidth: 150, // Ajustado maxWidth para que encaje en la pantalla
+    maxWidth: 200,
   },
   deliveryToggleContainer: {
     flexDirection: 'row',
-    backgroundColor: '#444',
-    borderRadius: 15,
-    padding: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)', // Subtle light background
+    borderRadius: 20,
+    padding: 4,
+    marginTop: 10,
   },
   deliveryToggleButton: {
-    paddingVertical: 3,
-    paddingHorizontal: 10,
-    borderRadius: 15,
-    marginHorizontal: 3, // Agregado margen entre los botones de alternancia
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    borderRadius: 16,
   },
   deliveryToggleText: {
     fontSize: 14,
+    color: '#E0E0E0',
   },
   contentContainer: {
-    padding: 10,
-    paddingBottom: 60,
+    padding: 15,
+    paddingBottom: 80,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#FFFFFF',
     marginBottom: 15,
-    textAlign: 'center',
-    textShadowColor: '#000',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 5,
+    marginTop: 20,
+    textAlign: 'left',
   },
   categoryContainer: {
     marginBottom: 20,
@@ -349,30 +345,29 @@ const darkTheme = StyleSheet.create({
   category: {
     width: 100,
     alignItems: 'center',
-    borderRadius: 15,
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    marginRight: 10,
-    marginBottom: 15,
+    borderRadius: 12,
+    padding: 10,
+    marginRight: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)', // Subtle light background
   },
   categoryImage: {
-    width: 100,
-    height: 60,
-    borderRadius: 20,
-    marginBottom: 5,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    marginBottom: 8,
   },
   categoryText: {
-    color: 'white',
+    color: '#FFFFFF',
     fontSize: 12,
     textAlign: 'center',
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
   offersContainer: {
     marginBottom: 20,
   },
   offerCard: {
     width: 160,
-    backgroundColor: '#2e2e2e',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)', // Subtle light background
     borderRadius: 20,
     padding: 10,
     marginRight: 15,
@@ -382,8 +377,6 @@ const darkTheme = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 10,
     elevation: 5,
-    transform: [{ scale: 1 }],
-    transition: 'transform 0.3s',
   },
   offerImage: {
     width: 120,
@@ -394,38 +387,36 @@ const darkTheme = StyleSheet.create({
   offerProduct: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#FFFFFF',
     marginBottom: 5,
     textAlign: 'center',
   },
   offerPrice: {
     fontSize: 14,
-    color: '#009929',
+    color: '#4CAF50', // A more visible green for dark mode
     marginBottom: 5,
   },
   offerShop: {
     fontSize: 12,
-    color: '#aaa',
+    color: '#B0B0B0',
   },
   shopContainer: {
     marginBottom: 20,
   },
   card: {
-    backgroundColor: '#2e2e2e',
-    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)', // Subtle light background
+    borderRadius: 16,
     overflow: 'hidden',
     marginBottom: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
-    elevation: 10,
-    transform: [{ scale: 1 }],
-    transition: 'transform 0.3s',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   shopImage: {
     width: '100%',
-    height: 150,
+    height: 160,
   },
   favoriteIcon: {
     position: 'absolute',
@@ -441,19 +432,18 @@ const darkTheme = StyleSheet.create({
   cardTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 5,
-    textAlign: 'center',
+    color: '#FFFFFF',
+    marginBottom: 8,
   },
   cardDetails: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
     justifyContent: 'space-between',
+    marginBottom: 8,
   },
   ratingContainer: {
     flexDirection: 'row',
-    marginRight: 10,
+    alignItems: 'center',
   },
   deliveryContainer: {
     flexDirection: 'row',
@@ -461,58 +451,57 @@ const darkTheme = StyleSheet.create({
   },
   deliveryTime: {
     fontSize: 12,
-    color: '#fff',
+    color: '#B0B0B0',
     marginLeft: 5,
   },
   cardDescription: {
     fontSize: 14,
-    color: '#fff',
-    textAlign: 'center',
+    color: '#B0B0B0',
+    marginTop: 8,
   },
-
-  // Modal styles
   modalBackground: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.7)',
   },
   modalContainer: {
-    width: '80%',
+    width: '90%',
     maxHeight: '80%',
+    backgroundColor: '#1E1E1E',
+    borderRadius: 16,
     padding: 20,
-    borderRadius: 10,
-    alignItems: 'center',
-    backgroundColor: '#333',  // Fondo para modo oscuro
   },
   closeButton: {
     alignSelf: 'flex-end',
     marginBottom: 10,
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
     marginBottom: 15,
-    color: '#fff',
+    textAlign: 'center',
   },
   addressItem: {
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderRadius: 5,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)', // Subtle light background
+    borderRadius: 8,
+    padding: 12,
     marginBottom: 10,
   },
   addressName: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#FFFFFF',
+    marginBottom: 4,
   },
   addressTextModal: {
     fontSize: 14,
-    color: '#aaa',
+    color: '#B0B0B0',
   },
   separator: {
     height: 1,
-    backgroundColor: '#555',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)', // Subtle light separator
     width: '100%',
     marginVertical: 10,
   },
@@ -520,15 +509,16 @@ const darkTheme = StyleSheet.create({
     paddingBottom: 20,
   },
   addButton: {
-    marginTop: 20,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
     backgroundColor: '#FFC300',
-    borderRadius: 5,
+    borderRadius: 8,
+    padding: 12,
+    alignItems: 'center',
+    marginTop: 15,
   },
   addButtonText: {
-    color: 'black',
+    color: '#121212',
     fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 

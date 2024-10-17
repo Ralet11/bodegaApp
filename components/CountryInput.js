@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, TextInput, TouchableOpacity, Text, Modal, FlatList, Image, StyleSheet, useColorScheme, Animated } from 'react-native';
+import { View, TextInput, TouchableOpacity, Text, Modal, FlatList, Image, StyleSheet, Animated } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import countryData from './CountryData';
 
@@ -8,8 +8,7 @@ const PhoneInput = ({ value, onChange }) => {
   const [selectedCountry, setSelectedCountry] = useState(countryData[0]);
   const [phoneNumber, setPhoneNumber] = useState(value);
   const fadeAnim = useState(new Animated.Value(0))[0];
-  const colorScheme = useColorScheme();
-  const styles = colorScheme === 'dark' ? stylesDark : stylesLight;
+  const styles = stylesLight;  // Fuerza siempre el uso del modo claro
 
   const handleCountrySelect = (country) => {
     setSelectedCountry(country);
@@ -42,16 +41,15 @@ const PhoneInput = ({ value, onChange }) => {
   return (
     <View style={styles.container}>
       <TouchableOpacity onPress={openModal} style={styles.flagButton}>
-
         <Text style={styles.dialCode}>{selectedCountry.dialCode}</Text>
-        <FontAwesome name="caret-down" size={16} color={colorScheme === 'dark' ? '#FFF' : '#000'} />
+        <FontAwesome name="caret-down" size={16} color="#000" />
       </TouchableOpacity>
       <TextInput
         style={styles.input}
         onChangeText={handlePhoneChange}
         value={phoneNumber}
         placeholder="Phone Number"
-        placeholderTextColor={colorScheme === 'dark' ? '#AAA' : '#888'}
+        placeholderTextColor="#888"
         keyboardType="phone-pad"
       />
       <Modal
@@ -84,10 +82,13 @@ const PhoneInput = ({ value, onChange }) => {
   );
 };
 
+// Estilos comunes y estilos para modo claro
 const commonStyles = {
   container: {
     flexDirection: 'row',
     alignItems: 'center',
+    width: '93%',
+    height: '90%',
   },
   flagButton: {
     flexDirection: 'row',
@@ -210,45 +211,6 @@ const stylesLight = StyleSheet.create({
   countryName: {
     ...commonStyles.countryName,
     color: '#000',
-  },
-});
-
-const stylesDark = StyleSheet.create({
-  ...commonStyles,
-  flagButton: {
-    ...commonStyles.flagButton,
-    borderColor: '#555',
-    backgroundColor: '#444',
-  },
-  input: {
-    ...commonStyles.input,
-    borderColor: '#555',
-    backgroundColor: '#444',
-    color: '#fff',
-  },
-  modalContainer: {
-    ...commonStyles.modalContainer,
-    backgroundColor: '#333',
-  },
-  countryItem: {
-    ...commonStyles.countryItem,
-    borderBottomColor: '#555',
-  },
-  closeButton: {
-    ...commonStyles.closeButton,
-    backgroundColor: '#007AFF',
-  },
-  closeButtonText: {
-    ...commonStyles.closeButtonText,
-    color: '#fff',
-  },
-  dialCode: {
-    ...commonStyles.dialCode,
-    color: '#fff',
-  },
-  countryName: {
-    ...commonStyles.countryName,
-    color: '#fff',
   },
 });
 

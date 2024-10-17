@@ -1,10 +1,9 @@
 import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, Animated, Easing, useColorScheme, Dimensions } from 'react-native';
+import { View, StyleSheet, Animated, Easing, Dimensions } from 'react-native';
 
 const { width } = Dimensions.get('window');
 
 const CartSkeletonLoader = () => {
-  const colorScheme = useColorScheme();
   const shimmerAnimatedValue = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -33,8 +32,6 @@ const CartSkeletonLoader = () => {
     inputRange: [0, 1],
     outputRange: [-width, width],
   });
-
-  const styles = colorScheme === 'dark' ? stylesDark : stylesLight;
 
   return (
     <View style={styles.container}>
@@ -98,11 +95,12 @@ const CartSkeletonLoader = () => {
   );
 };
 
-const commonStyles = {
+const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
     paddingTop: 30,
+    backgroundColor: '#f9f9f9',
   },
   header: {
     flexDirection: 'row',
@@ -112,17 +110,20 @@ const commonStyles = {
     borderRadius: 10,
     overflow: 'hidden',
     position: 'relative',
+    backgroundColor: '#e0e0e0',
   },
   goBackButton: {
     width: 24,
     height: 24,
     borderRadius: 12,
     marginRight: 10,
+    backgroundColor: '#d0d0d0',
   },
   headerTitle: {
     width: '80%',
     height: 20,
     borderRadius: 5,
+    backgroundColor: '#d0d0d0',
   },
   addressContainer: {
     marginBottom: 20,
@@ -130,11 +131,13 @@ const commonStyles = {
     borderRadius: 15,
     overflow: 'hidden',
     position: 'relative',
+    backgroundColor: '#e0e0e0',
   },
   addressLabel: {
     height: 16,
     borderRadius: 5,
     marginBottom: 5,
+    backgroundColor: '#d0d0d0',
   },
   addressInputContainer: {
     flexDirection: 'row',
@@ -145,11 +148,13 @@ const commonStyles = {
     height: 40,
     borderRadius: 10,
     marginRight: 10,
+    backgroundColor: '#d0d0d0',
   },
   addressIcon: {
     width: 24,
     height: 24,
     borderRadius: 12,
+    backgroundColor: '#d0d0d0',
   },
   cartItemsContainer: {
     marginBottom: 10,
@@ -163,11 +168,13 @@ const commonStyles = {
     position: 'relative',
     alignItems: 'center',
     padding: 15,
+    backgroundColor: '#e0e0e0',
   },
   cartItemImage: {
     width: 60,
     height: 60,
     borderRadius: 10,
+    backgroundColor: '#d0d0d0',
   },
   cartItemDetails: {
     flex: 1,
@@ -177,6 +184,7 @@ const commonStyles = {
     height: 16,
     borderRadius: 5,
     marginBottom: 10,
+    backgroundColor: '#d0d0d0',
   },
   row: {
     flexDirection: 'row',
@@ -187,6 +195,7 @@ const commonStyles = {
     height: 16,
     borderRadius: 5,
     marginRight: 10,
+    backgroundColor: '#d0d0d0',
   },
   quantityContainer: {
     flexDirection: 'row',
@@ -196,23 +205,27 @@ const commonStyles = {
     width: 24,
     height: 24,
     borderRadius: 12,
+    backgroundColor: '#d0d0d0',
   },
   quantityText: {
     width: 24,
     height: 24,
     borderRadius: 12,
     marginHorizontal: 10,
+    backgroundColor: '#d0d0d0',
   },
   tipContainer: {
     borderRadius: 15,
     padding: 15,
     marginBottom: 10,
     position: 'relative',
+    backgroundColor: '#e0e0e0',
   },
   tipLabel: {
     height: 16,
     borderRadius: 5,
     marginBottom: 10,
+    backgroundColor: '#d0d0d0',
   },
   tipOptions: {
     flexDirection: 'row',
@@ -223,10 +236,12 @@ const commonStyles = {
     width: '18%',
     height: 40,
     borderRadius: 5,
+    backgroundColor: '#d0d0d0',
   },
   customTipInput: {
     height: 40,
     borderRadius: 10,
+    backgroundColor: '#d0d0d0',
   },
   balanceContainer: {
     flexDirection: 'row',
@@ -237,27 +252,32 @@ const commonStyles = {
     borderRadius: 15,
     overflow: 'hidden',
     position: 'relative',
+    backgroundColor: '#e0e0e0',
   },
   balanceText: {
     width: '60%',
     height: 20,
     borderRadius: 5,
+    backgroundColor: '#d0d0d0',
   },
   useBalanceButton: {
     width: '35%',
     height: 40,
     borderRadius: 10,
+    backgroundColor: '#d0d0d0',
   },
   summaryContainer: {
     borderRadius: 15,
     padding: 15,
     marginBottom: 10,
     position: 'relative',
+    backgroundColor: '#e0e0e0',
   },
   summaryText: {
     height: 20,
     borderRadius: 5,
     marginBottom: 10,
+    backgroundColor: '#d0d0d0',
   },
   checkoutButton: {
     height: 50,
@@ -265,6 +285,7 @@ const commonStyles = {
     marginBottom: 10,
     overflow: 'hidden',
     position: 'relative',
+    backgroundColor: '#d0d0d0',
   },
   skeletonShimmer: {
     position: 'absolute',
@@ -273,190 +294,6 @@ const commonStyles = {
     right: 0,
     bottom: 0,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-  },
-};
-
-const stylesDark = StyleSheet.create({
-  ...commonStyles,
-  container: {
-    ...commonStyles.container,
-    backgroundColor: '#1c1c1c',
-  },
-  header: {
-    ...commonStyles.header,
-    backgroundColor: '#333',
-  },
-  addressContainer: {
-    ...commonStyles.addressContainer,
-    backgroundColor: '#333',
-  },
-  addressLabel: {
-    ...commonStyles.addressLabel,
-    backgroundColor: '#444',
-  },
-  addressInput: {
-    ...commonStyles.addressInput,
-    backgroundColor: '#444',
-  },
-  addressIcon: {
-    ...commonStyles.addressIcon,
-    backgroundColor: '#444',
-  },
-  cartItem: {
-    ...commonStyles.cartItem,
-    backgroundColor: '#333',
-  },
-  cartItemImage: {
-    ...commonStyles.cartItemImage,
-    backgroundColor: '#444',
-  },
-  cartItemName: {
-    ...commonStyles.cartItemName,
-    backgroundColor: '#444',
-  },
-  cartItemPrice: {
-    ...commonStyles.cartItemPrice,
-    backgroundColor: '#444',
-  },
-  quantityButton: {
-    ...commonStyles.quantityButton,
-    backgroundColor: '#444',
-  },
-  quantityText: {
-    ...commonStyles.quantityText,
-    backgroundColor: '#444',
-  },
-  tipContainer: {
-    ...commonStyles.tipContainer,
-    backgroundColor: '#333',
-  },
-  tipLabel: {
-    ...commonStyles.tipLabel,
-    backgroundColor: '#444',
-  },
-  tipButton: {
-    ...commonStyles.tipButton,
-    backgroundColor: '#444',
-  },
-  customTipInput: {
-    ...commonStyles.customTipInput,
-    backgroundColor: '#444',
-  },
-  balanceContainer: {
-    ...commonStyles.balanceContainer,
-    backgroundColor: '#333',
-  },
-  balanceText: {
-    ...commonStyles.balanceText,
-    backgroundColor: '#444',
-  },
-  useBalanceButton: {
-    ...commonStyles.useBalanceButton,
-    backgroundColor: '#444',
-  },
-  summaryContainer: {
-    ...commonStyles.summaryContainer,
-    backgroundColor: '#333',
-  },
-  summaryText: {
-    ...commonStyles.summaryText,
-    backgroundColor: '#444',
-  },
-  checkoutButton: {
-    ...commonStyles.checkoutButton,
-    backgroundColor: '#444',
-  },
-});
-
-const stylesLight = StyleSheet.create({
-  ...commonStyles,
-  container: {
-    ...commonStyles.container,
-    backgroundColor: '#f9f9f9',
-  },
-  header: {
-    ...commonStyles.header,
-    backgroundColor: '#e0e0e0',
-  },
-  addressContainer: {
-    ...commonStyles.addressContainer,
-    backgroundColor: '#e0e0e0',
-  },
-  addressLabel: {
-    ...commonStyles.addressLabel,
-    backgroundColor: '#d0d0d0',
-  },
-  addressInput: {
-    ...commonStyles.addressInput,
-    backgroundColor: '#d0d0d0',
-  },
-  addressIcon: {
-    ...commonStyles.addressIcon,
-    backgroundColor: '#d0d0d0',
-  },
-  cartItem: {
-    ...commonStyles.cartItem,
-    backgroundColor: '#e0e0e0',
-  },
-  cartItemImage: {
-    ...commonStyles.cartItemImage,
-    backgroundColor: '#d0d0d0',
-  },
-  cartItemName: {
-    ...commonStyles.cartItemName,
-    backgroundColor: '#d0d0d0',
-  },
-  cartItemPrice: {
-    ...commonStyles.cartItemPrice,
-    backgroundColor: '#d0d0d0',
-  },
-  quantityButton: {
-    ...commonStyles.quantityButton,
-    backgroundColor: '#d0d0d0',
-  },
-  quantityText: {
-    ...commonStyles.quantityText,
-    backgroundColor: '#d0d0d0',
-  },
-  tipContainer: {
-    ...commonStyles.tipContainer,
-    backgroundColor: '#e0e0e0',
-  },
-  tipLabel: {
-    ...commonStyles.tipLabel,
-    backgroundColor: '#d0d0d0',
-  },
-  tipButton: {
-    ...commonStyles.tipButton,
-    backgroundColor: '#d0d0d0',
-  },
-  customTipInput: {
-    ...commonStyles.customTipInput,
-    backgroundColor: '#d0d0d0',
-  },
-  balanceContainer: {
-    ...commonStyles.balanceContainer,
-    backgroundColor: '#e0e0e0',
-  },
-  balanceText: {
-    ...commonStyles.balanceText,
-    backgroundColor: '#d0d0d0',
-  },
-  useBalanceButton: {
-    ...commonStyles.useBalanceButton,
-    backgroundColor: '#d0d0d0',
-  },
-  summaryContainer: {
-    ...commonStyles.summaryContainer,
-    backgroundColor: '#e0e0e0',
-  },
-  summaryText: {
-    ...commonStyles.summaryText,
-    backgroundColor: '#d0d0d0',
-  },
-  checkoutButton: {
-    ...commonStyles.checkoutButton,
-    backgroundColor: '#d0d0d0',
   },
 });
 

@@ -17,7 +17,7 @@ import { FontAwesome, MaterialCommunityIcons } from '@expo/vector-icons';
 const ProductDetail = ({ product, onAddToCart, onBack, shop }) => {
   const dispatch = useDispatch();
   const colorScheme = useColorScheme();
-  const styles = colorScheme === 'dark' ? darkStyles : lightStyles;
+  const styles = lightStyles;
   const cart = useSelector(state => state.cart.items);
   console.log(shop, "shopp22")
   // Modal state

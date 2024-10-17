@@ -278,7 +278,7 @@ const OrderScreen = () => {
     return <View style={styles.ratingContainer}>{stars}</View>;
   };
 
-  const styles = scheme === 'dark' ? darkStyles : lightStyles;
+  const styles = lightStyles;
 
   return (
     <SafeAreaView style={styles.container}>

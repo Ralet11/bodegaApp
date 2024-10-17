@@ -1,23 +1,23 @@
-import React from 'react';
-import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
+import React, { useEffect, useRef } from 'react';
+import { NavigationContainer, DefaultTheme, useTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { FontAwesome } from '@expo/vector-icons';
-import { useColorScheme, StyleSheet, Platform, View, Text } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Animated, Dimensions } from 'react-native';
 import { useSelector } from 'react-redux';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import Dashboard from './views/Dashboard';
-import BurgerSignUpScreen from './views/SignUp';
-import BurgerLoginScreen from './views/Login';
-import ShopScreen from './views/Shop';
+// Import all your screen components
+import DashboardDiscounts from './views/DashboardDiscounts';
+import MapViewComponent from './views/Map';
+import OrderScreen from './views/OrdersView';
 import LogoScreen from './views/LogoScreens';
 import Login from './views/Login';
+import ShopScreen from './views/Shop';
 import CartScreen from './views/CartScreen';
 import AcceptedOrder from './views/acceptedOrder';
 import SetAddressScreen from './views/SelectAddress';
-import MapViewComponent from './views/Map';
-import OrderScreen from './views/OrdersView';
 import CategoryShops from './views/CategoryShops';
 import Signup from './views/SignUp';
 import AccountSettings from './views/AccountSettings';
@@ -25,86 +25,159 @@ import MyCoupons from './views/Discounts';
 import Contact from './views/Contact';
 import BodegaPro from './views/BodegaPro';
 import SearchShops from './views/SearchShops';
-import DiscountDetailView from './views/DiscountDetailView';
-import DashboardDiscounts from './views/DashboardDiscounts';
 import OrderSummary from './views/PickUpOrderFinish';
-import DiscountDetailScreen from './components/DiscountDetail';
 import ReviewScreen from './views/ReviewsScreen';
 import PromoMealScreen from './views/PromoMealScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
+const { width } = Dimensions.get('window');
+
+// Custom light theme
+const customLightTheme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    primary: '#E6B000', // Custom primary color for light theme
+  },
+};
+
+const CustomTabBar = ({ state, descriptors, navigation }) => {
+  const theme = useTheme();
+  const insets = useSafeAreaInsets();
+  const tabWidth = (width - 40) / state.routes.length; // Adjust for left and right padding
+  const translateX = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.spring(translateX, {
+      toValue: state.index * tabWidth,
+      useNativeDriver: true,
+      bounciness: 0,
+    }).start();
+  }, [state.index, tabWidth]);
+
+  return (
+    <BlurView
+      intensity={90}
+      tint='light' // Ensure light tint is always used
+      style={[
+        styles.tabBar,
+        {
+          paddingBottom: insets.bottom,
+          backgroundColor: '#FFFFFF', // Always use white background
+        },
+      ]}
+    >
+      <View style={styles.tabBarInner}>
+        <Animated.View
+          style={[
+            styles.slider,
+            {
+              transform: [{ translateX }],
+              width: tabWidth,
+              backgroundColor: theme.colors.primary, // Custom primary color
+            },
+          ]}
+        />
+        {state.routes.map((route, index) => {
+          const { options } = descriptors[route.key];
+          const label =
+            options.tabBarLabel !== undefined
+              ? options.tabBarLabel
+              : options.title !== undefined
+              ? options.title
+              : route.name;
+
+          const isFocused = state.index === index;
+
+          const onPress = () => {
+            const event = navigation.emit({
+              type: 'tabPress',
+              target: route.key,
+              canPreventDefault: true,
+            });
+
+            if (!isFocused && !event.defaultPrevented) {
+              navigation.navigate(route.name);
+            }
+          };
+
+          return (
+            <TouchableOpacity
+              key={index}
+              accessibilityRole="button"
+              accessibilityState={isFocused ? { selected: true } : {}}
+              accessibilityLabel={options.tabBarAccessibilityLabel}
+              testID={options.tabBarTestID}
+              onPress={onPress}
+              style={styles.tabItem}
+            >
+              <Animated.View style={styles.tabItemContainer}>
+                <MaterialCommunityIcons
+                  name={options.tabBarIcon}
+                  size={24}
+                  color={isFocused ? theme.colors.primary : theme.colors.text} // Custom primary color
+                />
+                <Text
+                  style={[
+                    styles.tabBarLabel,
+                    {
+                      color: isFocused ? theme.colors.primary : theme.colors.text, // Custom primary color
+                    },
+                  ]}
+                >
+                  {label}
+                </Text>
+              </Animated.View>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </BlurView>
+  );
+};
+
 function TabNavigator() {
-  const scheme = useColorScheme();
   const ordersIn = useSelector((state) => state.orders.ordersIn);
-  
-  console.log(ordersIn, "in nav");
 
   return (
     <Tab.Navigator
-      screenOptions={({ route }) => ({
+      tabBar={(props) => <CustomTabBar {...props} />}
+      screenOptions={{
         headerShown: false,
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName;
-
-          if (route.name === 'Home') {
-            iconName = focused ? 'walk' : 'walk';
-          } else if (route.name === 'Discounts') {
-            iconName = focused ? 'ticket-percent' : 'ticket-percent';
-          } else if (route.name === 'Orders') {
-            iconName = focused ? 'view-list' : 'view-list';
-          } else if (route.name === 'Map') {
-            iconName = focused ? 'map' : 'map';
-          }
-
-          return (
-            <View>
-              <MaterialCommunityIcons name={iconName} size={size} color={color} />
-              {route.name === 'Orders' && ordersIn.length > 0 && (
-                <View style={styles.notificationBadge}>
-                  <Text style={styles.notificationText}>{ordersIn.length}</Text>
-                </View>
-              )}
-            </View>
-          );
-        },
-        tabBarActiveTintColor: '#FFC300',
-        tabBarInactiveTintColor: 'gray',
-        tabBarStyle: scheme === 'dark' ? styles.tabBarDark : styles.tabBar,
-        tabBarLabelStyle: scheme === 'dark' ? styles.tabBarLabelDark : styles.tabBarLabel,
-        tabBarIconStyle: styles.tabBarIcon,
-      })}
+      }}
     >
       <Tab.Screen
-        name="Discounts"
+        name="Restaurants"
         component={DashboardDiscounts}
-        options={{ tabBarLabel: 'Restaurants' }}
+        options={{
+          tabBarIcon: 'food',
+        }}
       />
-  {/*     <Tab.Screen
-        name="Home"
-        component={Dashboard}
-        options={{ tabBarLabel: 'Pickup' }}
-      /> */}
       <Tab.Screen
         name="Map"
         component={MapViewComponent}
-        options={{ tabBarLabel: 'Map' }}
+        options={{
+          tabBarIcon: 'map',
+        }}
       />
       <Tab.Screen
         name="Orders"
         component={OrderScreen}
-        options={{ tabBarLabel: 'Orders' }}
+        options={{
+          tabBarIcon: 'clipboard-list',
+          tabBarBadge: ordersIn.length > 0 ? ordersIn.length : undefined,
+        }}
       />
     </Tab.Navigator>
   );
 }
 
 export default function Navigation() {
-  const scheme = useColorScheme();
-
+  // Removed useColorScheme, always use the light theme
   return (
-    <NavigationContainer theme={scheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <NavigationContainer theme={customLightTheme}>
       <Stack.Navigator initialRouteName="Logo">
         <Stack.Screen
           name="Logo"
@@ -177,11 +250,6 @@ export default function Navigation() {
           options={{ headerShown: false }}
         />
         <Stack.Screen
-          name="MapScreen"
-          component={MapViewComponent}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
           name="PickUpOrderFinish"
           component={OrderSummary}
           options={{ headerShown: false }}
@@ -204,59 +272,46 @@ export default function Navigation() {
 const styles = StyleSheet.create({
   tabBar: {
     position: 'absolute',
-    backgroundColor: 'rgba(255, 255, 255, 1)',
-    borderTopWidth: 0,
-    elevation: 15,
-    height: 60,
-    margin: 10,
+    bottom: 25,
+    left: 20,
+    right: 20,
+    elevation: 0,
     borderRadius: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    paddingBottom: Platform.OS === 'ios' ? 0 : 0, // Ensures padding for iOS
-  },
-  tabBarDark: {
-    position: 'absolute',
-    backgroundColor: 'rgba(28, 28, 28, 0.9)',
-    borderTopWidth: 0,
-    elevation: 35,
     height: 60,
-    margin: 10,
-    borderRadius: 15,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    paddingBottom: Platform.OS === 'ios' ? 20 : 0, // Ensures padding for iOS
+    shadowOffset: {
+      width: 0,
+      height: 10,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.5,
+    elevation: 5,
   },
-  tabBarLabel: {
-    fontSize: 12,
-    marginBottom: Platform.OS === 'ios' ? 5 : 5, // Adjusts label position for iOS
-    color: 'black',
+  tabBarInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: '100%',
   },
-  tabBarLabelDark: {
-    fontSize: 12,
-    marginBottom: Platform.OS === 'ios' ? 5 : 5, // Adjusts label position for iOS
-    color: 'white',
-  },
-  tabBarIcon: {
-    marginTop: Platform.OS === 'ios' ? -10 : 5, // Ensures icon position for iOS
-  },
-  notificationBadge: {
+  slider: {
+    height: 3,
     position: 'absolute',
-    right: -6,
-    top: -3,
-    backgroundColor: 'red',
-    borderRadius: 8,
-    width: 16,
-    height: 16,
+    top: 0,
+    left: 0,
+    borderRadius: 10,
+  },
+  tabItem: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '100%',
+  },
+  tabItemContainer: {
     justifyContent: 'center',
     alignItems: 'center',
   },
-  notificationText: {
-    color: 'white',
-    fontSize: 10,
-    fontWeight: 'bold',
+  tabBarLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 4,
   },
 });

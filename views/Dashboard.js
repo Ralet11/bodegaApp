@@ -299,27 +299,22 @@ const filterShopsByTags = (shops, mode) => {
   }
 
   return (
-    <SafeAreaView style={scheme === 'dark' ? darkTheme.safeArea : lightTheme.safeArea}>
-      <View style={scheme === 'dark' ? darkTheme.header : lightTheme.header}>
-        <View style={scheme === 'dark' ? darkTheme.addressToggleContainer : lightTheme.addressToggleContainer}>
+    <SafeAreaView style={lightTheme.safeArea}>
+      <View style={lightTheme.header}>
+        <View style={lightTheme.addressToggleContainer}>
           <TouchableOpacity onPress={changeAddress} style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <FontAwesome name="map-marker" size={20} color={scheme === 'dark' ? '#fff' : '#333'} style={{ marginRight: 5 }} />
-            <Text
-              style={scheme === 'dark' ? darkTheme.addressText : lightTheme.addressText}
-              numberOfLines={1}
-              ellipsizeMode='tail'
-            >
+            <FontAwesome name="map-marker" size={20} color="#333" style={{ marginRight: 5 }} />
+            <Text style={lightTheme.addressText} numberOfLines={1} ellipsizeMode="tail">
               {address}
             </Text>
-            <FontAwesome name="caret-down" size={16} color={scheme === 'dark' ? '#fff' : '#333'} style={{ marginLeft: 5 }} />
+            <FontAwesome name="caret-down" size={16} color="#333" style={{ marginLeft: 5 }} />
           </TouchableOpacity>
-          <View style={scheme === 'dark' ? darkTheme.deliveryToggleContainer : lightTheme.deliveryToggleContainer}>
-           
+          <View style={lightTheme.deliveryToggleContainer}>
             <TouchableOpacity
               onPress={() => handleToggle('Pickup')}
               style={[
-                scheme === 'dark' ? darkTheme.deliveryToggleButton : lightTheme.deliveryToggleButton,
-                { backgroundColor: deliveryMode === 'Pickup' ? '#FFC300' : 'transparent' }
+                lightTheme.deliveryToggleButton,
+                { backgroundColor: deliveryMode === 'Pickup' ? '#FFC300' : 'transparent' },
               ]}
             >
               <Text style={{ color: deliveryMode === 'Pickup' ? '#000' : '#333' }}>Pickup</Text>
@@ -327,14 +322,11 @@ const filterShopsByTags = (shops, mode) => {
           </View>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', paddingHorizontal: 10 }}>
-          <TouchableOpacity
-            onPress={toggleDrawer}
-            style={scheme === 'dark' ? darkTheme.iconButton : lightTheme.iconButton}
-          >
-            <FontAwesome name="bars" size={24} color={scheme === 'dark' ? 'white' : '#333'} />
+          <TouchableOpacity onPress={toggleDrawer} style={lightTheme.iconButton}>
+            <FontAwesome name="bars" size={24} color="#333" />
           </TouchableOpacity>
           <TextInput
-            style={scheme === 'dark' ? darkTheme.searchInput : lightTheme.searchInput}
+            style={lightTheme.searchInput}
             placeholder="Search places, foods..."
             placeholderTextColor="#aaa"
             value={searchQuery}
@@ -343,58 +335,37 @@ const filterShopsByTags = (shops, mode) => {
           />
         </View>
       </View>
-
-      <ScrollView contentContainerStyle={scheme === 'dark' ? darkTheme.contentContainer : lightTheme.contentContainer}>
+  
+      <ScrollView contentContainerStyle={lightTheme.contentContainer}>
         <PromoSlider />
         <View style={{ paddingHorizontal: 15, paddingVertical: 10 }}>
-          <Text
-            style={{ fontSize: 14, fontWeight: '900', color: scheme === 'dark' ? '#fff' : '#333' }}
-          >
+          <Text style={{ fontSize: 14, fontWeight: '900', color: '#333' }}>
             What are you looking for today?
           </Text>
         </View>
-        {/* <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {categories.map((category) => (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          {allTags.map((tag) => (
             <TouchableOpacity
-              key={category.id}
-              style={scheme === 'dark' ? darkTheme.category : lightTheme.category}
-              onPress={() => handleCategoryPress(category)}
+              key={tag.id}
+              style={lightTheme.category}
+              onPress={() => handleCategoryPress(tag)}
             >
               <Image
-                source={{ uri: category.image }}
-                style={scheme === 'dark' ? darkTheme.categoryImage : lightTheme.categoryImage}
+                source={{ uri: tag?.img || 'https://res.cloudinary.com/doqyrz0sg/image/upload/v1628580001/placeholder.png' }}
+                style={lightTheme.categoryImage}
               />
-              <Text style={scheme === 'dark' ? darkTheme.categoryText : lightTheme.categoryText}>
-                {category.name}
-              </Text>
+              <Text style={lightTheme.categoryText}>{tag.name}</Text>
             </TouchableOpacity>
           ))}
-        </ScrollView> */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-  {allTags.map((tag) => (
-    <TouchableOpacity
-      key={tag.id}
-      style={scheme === 'dark' ? darkTheme.category : lightTheme.category}
-      onPress={() => handleCategoryPress(tag)} // Pasamos 'null' como categoría si no tienes la categoría asociada aún
-    >
-      <Image
-        source={{ uri: tag?.img || 'https://res.cloudinary.com/doqyrz0sg/image/upload/v1628580001/placeholder.png' }}
-        style={scheme === 'dark' ? darkTheme.categoryImage : lightTheme.categoryImage}
-      />
-      <Text style={scheme === 'dark' ? darkTheme.categoryText : lightTheme.categoryText}>
-        {tag.name}
-      </Text>
-    </TouchableOpacity>
-  ))}
-</ScrollView>
+        </ScrollView>
         {ordersIn && ordersIn.length > 0 && <OrderStatus />}
         {noShopsAvailable ? (
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 50 }}>
             <Image
-              source={{ uri: 'https://res.cloudinary.com/doqyrz0sg/image/upload/v1720400961/c0e3cfe8-b839-496f-b6af-9e9f76d7360c_dev8hm.webp' }} // Reemplaza con tu URL de imagen
+              source={{ uri: 'https://res.cloudinary.com/doqyrz0sg/image/upload/v1720400961/c0e3cfe8-b839-496f-b6af-9e9f76d7360c_dev8hm.webp' }}
               style={{ width: 200, height: 200 }}
             />
-            <Text style={{ marginTop: 20, fontSize: 18, color: scheme === 'dark' ? '#fff' : '#333' }}>
+            <Text style={{ marginTop: 20, fontSize: 18, color: '#333' }}>
               No shops available in your area
             </Text>
           </View>
@@ -405,7 +376,6 @@ const filterShopsByTags = (shops, mode) => {
                 key={categoryId}
                 title={categoryTitles[categoryId] || `Category ${categoryId}`}
                 items={filteredShopsByCategory[categoryId]}
-                scheme={scheme}
                 handleItemPress={handleShopPress}
                 categoryId={categoryId}
                 orderTypeParam={orderTypeParam}
@@ -414,57 +384,16 @@ const filterShopsByTags = (shops, mode) => {
           ))
         )}
       </ScrollView>
-      <AccountDrawer
-        visible={drawerVisible}
-        onClose={toggleDrawer}
-        onNavigate={handleNavigate}
-        scheme={scheme}
-        user={user}
-      />
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => {
-          setModalVisible(!modalVisible);
-        }}
-      >
-        <View
-          style={{
-            flex: 1,
-            justifyContent: 'center',
-            alignItems: 'center',
-            backgroundColor: 'rgba(0,0,0,0.5)',
-          }}
-        >
-          <View
-            style={{
-              width: 300,
-              padding: 20,
-              backgroundColor: scheme === 'dark' ? '#333' : '#fff',
-              borderRadius: 10,
-              alignItems: 'center',
-            }}
-          >
+      <AccountDrawer visible={drawerVisible} onClose={toggleDrawer} onNavigate={handleNavigate} user={user} />
+      <Modal animationType="slide" transparent={true} visible={modalVisible} onRequestClose={() => setModalVisible(!modalVisible)}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <View style={{ width: 300, padding: 20, backgroundColor: '#fff', borderRadius: 10, alignItems: 'center' }}>
             <FontAwesome name="map-marker" size={50} color="#FFC107" />
-            <Text
-              style={{
-                marginTop: 15,
-                fontSize: 18,
-                textAlign: 'center',
-                color: scheme === 'dark' ? '#fff' : '#333',
-              }}
-            >
+            <Text style={{ marginTop: 15, fontSize: 18, textAlign: 'center', color: '#333' }}>
               You need to select an address to continue
             </Text>
             <TouchableOpacity
-              style={{
-                marginTop: 20,
-                paddingVertical: 10,
-                paddingHorizontal: 20,
-                backgroundColor: '#FFC300', // Cambiado a amarillo cálido
-                borderRadius: 5,
-              }}
+              style={{ marginTop: 20, paddingVertical: 10, paddingHorizontal: 20, backgroundColor: '#FFC300', borderRadius: 5 }}
               onPress={() => {
                 setModalVisible(false);
                 navigation.navigate('SetAddressScreen');
@@ -475,54 +404,40 @@ const filterShopsByTags = (shops, mode) => {
           </View>
         </View>
       </Modal>
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={addressModalVisible}
-        onRequestClose={() => {
-          setAddressModalVisible(!addressModalVisible);
-        }}
-      >
-        <View style={scheme === 'dark' ? darkTheme.modalBackground : lightTheme.modalBackground}>
-          <View style={[scheme === 'dark' ? darkTheme.modalContainer : lightTheme.modalContainer, scheme === 'dark' && { backgroundColor: '#333' }]}>
-            <TouchableOpacity onPress={() => setAddressModalVisible(false)} style={scheme === 'dark' ? darkTheme.closeButton : lightTheme.closeButton}>
-              <FontAwesome name="close" size={24} color={scheme === 'dark' ? '#fff' : '#000'} />
+      <Modal animationType="slide" transparent={true} visible={addressModalVisible} onRequestClose={() => setAddressModalVisible(!addressModalVisible)}>
+        <View style={lightTheme.modalBackground}>
+          <View style={lightTheme.modalContainer}>
+            <TouchableOpacity onPress={() => setAddressModalVisible(false)} style={lightTheme.closeButton}>
+              <FontAwesome name="close" size={24} color="#000" />
             </TouchableOpacity>
-            <Text style={scheme === 'dark' ? darkTheme.modalTitle : lightTheme.modalTitle}>
-              Select Your Address
-            </Text>
+            <Text style={lightTheme.modalTitle}>Select Your Address</Text>
             <FlatList
               data={addresses}
               keyExtractor={(item) => item.id}
               renderItem={({ item }) => (
-                <TouchableOpacity onPress={() => handleAddressSelect(item)} style={scheme === 'dark' ? darkTheme.addressItem : lightTheme.addressItem}>
-                  <Text style={scheme === 'dark' ? darkTheme.addressName : lightTheme.addressName}>
-                    {item.name}
-                  </Text>
-                  <Text style={scheme === 'dark' ? darkTheme.addressTextModal : lightTheme.addressTextModal}>
-                    {item.formatted_address}
-                  </Text>
+                <TouchableOpacity onPress={() => handleAddressSelect(item)} style={lightTheme.addressItem}>
+                  <Text style={lightTheme.addressName}>{item.name}</Text>
+                  <Text style={lightTheme.addressTextModal}>{item.formatted_address}</Text>
                 </TouchableOpacity>
               )}
-              ItemSeparatorComponent={() => <View style={scheme === 'dark' ? darkTheme.separator : lightTheme.separator} />}
-              contentContainerStyle={scheme === 'dark' ? darkTheme.flatListContent : lightTheme.flatListContent}
+              ItemSeparatorComponent={() => <View style={lightTheme.separator} />}
+              contentContainerStyle={lightTheme.flatListContent}
             />
             <TouchableOpacity
-              style={scheme === 'dark' ? darkTheme.addButton : lightTheme.addButton}
+              style={lightTheme.addButton}
               onPress={() => {
                 setAddressModalVisible(false);
                 navigation.navigate('SetAddressScreen');
               }}
             >
-              <Text style={scheme === 'dark' ? darkTheme.addButtonText : lightTheme.addButtonText}>+ Add Address</Text>
+              <Text style={lightTheme.addButtonText}>+ Add Address</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
     </SafeAreaView>
   );
-};
-
+}  
 const styles = StyleSheet.create({
   addressItem: {
     paddingVertical: 10,

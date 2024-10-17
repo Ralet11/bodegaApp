@@ -40,7 +40,7 @@ const OrderSummary = () => {
   const navigation = useNavigation();
   const dispatch = useDispatch();
   const colorScheme = useColorScheme();
-  const styles = colorScheme === 'dark' ? darkStyles : lightStyles;
+  const styles = lightStyles;
 
   useEffect(() => {
     const fetchShopData = async () => {
@@ -252,7 +252,7 @@ const OrderSummary = () => {
   return (
     <ScrollView style={styles.screen}>
       <LinearGradient
-        colors={colorScheme === 'dark' ? ['#333333', '#1E1E1E'] : ['#ff9900', '#FFFFFF']}
+        colors={['#ff9900', '#FFFFFF']}
         style={styles.gradient}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 0.3 }}

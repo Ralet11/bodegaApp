@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, TextInput, StyleSheet, useColorScheme, Image, Animated, Keyboard, TouchableWithoutFeedback, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, StyleSheet, useColorScheme, Image, Animated, Keyboard, TouchableWithoutFeedback, Dimensions, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Axios from 'react-native-axios';
 import { useDispatch } from 'react-redux';
@@ -13,7 +13,7 @@ import Toast from 'react-native-toast-message';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as AppleAuthentication from 'expo-apple-authentication';
 
-// Importaciones para Google Sign-In
+// Imports for Google Sign-In
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
 import * as AuthSession from 'expo-auth-session';
@@ -26,7 +26,7 @@ export default function Signup() {
   const navigation = useNavigation();
   const dispatch = useDispatch();
   const colorScheme = useColorScheme();
-  const styles = colorScheme === 'dark' ? stylesDark : stylesLight;
+  const styles = stylesLight;
 
   const [clientData, setClientData] = useState({
     name: "",
@@ -55,7 +55,7 @@ export default function Signup() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Configuración de Google Sign-In
+  // Google Sign-In configuration
   const redirectUri = AuthSession.makeRedirectUri({
     useProxy: true,
   });
@@ -108,19 +108,19 @@ export default function Signup() {
         Toast.show({
           type: 'error',
           text1: 'Error',
-          text2: backendResponse.data.message || 'Error en la respuesta del servidor.',
+          text2: backendResponse.data.message || 'Error in server response.',
         });
       }
     } catch (error) {
       Toast.show({
         type: 'error',
         text1: 'Error',
-        text2: error.response?.data?.message || error.message || 'Algo salió mal. Por favor, intenta de nuevo más tarde.',
+        text2: error.response?.data?.message || error.message || 'Something went wrong. Please try again later.',
       });
     }
   };
 
-  // Lógica para Apple Sign-In
+  // Logic for Apple Sign-In
   const handleAppleSignIn = async () => {
     try {
       const credential = await AppleAuthentication.signInAsync({
@@ -129,34 +129,44 @@ export default function Signup() {
           AppleAuthentication.AppleAuthenticationScope.EMAIL,
         ],
       });
-
+  
+      // Process Apple Sign-In result
       const userInfo = {
-        email: credential.email,
+        email: credential.email || '', // Sometimes Apple does not return the email
         fullName: credential.fullName?.givenName || 'Apple User',
-        appleUserId: credential.user,
+        appleUserId: credential.user,  // Apple's unique user ID
       };
-
+  
+      // Send request to backend to process login
       const backendResponse = await Axios.post(`${API_URL}/api/auth/appleSignIn`, {
         userInfo,
       });
-
+  
+      // Handle backend response
       if (backendResponse.data.error === false) {
         const _clientData = backendResponse.data;
-        dispatch(setUser(_clientData));
-        dispatch(fetchCategories());
-        navigation.navigate('Main');
+        dispatch(setUser(_clientData));  // Update user in global state
+        dispatch(fetchCategories());     // Load categories
+        navigation.navigate('Main');     // Navigate to the main screen
       } else {
         Toast.show({
           type: 'error',
           text1: 'Error',
-          text2: backendResponse.data.message || 'Error en la respuesta del servidor.',
+          text2: backendResponse.data.message || 'Error in server response.',
         });
       }
     } catch (e) {
       if (e.code === 'ERR_CANCELED') {
-        console.log('El usuario canceló la operación.');
+        // User canceled the operation
+        console.log('User canceled the operation.');
       } else {
+        // An error occurred during the process
         console.error(e);
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: 'Something went wrong during Apple Sign-In.',
+        });
       }
     }
   };
@@ -234,7 +244,7 @@ export default function Signup() {
       Toast.show({
         type: 'error',
         text1: 'Error',
-        text2: 'Por favor, corrige los errores en el formulario antes de enviar.',
+        text2: 'Please correct the form errors before submitting.',
       });
       return;
     }
@@ -259,7 +269,7 @@ export default function Signup() {
           Toast.show({
             type: 'error',
             text1: 'Error',
-            text2: response.data.message || 'Error en la respuesta del servidor.',
+            text2: response.data.message || 'Error in server response.',
           });
           Animated.timing(buttonAnim, {
             toValue: 1,
@@ -280,7 +290,7 @@ export default function Signup() {
         Toast.show({
           type: 'error',
           text1: 'Error',
-          text2: error.response?.data?.message || error.message || 'Algo salió mal. Por favor, intenta de nuevo más tarde.',
+          text2: error.response?.data?.message || error.message || 'Something went wrong. Please try again later.',
         });
         Animated.timing(buttonAnim, {
           toValue: 1,
@@ -308,15 +318,15 @@ export default function Signup() {
             </LinearGradient>
           </Animated.View>
           <Animated.View style={[styles.formContainer, { opacity: formAnim, transform: [{ translateY: formAnim.interpolate({ inputRange: [0, 1], outputRange: [50, 0] }) }] }]}>
-            <Text style={styles.title}>Crea Tu Cuenta</Text>
+            <Text style={styles.title}>Create Your Account</Text>
             <View style={styles.inputContainer}>
-              <FontAwesome name="user" size={20} color={colorScheme === 'dark' ? '#FFF' : '#888'} style={styles.icon} />
+              <FontAwesome name="user" size={20} color={'#888'} style={styles.icon} />
               <TextInput
                 onChangeText={(value) => handleChange('name', value)}
-                style={[styles.input, { borderColor: errors.name ? 'red' : colorScheme === 'dark' ? '#FFF' : '#ccc' }]}
+                style={[styles.input, { borderColor: errors.name ? 'red' : '#ccc' }]}
                 value={clientData.name}
-                placeholder='Nombre'
-                placeholderTextColor={colorScheme === 'dark' ? '#FFF' : '#888'}
+                placeholder='Name'
+                placeholderTextColor={'#888'}
                 onFocus={() => Animated.timing(nameLabelAnim, {
                   toValue: 1,
                   duration: 200,
@@ -329,15 +339,15 @@ export default function Signup() {
                 }).start()}
               />
             </View>
-            {errors.name && <Text style={styles.errorText}>El nombre es obligatorio y debe tener menos de 45 caracteres.</Text>}
+            {errors.name && <Text style={styles.errorText}>Name is required and should be less than 45 characters.</Text>}
             <View style={styles.inputContainer}>
-              <FontAwesome name="envelope" size={20} color={colorScheme === 'dark' ? '#FFF' : '#888'} style={styles.icon} />
+              <FontAwesome name="envelope" size={20} color={'#888'} style={styles.icon} />
               <TextInput
                 onChangeText={(value) => handleChange('email', value)}
-                style={[styles.input, { borderColor: errors.email ? 'red' : colorScheme === 'dark' ? '#FFF' : '#ccc' }]}
+                style={[styles.input, { borderColor: errors.email ? 'red' : '#ccc' }]}
                 value={clientData.email}
-                placeholder='Correo Electrónico'
-                placeholderTextColor={colorScheme === 'dark' ? '#FFF' : '#888'}
+                placeholder='Email'
+                placeholderTextColor={'#888'}
                 onFocus={() => Animated.timing(emailLabelAnim, {
                   toValue: 1,
                   duration: 200,
@@ -350,16 +360,16 @@ export default function Signup() {
                 }).start()}
               />
             </View>
-            {errors.email && <Text style={styles.errorText}>Se requiere un correo electrónico válido.</Text>}
+            {errors.email && <Text style={styles.errorText}>A valid email is required.</Text>}
             <View style={styles.inputContainer}>
-              <FontAwesome name="lock" size={20} color={colorScheme === 'dark' ? '#FFF' : '#888'} style={styles.icon} />
+              <FontAwesome name="lock" size={20} color={'#888'} style={styles.icon} />
               <TextInput
                 onChangeText={(value) => handleChange('password', value)}
-                style={[styles.input, { borderColor: errors.password ? 'red' : colorScheme === 'dark' ? '#FFF' : '#ccc' }]}
+                style={[styles.input, { borderColor: errors.password ? 'red' : '#ccc' }]}
                 secureTextEntry={!showPassword}
                 value={clientData.password}
-                placeholder='Contraseña'
-                placeholderTextColor={colorScheme === 'dark' ? '#FFF' : '#888'}
+                placeholder='Password'
+                placeholderTextColor={'#888'}
                 onFocus={() => Animated.timing(passwordLabelAnim, {
                   toValue: 1,
                   duration: 200,
@@ -372,19 +382,19 @@ export default function Signup() {
                 }).start()}
               />
               <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.showPasswordButton}>
-                <FontAwesome name={showPassword ? "eye-slash" : "eye"} size={20} color={colorScheme === 'dark' ? '#FFF' : '#888'} />
+                <FontAwesome name={showPassword ? "eye-slash" : "eye"} size={20} color={'#888'} />
               </TouchableOpacity>
             </View>
-            {errors.password && <Text style={styles.errorText}>La contraseña es obligatoria y debe tener al menos 6 caracteres.</Text>}
+            {errors.password && <Text style={styles.errorText}>Password is required and should be at least 6 characters.</Text>}
             <View style={styles.inputContainer}>
-              <FontAwesome name="lock" size={20} color={colorScheme === 'dark' ? '#FFF' : '#888'} style={styles.icon} />
+              <FontAwesome name="lock" size={20} color={'#888'} style={styles.icon} />
               <TextInput
                 onChangeText={(value) => handleChange('confirmPassword', value)}
-                style={[styles.input, { borderColor: errors.confirmPassword ? 'red' : colorScheme === 'dark' ? '#FFF' : '#ccc' }]}
+                style={[styles.input, { borderColor: errors.confirmPassword ? 'red' : '#ccc' }]}
                 secureTextEntry={!showConfirmPassword}
                 value={clientData.confirmPassword}
-                placeholder='Confirmar Contraseña'
-                placeholderTextColor={colorScheme === 'dark' ? '#FFF' : '#888'}
+                placeholder='Confirm Password'
+                placeholderTextColor={'#888'}
                 onFocus={() => Animated.timing(confirmPasswordLabelAnim, {
                   toValue: 1,
                   duration: 200,
@@ -397,26 +407,26 @@ export default function Signup() {
                 }).start()}
               />
               <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={styles.showPasswordButton}>
-                <FontAwesome name={showConfirmPassword ? "eye-slash" : "eye"} size={20} color={colorScheme === 'dark' ? '#FFF' : '#888'} />
+                <FontAwesome name={showConfirmPassword ? "eye-slash" : "eye"} size={20} color={'#888'} />
               </TouchableOpacity>
             </View>
-            {errors.confirmPassword && <Text style={styles.errorText}>Las contraseñas no coinciden.</Text>}
+            {errors.confirmPassword && <Text style={styles.errorText}>Passwords do not match.</Text>}
             <View style={styles.inputContainer}>
-              <FontAwesome name="phone" size={20} color={colorScheme === 'dark' ? '#FFF' : '#888'} style={styles.icon} />
+              <FontAwesome name="phone" size={20} color={'#888'} style={styles.icon} />
               <PhoneInput
                 value={clientData.phone}
                 onChange={(value) => handleChange('phone', value)}
-                containerStyle={styles.phoneInputContainer}
-                textContainerStyle={styles.phoneInputTextContainer}
+                containerStyle={[styles.phoneInputContainer, { backgroundColor: '#fff', borderColor: '#ddd' }]}
+                textContainerStyle={[styles.phoneInputTextContainer, { backgroundColor: '#fff' }]}
                 textInputStyle={styles.phoneInputText}
               />
             </View>
-            {errors.phone && <Text style={styles.errorText}>Se requiere un número de teléfono válido.</Text>}
+            {errors.phone && <Text style={styles.errorText}>A valid phone number is required.</Text>}
             <TouchableOpacity onPress={handleSignup} style={styles.signInButton}>
-              <Animated.Text style={[styles.signInButtonText, { transform: [{ scale: buttonAnim }] }]}>Registrarse</Animated.Text>
+              <Animated.Text style={[styles.signInButtonText, { transform: [{ scale: buttonAnim }] }]}>Sign Up</Animated.Text>
             </TouchableOpacity>
 
-            {/* Botón de Google Sign-In */}
+            {/* Google Sign-In Button */}
             <TouchableOpacity
               onPress={() => {
                 promptAsync();
@@ -424,22 +434,24 @@ export default function Signup() {
               style={styles.googleButton}
             >
               <FontAwesome name="google" size={20} color="#FFF" style={styles.icon} />
-              <Text style={styles.googleButtonText}>Continuar con Google</Text>
+              <Text style={styles.googleButtonText}>Continue with Google</Text>
             </TouchableOpacity>
 
-            {/* Botón de Apple Sign-In */}
-            <AppleAuthentication.AppleAuthenticationButton
-              buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-              buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-              cornerRadius={5}
-              style={{ width: 200, height: 44 }}
-              onPress={handleAppleSignIn}
-            />
+            {/* Apple Sign-In Button */}
+            {Platform.OS === 'ios' && (
+              <AppleAuthentication.AppleAuthenticationButton
+                buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+                buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                cornerRadius={5}
+                style={{ width: 200, height: 44 }}
+                onPress={handleAppleSignIn}
+              />
+            )}
 
             <View style={styles.signUpContainer}>
-              <Text style={styles.signUpText}>¿Ya tienes una cuenta? </Text>
+              <Text style={styles.signUpText}>Already have an account? </Text>
               <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-                <Text style={styles.signUpLink}>Inicia sesión aquí</Text>
+                <Text style={styles.signUpLink}>Log in here</Text>
               </TouchableOpacity>
             </View>
           </Animated.View>
@@ -545,7 +557,7 @@ const commonStyles = {
     borderBottomColor: '#888',
   },
   phoneInputTextContainer: {
-    backgroundColor: 'black',
+    backgroundColor: 'white',
     paddingVertical: 0,
   },
   phoneInputText: {
@@ -604,54 +616,5 @@ const stylesLight = StyleSheet.create({
   container: {
     ...commonStyles.container,
     backgroundColor: "#fff",
-  },
-});
-
-const stylesDark = StyleSheet.create({
-  ...commonStyles,
-  container: {
-    ...commonStyles.container,
-    backgroundColor: "#333",
-  },
-  inputContainer: {
-    ...commonStyles.inputContainer,
-    backgroundColor: '#555',
-    borderColor: '#777',
-  },
-  input: {
-    ...commonStyles.input,
-    color: '#FFF',
-  },
-  phoneInputContainer: {
-    ...commonStyles.phoneInputContainer,
-    borderBottomColor: '#FFF',
-  },
-  phoneInputText: {
-    ...commonStyles.phoneInputText,
-    color: '#FFF',
-  },
-  signInButtonText: {
-    ...commonStyles.signInButtonText,
-    color: '#000',
-  },
-  footerText: {
-    ...commonStyles.footerText,
-    color: '#FFF',
-  },
-  errorText: {
-    ...commonStyles.errorText,
-    color: 'red',
-  },
-  title: {
-    ...commonStyles.title,
-    color: '#FFF',
-  },
-  signUpText: {
-    ...commonStyles.signUpText,
-    color: '#FFF',
-  },
-  signInButtonText: {
-    ...commonStyles.signInButtonText,
-    color: '#000',
   },
 });

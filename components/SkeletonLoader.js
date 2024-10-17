@@ -1,25 +1,17 @@
 import React from 'react';
-import { View, Animated, useColorScheme, Dimensions, StyleSheet } from 'react-native';
+import { View, Animated, Dimensions, StyleSheet } from 'react-native';
 
 const SkeletonLoader = () => {
-  const scheme = useColorScheme();
   const shimmerAnimatedValue = new Animated.Value(0);
   const { width } = Dimensions.get('window');
 
   React.useEffect(() => {
     Animated.loop(
-      Animated.sequence([
-        Animated.timing(shimmerAnimatedValue, {
-          toValue: 1,
-          duration: 1500,
-          useNativeDriver: true,
-        }),
-        Animated.timing(shimmerAnimatedValue, {
-          toValue: 0,
-          duration: 1500,
-          useNativeDriver: true,
-        }),
-      ])
+      Animated.timing(shimmerAnimatedValue, {
+        toValue: 1,
+        duration: 1500,
+        useNativeDriver: true,
+      })
     ).start();
   }, [shimmerAnimatedValue]);
 
@@ -34,54 +26,56 @@ const SkeletonLoader = () => {
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: scheme === 'dark' ? '#333' : '#E1E9EE',
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
     transform: [{ translateX }],
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
   };
-
-  const baseColor = scheme === 'dark' ? '#444' : '#F2F8FC';
 
   return (
     <View style={styles.container}>
-      <View style={[styles.header, { backgroundColor: baseColor }]}>
-        <Animated.View style={[shimmerStyle, { width: '100%', height: '100%' }]} />
+      <View style={[styles.header, styles.baseBackground]}>
+        <Animated.View style={[shimmerStyle, styles.shimmer]} />
       </View>
 
-      <View style={[styles.searchBar, { backgroundColor: baseColor }]}>
-        <Animated.View style={[shimmerStyle, { width: '100%', height: '100%' }]} />
+      <View style={[styles.searchBar, styles.baseBackground]}>
+        <Animated.View style={[shimmerStyle, styles.shimmer]} />
       </View>
 
       <View style={styles.section}>
-        <View style={[styles.promoSlider, { backgroundColor: baseColor }]}>
-          <Animated.View style={[shimmerStyle, { width: '100%', height: '100%' }]} />
+        <View style={[styles.promoSlider, styles.baseBackground]}>
+          <Animated.View style={[shimmerStyle, styles.shimmer]} />
         </View>
       </View>
 
       <View style={styles.section}>
         <View style={styles.textPlaceholder}>
-          <View style={[styles.textLine, { backgroundColor: baseColor }]}>
-            <Animated.View style={[shimmerStyle, { width: '100%', height: '100%' }]} />
+          <View style={[styles.textLine, styles.baseBackground]}>
+            <Animated.View style={[shimmerStyle, styles.shimmer]} />
           </View>
         </View>
       </View>
 
       <View style={styles.categorySection}>
         {[...Array(4)].map((_, index) => (
-          <View key={index} style={[styles.categoryItem, { backgroundColor: baseColor }]}>
-            <Animated.View style={[shimmerStyle, { width: '100%', height: '100%' }]} />
+          <View key={index} style={[styles.categoryItem, styles.baseBackground]}>
+            <Animated.View style={[shimmerStyle, styles.shimmer]} />
           </View>
         ))}
       </View>
 
       <View style={styles.section}>
-        <View style={[styles.orderStatus, { backgroundColor: baseColor }]}>
-          <Animated.View style={[shimmerStyle, { width: '100%', height: '100%' }]} />
+        <View style={[styles.orderStatus, styles.baseBackground]}>
+          <Animated.View style={[shimmerStyle, styles.shimmer]} />
         </View>
       </View>
 
       <View style={styles.section}>
         {[...Array(3)].map((_, index) => (
-          <View key={index} style={[styles.horizontalScroll, { backgroundColor: baseColor }]}>
-            <Animated.View style={[shimmerStyle, { width: '100%', height: '100%' }]} />
+          <View key={index} style={[styles.horizontalScroll, styles.baseBackground]}>
+            <Animated.View style={[shimmerStyle, styles.shimmer]} />
           </View>
         ))}
       </View>
@@ -93,50 +87,81 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
+    backgroundColor: '#f5f5f5',
+  },
+  baseBackground: {
+    backgroundColor: '#e0e0e0',
+    overflow: 'hidden',
+    borderRadius: 15,
+  },
+  shimmer: {
+    width: '150%',
+    height: '100%',
+    opacity: 0.5,
   },
   header: {
-    height: 50,
-    marginBottom: 20,
-    borderRadius: 10,
+    height: 60,
+    marginBottom: 25,
+    borderRadius: 15,
   },
   searchBar: {
-    height: 40,
-    marginBottom: 20,
-    borderRadius: 10,
+    height: 50,
+    marginBottom: 25,
+    borderRadius: 12,
   },
   section: {
-    marginBottom: 20,
+    marginBottom: 30,
   },
   promoSlider: {
-    height: 200,
-    borderRadius: 10,
+    height: 220,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
   },
   textPlaceholder: {
-    marginBottom: 10,
+    marginBottom: 15,
   },
   textLine: {
-    height: 20,
-    borderRadius: 4,
-    marginBottom: 10,
+    height: 25,
+    borderRadius: 6,
+    marginBottom: 15,
   },
   categorySection: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 20,
+    marginBottom: 30,
   },
   categoryItem: {
-    width: (Dimensions.get('window').width - 60) / 4,
-    height: 80,
-    borderRadius: 10,
+    width: (Dimensions.get('window').width - 80) / 4,
+    height: 100,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 5,
   },
   orderStatus: {
-    height: 100,
-    borderRadius: 10,
+    height: 120,
+    borderRadius: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 15,
+    elevation: 8,
   },
   horizontalScroll: {
-    height: 150,
-    borderRadius: 10,
-    marginBottom: 20,
+    height: 170,
+    borderRadius: 15,
+    marginBottom: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 6,
   },
 });
 

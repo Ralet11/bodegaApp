@@ -75,7 +75,7 @@ const CartItem = ({ item }) => {
     <View
       style={[
         styles.cartItem,
-        { backgroundColor: colorScheme === 'dark' ? '#1c1c1c' : '#fff' },
+        { backgroundColor: '#fff' },
       ]}
     >
       <Image source={{ uri: item.image || item.img }} style={styles.itemImage} />
@@ -83,7 +83,7 @@ const CartItem = ({ item }) => {
         <Text
           style={[
             styles.itemName,
-            { color: colorScheme === 'dark' ? '#fff' : '#000' },
+            { color:  '#000' },
           ]}
         >
           {item.name}
@@ -96,7 +96,7 @@ const CartItem = ({ item }) => {
                 key={index}
                 style={[
                   styles.cartItemExtraText,
-                  { color: colorScheme === 'dark' ? '#ccc' : '#666' },
+                  { color: '#666' },
                 ]}
               >
                 {extra.name} (${extra.price})
@@ -108,7 +108,7 @@ const CartItem = ({ item }) => {
           <Text
             style={[
               styles.itemPrice,
-              { color: colorScheme === 'dark' ? '#fff' : '#000' },
+              { color: '#000' },
             ]}
           >
             ${totalPrice}
@@ -132,7 +132,7 @@ const CartItem = ({ item }) => {
         <Text
           style={[
             styles.quantityText,
-            { color: colorScheme === 'dark' ? '#fff' : '#000' },
+            { color: '#000' },
           ]}
         >
           {item.quantity}
@@ -647,29 +647,15 @@ const CartScreen = () => {
   };
 
   return (
-    <SafeAreaView
-      style={[
-        styles.container,
-        { backgroundColor: colorScheme === 'dark' ? '#000' : '#f5f5f5' },
-      ]}
-    >
+    <SafeAreaView style={[styles.container, { backgroundColor: '#f5f5f5' }]}>
       {isLoading ? (
         <ActivityIndicator size="large" color="#FFA500" />
       ) : (
         <>
           {/* Header */}
-          <View
-            style={[
-              styles.header,
-              { backgroundColor: colorScheme === 'dark' ? '#1c1c1c' : '#fff' },
-            ]}
-          >
+          <View style={[styles.header, { backgroundColor: '#fff' }]}>
             <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Icon
-                name="arrow-back"
-                size={24}
-                color={colorScheme === 'dark' ? '#fff' : '#000'}
-              />
+              <Icon name="arrow-back" size={24} color="#000" />
             </TouchableOpacity>
             <View style={styles.orderTypeSelector}>
               <TouchableOpacity
@@ -706,123 +692,60 @@ const CartScreen = () => {
               </TouchableOpacity>
             </View>
             <TouchableOpacity onPress={() => dispatch(clearCart())}>
-              <Text
-                style={[
-                  styles.emptyCartText,
-                  { color: colorScheme === 'dark' ? '#FFA500' : '#FFA500' },
-                ]}
-              >
+              <Text style={[styles.emptyCartText, { color: '#FFA500' }]}>
                 Clear
               </Text>
             </TouchableOpacity>
           </View>
-
+  
           <ScrollView style={styles.cartItemsContainer}>
             {/* Address Section (if Delivery) */}
             {orderType === 'Delivery' && (
-              <View
-                style={[
-                  styles.addressContainer,
-                  {
-                    backgroundColor:
-                      colorScheme === 'dark' ? '#1c1c1c' : '#fff',
-                  },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.addressLabel,
-                    { color: colorScheme === 'dark' ? '#fff' : '#000' },
-                  ]}
-                >
+              <View style={[styles.addressContainer, { backgroundColor: '#fff' }]}>
+                <Text style={[styles.addressLabel, { color: '#000' }]}>
                   Delivery Address:
                 </Text>
                 <View style={styles.addressInputContainer}>
                   <TextInput
                     style={[
                       styles.addressInput,
-                      {
-                        color: colorScheme === 'dark' ? '#fff' : '#000',
-                        borderColor:
-                          colorScheme === 'dark' ? '#333' : '#e0e0e0',
-                      },
+                      { color: '#000', borderColor: '#e0e0e0' },
                     ]}
                     placeholder="Enter your address"
-                    placeholderTextColor={
-                      colorScheme === 'dark' ? '#888' : '#A9A9A9'
-                    }
+                    placeholderTextColor="#A9A9A9"
                     value={address}
                     editable={false}
                   />
                   <TouchableOpacity onPress={() => setModalVisible(true)}>
-                    <Icon
-                      name="location-outline"
-                      size={24}
-                      color={colorScheme === 'dark' ? '#fff' : '#000'}
-                    />
+                    <Icon name="location-outline" size={24} color="#000" />
                   </TouchableOpacity>
                 </View>
               </View>
             )}
-
+  
             {/* Restaurant Info */}
-            <TouchableOpacity
-              onPress={() => openAddressInMaps(shop?.address)}
-            >
-              <View
-                style={[
-                  styles.restaurantInfo,
-                  {
-                    backgroundColor:
-                      colorScheme === 'dark' ? '#1c1c1c' : '#fff',
-                  },
-                ]}
-              >
+            <TouchableOpacity onPress={() => openAddressInMaps(shop?.address)}>
+              <View style={[styles.restaurantInfo, { backgroundColor: '#fff' }]}>
                 <View style={styles.restaurantDetails}>
-                  <Text
-                    style={[
-                      styles.restaurantName,
-                      { color: colorScheme === 'dark' ? '#fff' : '#000' },
-                    ]}
-                  >
+                  <Text style={[styles.restaurantName, { color: '#000' }]}>
                     {shop?.name}
                   </Text>
-                  <Text
-                    style={[
-                      styles.restaurantAddress,
-                      { color: colorScheme === 'dark' ? '#ccc' : '#666' },
-                    ]}
-                  >
+                  <Text style={[styles.restaurantAddress, { color: '#666' }]}>
                     {shop?.address}
                   </Text>
                 </View>
               </View>
             </TouchableOpacity>
-
+  
             {/* Cart Items */}
             {cart.map((item) => (
               <CartItem key={item.id} item={item} />
             ))}
-
+  
             {/* Tip Section */}
             {orderType === 'Delivery' && (
-              <View
-                style={[
-                  styles.tipContainer,
-                  {
-                    backgroundColor:
-                      colorScheme === 'dark' ? '#1c1c1c' : '#fff',
-                  },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.tipLabel,
-                    { color: colorScheme === 'dark' ? '#fff' : '#000' },
-                  ]}
-                >
-                  Tip:
-                </Text>
+              <View style={[styles.tipContainer, { backgroundColor: '#fff' }]}>
+                <Text style={[styles.tipLabel, { color: '#000' }]}>Tip:</Text>
                 <View style={styles.tipOptions}>
                   {[0, 5, 10, 15, 20].map((percentage) => (
                     <TouchableOpacity
@@ -830,25 +753,14 @@ const CartScreen = () => {
                       style={[
                         styles.tipButton,
                         tip === percentage && styles.tipButtonSelected,
-                        {
-                          backgroundColor:
-                            colorScheme === 'dark' ? '#333' : '#f0f0f0',
-                        },
+                        { backgroundColor: '#f0f0f0' },
                       ]}
                       onPress={() => {
                         setTip(percentage);
                         setCustomTip('');
                       }}
                     >
-                      <Text
-                        style={[
-                          styles.tipButtonText,
-                          {
-                            color:
-                              colorScheme === 'dark' ? '#fff' : '#000',
-                          },
-                        ]}
-                      >
+                      <Text style={[styles.tipButtonText, { color: '#000' }]}>
                         {percentage}%
                       </Text>
                     </TouchableOpacity>
@@ -857,25 +769,14 @@ const CartScreen = () => {
                     style={[
                       styles.tipButton,
                       customTip !== '' && styles.tipButtonSelected,
-                      {
-                        backgroundColor:
-                          colorScheme === 'dark' ? '#333' : '#f0f0f0',
-                      },
+                      { backgroundColor: '#f0f0f0' },
                     ]}
                     onPress={() => {
                       setTip('');
                       setCustomTip('');
                     }}
                   >
-                    <Text
-                      style={[
-                        styles.tipButtonText,
-                        {
-                          color:
-                            colorScheme === 'dark' ? '#fff' : '#000',
-                        },
-                      ]}
-                    >
+                    <Text style={[styles.tipButtonText, { color: '#000' }]}>
                       Custom
                     </Text>
                   </TouchableOpacity>
@@ -884,16 +785,10 @@ const CartScreen = () => {
                   <TextInput
                     style={[
                       styles.customTipInput,
-                      {
-                        color: colorScheme === 'dark' ? '#fff' : '#000',
-                        borderColor:
-                          colorScheme === 'dark' ? '#333' : '#e0e0e0',
-                      },
+                      { color: '#000', borderColor: '#e0e0e0' },
                     ]}
                     placeholder="Enter custom tip percentage"
-                    placeholderTextColor={
-                      colorScheme === 'dark' ? '#888' : '#A9A9A9'
-                    }
+                    placeholderTextColor="#A9A9A9"
                     keyboardType="numeric"
                     value={customTip}
                     onChangeText={(text) =>
@@ -903,234 +798,82 @@ const CartScreen = () => {
                 )}
               </View>
             )}
-
-            {/* 
-            {balance > 0 && (
-              <View
-                style={[
-                  styles.balanceContainer,
-                  {
-                    backgroundColor:
-                      colorScheme === 'dark' ? '#1c1c1c' : '#fff',
-                  },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.balanceText,
-                    { color: colorScheme === 'dark' ? '#fff' : '#000' },
-                  ]}
-                >
-                  Balance: ${balance.toFixed(2)}
-                </Text>
-                <View style={styles.useBalanceContainer}>
-                  <Switch
-                    value={useBalance}
-                    onValueChange={(value) => handleBalanceChange(value)}
-                    trackColor={{ false: '#767577', true: '#ffcc00' }}
-                    thumbColor={useBalance ? '#f4f3f4' : '#f4f3f4'}
-                  />
-                  <Text
-                    style={[
-                      styles.useBalanceLabel,
-                      { color: colorScheme === 'dark' ? '#fff' : '#000' },
-                    ]}
-                  >
-                    {useBalance ? 'Using Balance' : 'Use Balance'}
-                  </Text>
-                </View>
-              </View>
-            )} */}
           </ScrollView>
-
+  
           {/* Summary */}
-          <View
-            style={[
-              styles.summaryContainer,
-              {
-                backgroundColor: colorScheme === 'dark' ? '#1c1c1c' : '#fff',
-              },
-            ]}
-          >
+          <View style={[styles.summaryContainer, { backgroundColor: '#fff' }]}>
             <View style={styles.summaryRow}>
-              <Text
-                style={[
-                  styles.summaryLabel,
-                  { color: colorScheme === 'dark' ? '#fff' : '#000' },
-                ]}
-              >
+              <Text style={[styles.summaryLabel, { color: '#000' }]}>
                 Subtotal:
               </Text>
-              <Text
-                style={[
-                  styles.summaryValue,
-                  { color: colorScheme === 'dark' ? '#fff' : '#000' },
-                ]}
-              >
+              <Text style={[styles.summaryValue, { color: '#000' }]}>
                 ${calculateSubtotal()}
               </Text>
             </View>
-
+  
             {orderType === 'Delivery' && (
               <View style={styles.summaryRow}>
-                <Text
-                  style={[
-                    styles.summaryLabel,
-                    { color: colorScheme === 'dark' ? '#fff' : '#000' },
-                  ]}
-                >
+                <Text style={[styles.summaryLabel, { color: '#000' }]}>
                   Service Fee:
                 </Text>
-                <Text
-                  style={[
-                    styles.summaryValue,
-                    { color: colorScheme === 'dark' ? '#fff' : '#000' },
-                  ]}
-                >
+                <Text style={[styles.summaryValue, { color: '#000' }]}>
                   ${serviceFee.toFixed(2)}
                 </Text>
               </View>
             )}
-
+  
             {orderType === 'Delivery' && (
               <View style={styles.summaryRow}>
-                <Text
-                  style={[
-                    styles.summaryLabel,
-                    { color: colorScheme === 'dark' ? '#fff' : '#000' },
-                  ]}
-                >
+                <Text style={[styles.summaryLabel, { color: '#000' }]}>
                   Delivery Fee:
                 </Text>
                 {isSubscribed ? (
                   <View style={styles.feeContainer}>
                     <Text
-                      style={[
-                        styles.summaryValue,
-                        styles.strikethrough,
-                        { color: colorScheme === 'dark' ? '#fff' : '#000' },
-                      ]}
+                      style={[styles.summaryValue, styles.strikethrough, { color: '#000' }]}
                     >
                       ${deliveryFee.toFixed(2)}
                     </Text>
-                    <Text
-                      style={[
-                        styles.summaryValue,
-                        styles.freeText,
-                        { color: '#4CAF50' },
-                      ]}
-                    >
+                    <Text style={[styles.summaryValue, styles.freeText, { color: '#4CAF50' }]}>
                       Free
                     </Text>
                   </View>
                 ) : (
-                  <Text
-                    style={[
-                      styles.summaryValue,
-                      { color: colorScheme === 'dark' ? '#fff' : '#000' },
-                    ]}
-                  >
+                  <Text style={[styles.summaryValue, { color: '#000' }]}>
                     ${deliveryFee.toFixed(2)}
                   </Text>
                 )}
               </View>
             )}
-
+  
             <View style={styles.summaryRow}>
-              <Text
-                style={[
-                  styles.summaryLabel,
-                  { color: colorScheme === 'dark' ? '#fff' : '#000' },
-                ]}
-              >
-                Tax:
-              </Text>
+              <Text style={[styles.summaryLabel, { color: '#000' }]}>Tax:</Text>
               {isSubscribed ? (
                 <View style={styles.feeContainer}>
                   <Text
-                    style={[
-                      styles.summaryValue,
-                      styles.strikethrough,
-                      { color: colorScheme === 'dark' ? '#fff' : '#000' },
-                    ]}
+                    style={[styles.summaryValue, styles.strikethrough, { color: '#000' }]}
                   >
                     ${(calculateTax() * 2).toFixed(2)}
                   </Text>
-                  <Text
-                    style={[
-                      styles.summaryValue,
-                      { color: colorScheme === 'dark' ? '#fff' : '#000' },
-                    ]}
-                  >
+                  <Text style={[styles.summaryValue, { color: '#000' }]}>
                     ${calculateTax().toFixed(2)}
                   </Text>
                 </View>
               ) : (
-                <Text
-                  style={[
-                    styles.summaryValue,
-                    { color: colorScheme === 'dark' ? '#fff' : '#000' },
-                  ]}
-                >
+                <Text style={[styles.summaryValue, { color: '#000' }]}>
                   ${calculateTax().toFixed(2)}
                 </Text>
               )}
             </View>
-
+  
             <View style={[styles.summaryRow, styles.totalRow]}>
-              <Text
-                style={[
-                  styles.totalLabel,
-                  { color: colorScheme === 'dark' ? '#fff' : '#000' },
-                ]}
-              >
-                Total:
-              </Text>
-              <Text
-                style={[
-                  styles.totalValue,
-                  { color: colorScheme === 'dark' ? '#fff' : '#000' },
-                ]}
-              >
+              <Text style={[styles.totalLabel, { color: '#000' }]}>Total:</Text>
+              <Text style={[styles.totalValue, { color: '#000' }]}>
                 ${calculateRealTotal()}
               </Text>
             </View>
           </View>
-
-          {/* Savings or Subscription Ad */}
-          {orderType === 'Delivery' &&
-            (user.subscription === 1 ? (
-              <View style={styles.savingsContainer}>
-                <Text
-                  style={[
-                    styles.savingsText,
-                    { color: colorScheme === 'dark' ? '#fff' : '#000' },
-                  ]}
-                >
-                  You're saving ${calculateSavings()} with Pro Subscription
-                </Text>
-              </View>
-            ) : (
-              <View style={styles.adContainer}>
-                <Text
-                  style={[
-                    styles.adTitle,
-                    { color: colorScheme === 'dark' ? '#fff' : '#000' },
-                  ]}
-                >
-                  Subscribe now and save more!
-                </Text>
-                <Text
-                  style={[
-                    styles.adText,
-                    { color: colorScheme === 'dark' ? '#ccc' : '#666' },
-                  ]}
-                >
-                  Get free delivery and exclusive promotions
-                </Text>
-              </View>
-            ))}
-
+  
           {/* Checkout Button */}
           <TouchableOpacity
             style={styles.checkoutButton}
@@ -1145,7 +888,7 @@ const CartScreen = () => {
               <Text style={styles.checkoutButtonText}>Checkout</Text>
             )}
           </TouchableOpacity>
-
+  
           {/* Modals */}
           {/* Checkout Confirmation Modal */}
           <CheckoutConfirmationModal
@@ -1169,7 +912,7 @@ const CartScreen = () => {
             address={address}
             styles={styles}
           />
-
+  
           {/* Address Selection Modal */}
           <SelectAddressModal
             visible={modalVisible}
@@ -1178,111 +921,12 @@ const CartScreen = () => {
             onSelectAddress={selectAddress}
             styles={styles}
           />
-
-          {/* Order Type Confirmation Modal */}
-          <Modal
-            visible={confirmationModalVisible}
-            animationType="slide"
-            transparent={true}
-            onRequestClose={() => setConfirmationModalVisible(false)}
-          >
-            <View style={styles.modalOverlay}>
-              <View
-                style={[
-                  styles.modalOrderTypeContainer,
-                  {
-                    backgroundColor:
-                      colorScheme === 'dark' ? '#1c1c1c' : '#fff',
-                  },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.modalTitle,
-                    { color: colorScheme === 'dark' ? '#fff' : '#000' },
-                  ]}
-                >
-                  Confirm Order Type Change
-                </Text>
-                <Text
-                  style={[
-                    styles.modalOrderTypeText,
-                    { color: colorScheme === 'dark' ? '#ccc' : '#666' },
-                  ]}
-                >
-                  Are you sure you want to change the order type to{' '}
-                  {newOrderType}?
-                </Text>
-                <View style={styles.modalButtons}>
-                  <TouchableOpacity
-                    style={styles.confirmButton}
-                    onPress={confirmOrderTypeChange}
-                  >
-                    <Text style={styles.confirmButtonText}>Confirm</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.cancelButton}
-                    onPress={() => setConfirmationModalVisible(false)}
-                  >
-                    <Text style={styles.cancelButtonText}>Cancel</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          </Modal>
-
-          {/* Login Modal */}
-          <Modal
-            visible={loginModalVisible}
-            animationType="slide"
-            transparent={true}
-            onRequestClose={() => setLoginModalVisible(false)}
-          >
-            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-              <View style={styles.modalContainer}>
-                <View
-                  style={[
-                    styles.modalContent,
-                    {
-                      backgroundColor:
-                        colorScheme === 'dark' ? '#1c1c1c' : '#fff',
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.modalTitle,
-                      { color: colorScheme === 'dark' ? '#fff' : '#000' },
-                    ]}
-                  >
-                    To continue with the purchase, please log in or sign up
-                  </Text>
-                  {loginMode ? (
-                    <LoginForm
-                      setLoginMode={setLoginMode}
-                      handleLoginSuccess={() => setLoginModalVisible(false)}
-                    />
-                  ) : (
-                    <SignUpForm
-                      setLoginMode={setLoginMode}
-                      handleSignUpSuccess={() => setLoginModalVisible(false)}
-                    />
-                  )}
-                  <TouchableOpacity
-                    style={styles.closeButton}
-                    onPress={() => setLoginModalVisible(false)}
-                  >
-                    <Text style={styles.closeButtonText}>Close</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </TouchableWithoutFeedback>
-          </Modal>
         </>
       )}
       <Toast />
     </SafeAreaView>
   );
+  
 };
 
 // LoginForm Component

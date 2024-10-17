@@ -1,216 +1,183 @@
 import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, Animated, Easing, useColorScheme, Dimensions } from 'react-native';
+import { View, Animated, Dimensions, StyleSheet, Easing } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const { width } = Dimensions.get('window');
 
-const OrderSkeletonLoader = () => {
-  const colorScheme = useColorScheme();
+const EnhancedOrderSkeletonLoader = () => {
   const shimmerAnimatedValue = useRef(new Animated.Value(0)).current;
+  const cardScaleValue = useRef(new Animated.Value(0.98)).current;
 
   useEffect(() => {
-    const shimmerAnimation = Animated.loop(
+    Animated.loop(
+      Animated.timing(shimmerAnimatedValue, {
+        toValue: 1,
+        duration: 1500,
+        easing: Easing.ease,
+        useNativeDriver: false,
+      })
+    ).start();
+
+    Animated.loop(
       Animated.sequence([
-        Animated.timing(shimmerAnimatedValue, {
+        Animated.timing(cardScaleValue, {
           toValue: 1,
           duration: 1000,
-          easing: Easing.linear,
+          easing: Easing.elastic(1),
           useNativeDriver: true,
         }),
-        Animated.timing(shimmerAnimatedValue, {
-          toValue: 0,
+        Animated.timing(cardScaleValue, {
+          toValue: 0.98,
           duration: 1000,
-          easing: Easing.linear,
+          easing: Easing.elastic(1),
           useNativeDriver: true,
         }),
       ])
-    );
-
-    shimmerAnimation.start();
-    return () => shimmerAnimation.stop();
-  }, [shimmerAnimatedValue]);
+    ).start();
+  }, []);
 
   const translateX = shimmerAnimatedValue.interpolate({
     inputRange: [0, 1],
     outputRange: [-width, width],
   });
 
-  const styles = colorScheme === 'dark' ? stylesDark : stylesLight;
+  const renderCard = (index) => (
+    <Animated.View
+      key={index}
+      style={[
+        styles.card,
+        {
+          transform: [{ scale: cardScaleValue }],
+          opacity: cardScaleValue.interpolate({
+            inputRange: [0.98, 1],
+            outputRange: [0.8, 1],
+          }),
+        },
+      ]}
+    >
+      <View style={styles.savedAmount} />
+      <View style={styles.statusBar}>
+        <View style={styles.orderInfo} />
+        <View style={styles.newOrderBadge} />
+      </View>
+      <View style={styles.detailsRow}>
+        <View style={styles.infoText} />
+        <View style={styles.detailsLink} />
+      </View>
+      <View style={styles.divider} />
+      <View style={styles.orderFooter}>
+        <View style={styles.reorderButton} />
+        <View style={styles.reviewButton} />
+      </View>
+      <Animated.View
+        style={[
+          StyleSheet.absoluteFill,
+          {
+            transform: [{ translateX: translateX }],
+          },
+        ]}
+      >
+        <LinearGradient
+          colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.5)', 'rgba(255,255,255,0)']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={StyleSheet.absoluteFill}
+        />
+      </Animated.View>
+    </Animated.View>
+  );
 
   return (
     <View style={styles.container}>
-      {[...Array(4)].map((_, index) => (
-        <View key={index} style={styles.card}>
-          <View style={styles.cardHeader} />
-          <View style={styles.status} />
-          <View style={styles.date} />
-          <View style={styles.total} />
-          <View style={styles.localInfo} />
-          <View style={styles.detailsContainer}>
-            <View style={styles.detailsText} />
-            <View style={styles.detailsLink} />
-          </View>
-          <Animated.View style={[styles.skeletonShimmer, { transform: [{ translateX }] }]} />
-        </View>
-      ))}
+      {[...Array(3)].map((_, index) => renderCard(index))}
     </View>
   );
 };
 
-const commonStyles = {
+const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
+    padding: 16,
     paddingTop: 80,
+    backgroundColor: '#f7f9fc',
   },
   card: {
-    padding: 16,
-    marginBottom: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 4.65,
-    elevation: 8,
-    position: 'relative',
+    padding: 20,
+    marginBottom: 20,
+    borderRadius: 16,
+    backgroundColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 5,
     overflow: 'hidden',
   },
-  cardHeader: {
-    height: 20,
-    marginBottom: 8,
-    borderRadius: 5,
+  savedAmount: {
+    height: 28,
+    width: '70%',
+    borderRadius: 14,
+    marginBottom: 20,
+    backgroundColor: '#e8f0fe',
   },
-  status: {
-    height: 16,
-    marginBottom: 8,
-    borderRadius: 5,
-  },
-  date: {
-    height: 14,
-    marginBottom: 8,
-    borderRadius: 5,
-  },
-  localInfo: {
-    height: 14,
-    marginBottom: 8,
-    borderRadius: 5,
-  },
-  detailsContainer: {
+  statusBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 8,
+    marginBottom: 20,
   },
-  detailsText: {
-    height: 16,
-    width: '40%',
-    borderRadius: 5,
-  },
-  detailsLink: {
-    height: 16,
-    width: '30%',
-    borderRadius: 5,
-  },
-  total: {
-    height: 16,
+  orderInfo: {
+    height: 18,
     width: '50%',
-    borderRadius: 5,
-    marginTop: 8,
+    borderRadius: 9,
+    backgroundColor: '#e8f0fe',
   },
-  skeletonShimmer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  newOrderBadge: {
+    height: 24,
+    width: 80,
+    borderRadius: 12,
+    backgroundColor: '#fff0e6',
   },
-};
-
-const stylesDark = StyleSheet.create({
-  ...commonStyles,
-  container: {
-    ...commonStyles.container,
-    backgroundColor: '#121212',
+  detailsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
   },
-  card: {
-    ...commonStyles.card,
-    backgroundColor: '#1e1e1e',
-    borderColor: '#333',
-    shadowColor: '#fff',
-  },
-  cardHeader: {
-    ...commonStyles.cardHeader,
-    backgroundColor: '#333',
-  },
-  status: {
-    ...commonStyles.status,
-    backgroundColor: '#333',
-  },
-  date: {
-    ...commonStyles.date,
-    backgroundColor: '#333',
-  },
-  localInfo: {
-    ...commonStyles.localInfo,
-    backgroundColor: '#333',
-  },
-  detailsText: {
-    ...commonStyles.detailsText,
-    backgroundColor: '#333',
+  infoText: {
+    height: 14,
+    width: '60%',
+    borderRadius: 7,
+    backgroundColor: '#e8f0fe',
   },
   detailsLink: {
-    ...commonStyles.detailsLink,
-    backgroundColor: '#333',
+    height: 14,
+    width: '25%',
+    borderRadius: 7,
+    backgroundColor: '#e8f0fe',
   },
-  total: {
-    ...commonStyles.total,
-    backgroundColor: '#333',
+  divider: {
+    height: 1,
+    width: '100%',
+    backgroundColor: '#f0f4f8',
+    marginBottom: 20,
+  },
+  orderFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  reorderButton: {
+    height: 36,
+    width: '45%',
+    borderRadius: 18,
+    backgroundColor: '#e8f0fe',
+  },
+  reviewButton: {
+    height: 36,
+    width: '45%',
+    borderRadius: 18,
+    backgroundColor: '#e8f0fe',
   },
 });
 
-const stylesLight = StyleSheet.create({
-  ...commonStyles,
-  container: {
-    ...commonStyles.container,
-    backgroundColor: '#f0f0f0',
-  },
-  card: {
-    ...commonStyles.card,
-    backgroundColor: 'white',
-    borderColor: '#e0e0e0',
-    shadowColor: '#000',
-  },
-  cardHeader: {
-    ...commonStyles.cardHeader,
-    backgroundColor: '#e0e0e0',
-  },
-  status: {
-    ...commonStyles.status,
-    backgroundColor: '#e0e0e0',
-  },
-  date: {
-    ...commonStyles.date,
-    backgroundColor: '#e0e0e0',
-  },
-  localInfo: {
-    ...commonStyles.localInfo,
-    backgroundColor: '#e0e0e0',
-  },
-  detailsText: {
-    ...commonStyles.detailsText,
-    backgroundColor: '#e0e0e0',
-  },
-  detailsLink: {
-    ...commonStyles.detailsLink,
-    backgroundColor: '#e0e0e0',
-  },
-  total: {
-    ...commonStyles.total,
-    backgroundColor: '#e0e0e0',
-  },
-});
-
-export default OrderSkeletonLoader;
+export default EnhancedOrderSkeletonLoader;

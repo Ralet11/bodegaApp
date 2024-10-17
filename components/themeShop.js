@@ -1,5 +1,3 @@
-// styles.js
-
 import { StyleSheet } from 'react-native';
 
 const commonStyles = {
@@ -310,7 +308,7 @@ const commonStyles = {
   },
   activeCategoryButton: {
   borderBottomWidth: 2,
-  borderBottomColor: '#FFC107',  // Añade esta línea
+  borderBottomColor: '#FFC107',
 },
   activeCategoryButtonText: {
     color: '#FFC107',
@@ -812,3 +810,4 @@ const stylesDark = StyleSheet.create({
 });
 
 export { stylesLight, stylesDark };
+

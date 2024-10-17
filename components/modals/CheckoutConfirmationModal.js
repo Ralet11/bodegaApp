@@ -10,7 +10,6 @@ import {
   TextInput,
   Image,
   StyleSheet,
-  useColorScheme,
 } from 'react-native';
 
 const CheckoutConfirmationModal = ({
@@ -29,11 +28,8 @@ const CheckoutConfirmationModal = ({
   originalDeliveryFee,
   deliveryFee,
   calculateTax,
-  calculateTipAmount,
   calculateTotal,
 }) => {
-  const colorScheme = useColorScheme();
-
   return (
     <Modal
       visible={visible}
@@ -42,61 +38,31 @@ const CheckoutConfirmationModal = ({
       onRequestClose={onClose}
     >
       <View style={styles.modalOverlay}>
-        <View
-          style={[
-            styles.modalContent,
-            { backgroundColor: colorScheme === 'dark' ? '#1c1c1c' : '#fff' },
-          ]}
-        >
-          <Text
-            style={[
-              styles.modalTitle,
-              { color: colorScheme === 'dark' ? '#fff' : '#000' },
-            ]}
-          >
+        <View style={[styles.modalContent, { backgroundColor: '#fff' }]}>
+          <Text style={[styles.modalTitle, { color: '#000' }]}>
             Confirm Your Order
           </Text>
           <ScrollView style={styles.modalScrollView}>
             <View style={styles.modalSection}>
-              <Text
-                style={[
-                  styles.modalSectionTitle,
-                  { color: colorScheme === 'dark' ? '#fff' : '#000' },
-                ]}
-              >
+              <Text style={[styles.modalSectionTitle, { color: '#000' }]}>
                 {orderType === 'Delivery' ? 'Delivery Address' : 'Order Type'}
               </Text>
-              <Text
-                style={[
-                  styles.modalText,
-                  { color: colorScheme === 'dark' ? '#ccc' : '#666' },
-                ]}
-              >
+              <Text style={[styles.modalText, { color: '#666' }]}>
                 {getOrderTypeDisplay(orderType)}
               </Text>
             </View>
             {orderType === 'Delivery' && (
               <View style={styles.modalSection}>
-                <Text
-                  style={[
-                    styles.modalSectionTitle,
-                    { color: colorScheme === 'dark' ? '#fff' : '#000' },
-                  ]}
-                >
+                <Text style={[styles.modalSectionTitle, { color: '#000' }]}>
                   Enter Delivery Instructions
                 </Text>
                 <TextInput
                   style={[
                     styles.instructionsInput,
-                    {
-                      color: colorScheme === 'dark' ? '#fff' : '#000',
-                      borderColor: colorScheme === 'dark' ? '#333' : '#e0e0e0',
-                    },
+                    { color: '#000', borderColor: '#e0e0e0' },
                   ]}
                   placeholder="Enter delivery instructions"
-                  placeholderTextColor={
-                    colorScheme === 'dark' ? '#888' : '#A9A9A9'
-                  }
+                  placeholderTextColor="#A9A9A9"
                   value={deliveryInstructions || addressInfo?.deliveryInstructions}
                   onChangeText={setDeliveryInstructions}
                   multiline
@@ -104,12 +70,7 @@ const CheckoutConfirmationModal = ({
               </View>
             )}
             <View style={styles.modalSection}>
-              <Text
-                style={[
-                  styles.modalSectionTitle,
-                  { color: colorScheme === 'dark' ? '#fff' : '#000' },
-                ]}
-              >
+              <Text style={[styles.modalSectionTitle, { color: '#000' }]}>
                 Order Summary
               </Text>
               {cart.map((item) => {
@@ -134,44 +95,23 @@ const CheckoutConfirmationModal = ({
                   <View key={item.id} style={styles.cartItem}>
                     <Image source={{ uri: item.image || item.img }} style={styles.cartItemImage} />
                     <View style={styles.cartItemDetails}>
-                      <Text
-                        style={[
-                          styles.cartItemName,
-                          { color: colorScheme === 'dark' ? '#fff' : '#000' },
-                        ]}
-                      >
+                      <Text style={[styles.cartItemName, { color: '#000' }]}>
                         {item.name}
                       </Text>
                       {selectedExtrasArray.length > 0 && (
                         <View style={styles.cartItemExtras}>
                           {selectedExtrasArray.map((extra, index) => (
-                            <Text
-                              key={index}
-                              style={[
-                                styles.cartItemExtraText,
-                                { color: colorScheme === 'dark' ? '#ccc' : '#666' },
-                              ]}
-                            >
+                            <Text key={index} style={[styles.cartItemExtraText, { color: '#666' }]}>
                               {extra.name} (${extra.price})
                             </Text>
                           ))}
                         </View>
                       )}
                       <View style={styles.cartItemPriceRow}>
-                        <Text
-                          style={[
-                            styles.cartItemPrice,
-                            { color: colorScheme === 'dark' ? '#fff' : '#000' },
-                          ]}
-                        >
+                        <Text style={[styles.cartItemPrice, { color: '#000' }]}>
                           ${totalPrice}
                         </Text>
-                        <Text
-                          style={[
-                            styles.cartItemQuantity,
-                            { color: colorScheme === 'dark' ? '#ccc' : '#666' },
-                          ]}
-                        >
+                        <Text style={[styles.cartItemQuantity, { color: '#666' }]}>
                           Qty: {item.quantity}
                         </Text>
                       </View>
@@ -182,173 +122,80 @@ const CheckoutConfirmationModal = ({
             </View>
             <View style={styles.summaryContainer}>
               <View style={styles.summaryRow}>
-                <Text
-                  style={[
-                    styles.summaryLabel,
-                    { color: colorScheme === 'dark' ? '#fff' : '#000' },
-                  ]}
-                >
+                <Text style={[styles.summaryLabel, { color: '#000' }]}>
                   Subtotal:
                 </Text>
-                <Text
-                  style={[
-                    styles.summaryValue,
-                    { color: colorScheme === 'dark' ? '#fff' : '#000' },
-                  ]}
-                >
+                <Text style={[styles.summaryValue, { color: '#000' }]}>
                   ${calculateSubtotal()}
                 </Text>
               </View>
               {orderType === 'Delivery' && (
                 <View style={styles.summaryRow}>
-                  <Text
-                    style={[
-                      styles.summaryLabel,
-                      { color: colorScheme === 'dark' ? '#fff' : '#000' },
-                    ]}
-                  >
+                  <Text style={[styles.summaryLabel, { color: '#000' }]}>
                     Service Fee:
                   </Text>
-                  <Text
-                    style={[
-                      styles.summaryValue,
-                      { color: colorScheme === 'dark' ? '#fff' : '#000' },
-                    ]}
-                  >
+                  <Text style={[styles.summaryValue, { color: '#000' }]}>
                     ${serviceFee.toFixed(2)}
                   </Text>
                 </View>
               )}
               {orderType === 'Delivery' && (
                 <View style={styles.summaryRow}>
-                  <Text
-                    style={[
-                      styles.summaryLabel,
-                      { color: colorScheme === 'dark' ? '#fff' : '#000' },
-                    ]}
-                  >
+                  <Text style={[styles.summaryLabel, { color: '#000' }]}>
                     Delivery Fee:
                   </Text>
                   {user.subscription === 1 ? (
                     <View style={styles.feeContainer}>
-                      <Text
-                        style={[
-                          styles.summaryValue,
-                          styles.strikethrough,
-                          { color: colorScheme === 'dark' ? '#fff' : '#000' },
-                        ]}
-                      >
+                      <Text style={[styles.summaryValue, styles.strikethrough, { color: '#000' }]}>
                         ${originalDeliveryFee}
                       </Text>
-                      <Text
-                        style={[
-                          styles.summaryValue,
-                          styles.freeText,
-                          { color: '#4CAF50' },
-                        ]}
-                      >
+                      <Text style={[styles.summaryValue, styles.freeText, { color: '#4CAF50' }]}>
                         Free
                       </Text>
                     </View>
                   ) : (
-                    <Text
-                      style={[
-                        styles.summaryValue,
-                        { color: colorScheme === 'dark' ? '#fff' : '#000' },
-                      ]}
-                    >
+                    <Text style={[styles.summaryValue, { color: '#000' }]}>
                       ${deliveryFee.toFixed(2)}
                     </Text>
                   )}
                 </View>
               )}
               <View style={styles.summaryRow}>
-                <Text
-                  style={[
-                    styles.summaryLabel,
-                    { color: colorScheme === 'dark' ? '#fff' : '#000' },
-                  ]}
-                >
+                <Text style={[styles.summaryLabel, { color: '#000' }]}>
                   Tax:
                 </Text>
                 {user.subscription === 1 ? (
                   <View style={styles.feeContainer}>
-                    <Text
-                      style={[
-                        styles.summaryValue,
-                        styles.strikethrough,
-                        { color: colorScheme === 'dark' ? '#fff' : '#000' },
-                      ]}
-                    >
+                    <Text style={[styles.summaryValue, styles.strikethrough, { color: '#000' }]}>
                       ${(calculateTax(parseFloat(calculateSubtotal())) * 2).toFixed(2)}
                     </Text>
-                    <Text
-                      style={[
-                        styles.summaryValue,
-                        { color: colorScheme === 'dark' ? '#fff' : '#000' },
-                      ]}
-                    >
+                    <Text style={[styles.summaryValue, { color: '#000' }]}>
                       ${calculateTax(parseFloat(calculateSubtotal())).toFixed(2)}
                     </Text>
                   </View>
                 ) : (
-                  <Text
-                    style={[
-                      styles.summaryValue,
-                      { color: colorScheme === 'dark' ? '#fff' : '#000' },
-                    ]}
-                  >
+                  <Text style={[styles.summaryValue, { color: '#000' }]}>
                     ${calculateTax(parseFloat(calculateSubtotal())).toFixed(2)}
                   </Text>
                 )}
               </View>
               <View style={[styles.summaryRow, styles.totalRow]}>
-                <Text
-                  style={[
-                    styles.totalLabel,
-                    { color: colorScheme === 'dark' ? '#fff' : '#000' },
-                  ]}
-                >
-                  Total:
-                </Text>
-                <Text
-                  style={[
-                    styles.totalValue,
-                    { color: colorScheme === 'dark' ? '#fff' : '#000' },
-                  ]}
-                >
+                <Text style={[styles.totalLabel, { color: '#000' }]}>Total:</Text>
+                <Text style={[styles.totalValue, { color: '#000' }]}>
                   ${calculateTotal()}
                 </Text>
               </View>
             </View>
           </ScrollView>
           <View style={styles.modalButtons}>
-            <TouchableOpacity
-              style={[
-                styles.confirmButton,
-                { backgroundColor: colorScheme === 'dark' ? '#FFA500' : '#FFA500' },
-              ]}
-              onPress={onConfirm}
-            >
+            <TouchableOpacity style={[styles.confirmButton, { backgroundColor: '#FFA500' }]} onPress={onConfirm}>
               <Text style={styles.confirmButtonText}>Confirm</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[
-                styles.cancelButton,
-                {
-                  backgroundColor: colorScheme === 'dark' ? '#333' : '#f0f0f0',
-                },
-              ]}
+              style={[styles.cancelButton, { backgroundColor: '#f0f0f0' }]}
               onPress={onClose}
             >
-              <Text
-                style={[
-                  styles.cancelButtonText,
-                  { color: colorScheme === 'dark' ? '#fff' : '#000' },
-                ]}
-              >
-                Cancel
-              </Text>
+              <Text style={[styles.cancelButtonText, { color: '#000' }]}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </View>

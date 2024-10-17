@@ -25,7 +25,7 @@ const ShopContentOrderIn = ({
   setPositionsReady,
   shop
 }) => {
-  const styles = useColorScheme() === 'dark' ? darkStyles : lightStyles;
+  const styles =lightStyles;
   const dispatch = useDispatch();
   const categoriesRendered = useRef(0);
 

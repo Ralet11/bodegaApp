@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView, ActivityIndicator, useColorScheme, Modal } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView, ActivityIndicator, Modal } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
@@ -18,7 +18,6 @@ const AccountSettings = () => {
   const [isLoadingData, setIsLoadingData] = useState(true); // Estado para controlar el loader
   const address = useSelector((state) => state?.user?.address?.formatted_address);
   const addresses = useSelector((state) => state?.user?.addresses);
-  const colorScheme = useColorScheme();
   const [privacyModalVisible, setPrivacyModalVisible] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
 
@@ -74,7 +73,6 @@ const AccountSettings = () => {
         dispatch(clearOrders())
         dispatch(clearCart())
         dispatch(clearUser()); // Clear user data from Redux
-      ; // Redirect to login screen or another appropriate screen
       }
     } catch (error) {
       console.error('Error deleting account:', error);
@@ -135,14 +133,14 @@ const AccountSettings = () => {
     }
   };
 
-  const styles = colorScheme === 'dark' ? stylesDark : stylesLight;
+  const styles = stylesLight;
 
   return (
     <SafeAreaView style={[styles.safeArea]}>
       <View style={[styles.container]}>
         <View style={[styles.header]}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
-            <FontAwesome name="arrow-left" size={24} color={colorScheme === 'dark' ? '#FFD700' : '#333'} />
+            <FontAwesome name="arrow-left" size={24} color="#333" />
           </TouchableOpacity>
           <Text style={[styles.headerTitle]}>Account Settings</Text>
         </View>
@@ -153,42 +151,42 @@ const AccountSettings = () => {
         ) : (
           <ScrollView contentContainerStyle={styles.scrollContent}>
             <View style={[styles.inputContainer]}>
-              <FontAwesome name="user" size={20} color={colorScheme === 'dark' ? "#fff" : "#333"} />
+              <FontAwesome name="user" size={20} color="#333" />
               <TextInput
                 ref={(ref) => inputRefs.current.name = ref}
                 style={[styles.input]}
                 placeholder="Name"
-                placeholderTextColor={colorScheme === 'dark' ? "#999" : "#666"}
+                placeholderTextColor="#666"
                 value={formData.name}
                 onChangeText={(value) => handleInputChange('name', value)}
               />
             </View>
             <View style={[styles.inputContainer]}>
-              <FontAwesome name="envelope" size={20} color={colorScheme === 'dark' ? "#fff" : "#333"} />
+              <FontAwesome name="envelope" size={20} color="#333" />
               <TextInput
                 ref={(ref) => inputRefs.current.email = ref}
                 style={[styles.input]}
                 placeholder="Email"
-                placeholderTextColor={colorScheme === 'dark' ? "#999" : "#666"}
+                placeholderTextColor="#666"
                 value={formData.email}
                 onChangeText={(value) => handleInputChange('email', value)}
               />
             </View>
             <View style={[styles.inputContainer]}>
-              <FontAwesome name="phone" size={20} color={colorScheme === 'dark' ? "#fff" : "#333"} />
+              <FontAwesome name="phone" size={20} color="#333" />
               <TextInput
                 ref={(ref) => inputRefs.current.phone = ref}
                 style={[styles.input]}
                 placeholder="Phone"
-                placeholderTextColor={colorScheme === 'dark' ? "#999" : "#666"}
+                placeholderTextColor="#666"
                 value={formData.phone}
                 onChangeText={(value) => handleInputChange('phone', value)}
               />
             </View>
             <View style={[styles.inputContainer]}>
-              <FontAwesome name="home" size={20} color={colorScheme === 'dark' ? "#fff" : "#333"} />
+              <FontAwesome name="home" size={20} color="#333" />
               <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.addressContainer}>
-                <Text style={[styles.addressText, { color: colorScheme === 'dark' ? '#fff' : '#333' }]}>
+                <Text style={[styles.addressText, { color: '#333' }]}>
                   {formData.address}
                 </Text>
               </TouchableOpacity>
@@ -226,7 +224,6 @@ const AccountSettings = () => {
             setModalVisible(false);
           }}
           onClose={() => setModalVisible(false)}
-          theme={colorScheme} // Pass the theme prop to AddressModal
         />
         <Modal
           visible={privacyModalVisible}
@@ -556,52 +553,6 @@ const commonStyles = {
     color: '#000',
   },
 };
-
-const stylesDark = StyleSheet.create({
-  ...commonStyles,
-  safeArea: {
-    ...commonStyles.safeArea,
-    backgroundColor: '#1c1c1c',
-  },
-  container: {
-    ...commonStyles.container,
-    backgroundColor: '#1c1c1c',
-  },
-  header: {
-    ...commonStyles.header,
-    backgroundColor: '#333',
-    borderBottomColor: '#555',
-  },
-  headerTitle: {
-    ...commonStyles.headerTitle,
-    color: '#fff',
-  },
-  inputContainer: {
-    ...commonStyles.inputContainer,
-    backgroundColor: '#333',
-    borderColor: '#555',
-  },
-  input: {
-    ...commonStyles.input,
-    color: '#fff',
-  },
-  modalText: {
-    ...commonStyles.modalText,
-    color: '#fff',  // Asegura que el texto sea blanco
-  },
-  footerLinkText: {
-    ...commonStyles.footerLinkText,
-    color: '#fff',  // Asegura que los enlaces en el pie de página sean blancos
-  },
-  addressText: {
-    ...commonStyles.addressText,
-    color: '#fff',
-  },
-  saveButtonText: {
-    ...commonStyles.saveButtonText,
-    color: '#333',
-  },
-});
 
 const stylesLight = StyleSheet.create({
   ...commonStyles,

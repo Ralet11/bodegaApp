@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, View, Text, TouchableOpacity, FlatList, StyleSheet, useColorScheme } from 'react-native';
+import { Modal, View, Text, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
 
 const SelectAddressModal = ({
   visible,
@@ -7,8 +7,6 @@ const SelectAddressModal = ({
   addresses,
   onSelectAddress,
 }) => {
-  const colorScheme = useColorScheme();
-
   return (
     <Modal
       visible={visible}
@@ -17,11 +15,8 @@ const SelectAddressModal = ({
       onRequestClose={onClose}
     >
       <View style={styles.modalContainer}>
-        <View style={[
-          styles.modalContent, 
-          colorScheme === 'dark' ? styles.darkModalContent : styles.lightModalContent
-        ]}>
-          <Text style={[styles.modalTitle, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>
+        <View style={[styles.modalContent, styles.lightModalContent]}>
+          <Text style={[styles.modalTitle, styles.lightText]}>
             Select Delivery Address
           </Text>
           <View style={styles.addressListContainer}>
@@ -33,7 +28,7 @@ const SelectAddressModal = ({
                   style={styles.addressItem}
                   onPress={() => onSelectAddress(item)}
                 >
-                  <Text style={[styles.addressText, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>
+                  <Text style={[styles.addressText, styles.lightText]}>
                     {item.formatted_address}
                   </Text>
                 </TouchableOpacity>
@@ -44,7 +39,7 @@ const SelectAddressModal = ({
             style={styles.closeButton}
             onPress={onClose}
           >
-            <Text style={[styles.closeButtonText, colorScheme === 'dark' ? styles.darkCloseButtonText : styles.lightCloseButtonText]}>
+            <Text style={[styles.closeButtonText, styles.lightCloseButtonText]}>
               Close
             </Text>
           </TouchableOpacity>
@@ -70,9 +65,6 @@ const styles = StyleSheet.create({
   },
   lightModalContent: {
     backgroundColor: '#fff',
-  },
-  darkModalContent: {
-    backgroundColor: '#1c1c1c',
   },
   modalTitle: {
     fontSize: 24,
@@ -102,12 +94,6 @@ const styles = StyleSheet.create({
   },
   lightCloseButtonText: {
     color: '#007bff',
-  },
-  darkCloseButtonText: {
-    color: '#ff9900', // Texto naranja para el botón de cerrar en modo oscuro
-  },
-  darkText: {
-    color: '#fff',
   },
   lightText: {
     color: '#000',

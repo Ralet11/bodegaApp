@@ -49,7 +49,7 @@ const ShopScreen = () => {
   const shop = params.shop || null;
   const orderTypeParam = params.orderTypeParam || null;
   const orderDetails = params.orderDetails || null;
-  const styles = colorScheme === 'dark' ? stylesDark : stylesLight;
+  const styles = stylesLight;
   const isNavigatingBack = useRef(false);
   const [reviews, setReviews] = useState([]);
 

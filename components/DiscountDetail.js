@@ -18,7 +18,7 @@ const DiscountDetailScreen = ({ discount, onAddToCart, onBack, shop }) => {
   const route = useRoute();
   const dispatch = useDispatch();
   const colorScheme = useColorScheme();
-  const styles = colorScheme === 'dark' ? darkStyles : lightStyles;
+  const styles = lightStyles;
   const cart = useSelector(state => state.cart.items);
   const [quantity, setQuantity] = useState(1); // Estado para manejar la cantidad
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, useColorScheme, Image, Animated, Keyboard, TouchableWithoutFeedback, ActivityIndicator, StatusBar } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, useColorScheme, Image, Animated, Keyboard, TouchableWithoutFeedback, ActivityIndicator, StatusBar, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Axios from 'react-native-axios';
 import { useDispatch } from 'react-redux';
@@ -23,7 +23,7 @@ const LoginScreen = () => {
   const navigation = useNavigation();
   const dispatch = useDispatch();
   const colorScheme = useColorScheme();
-  const styles = colorScheme === 'dark' ? stylesDark : stylesLight;
+  const styles = stylesLight;
 
   const logoAnim = useRef(new Animated.Value(0)).current;
   const formAnim = useRef(new Animated.Value(0)).current;
@@ -66,6 +66,7 @@ const LoginScreen = () => {
     }).start();
   }, []);
 
+  // Lógica de Google Sign-In
   useEffect(() => {
     if (response?.type === 'success') {
       const { authentication } = response;
@@ -103,6 +104,52 @@ const LoginScreen = () => {
         text1: 'Error',
         text2: error.response?.data?.message || error.message || 'Algo salió mal. Por favor, intenta de nuevo más tarde.',
       });
+    }
+  };
+
+  // Lógica de Apple Sign-In
+  const handleAppleLogin = async () => {
+    try {
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+
+      const userInfo = {
+        email: credential.email || '',  // En algunos casos, Apple no devuelve el correo en logins futuros
+        fullName: credential.fullName?.givenName || 'Apple User',
+        appleUserId: credential.user,
+      };
+
+      const backendResponse = await Axios.post(`${API_URL}/api/auth/appleSignIn`, {
+        userInfo,
+      });
+
+      if (backendResponse.data.error === false) {
+        const _clientData = backendResponse.data;
+        dispatch(setUser(_clientData));
+        dispatch(fetchCategories());
+        navigation.navigate('Main');
+      } else {
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: backendResponse.data.message || 'Error en la respuesta del servidor.',
+        });
+      }
+    } catch (error) {
+      if (error.code === 'ERR_CANCELED') {
+        console.log('El usuario canceló el inicio de sesión con Apple.');
+      } else {
+        console.error(error);
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: 'Algo salió mal durante el inicio de sesión con Apple.',
+        });
+      }
     }
   };
 
@@ -234,109 +281,113 @@ const LoginScreen = () => {
   };
 
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <SafeAreaView style={styles.safeArea}>
-        <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={colorScheme === 'dark' ? '#333' : '#F2BA25'} />
-        <View style={styles.container}>
-          <Animated.View style={[styles.header, { opacity: logoAnim, transform: [{ translateY: logoAnim.interpolate({ inputRange: [0, 1], outputRange: [-50, 0] }) }] }]}>
-            <LinearGradient
-              colors={['#F2BB26', '#F2BB26']}
-              style={styles.headerGradient}
-            >
-              <Image
-                source={{ uri: "https://res.cloudinary.com/doqyrz0sg/image/upload/v1724135145/discount/zyc3nulkzjbwzs4u7cvw.jpg" }}
-                style={styles.logo}
-                resizeMode="contain"
-              />
-            </LinearGradient>
-          </Animated.View>
-          <Animated.View style={[styles.formContainer, { opacity: formAnim, transform: [{ translateY: formAnim.interpolate({ inputRange: [0, 1], outputRange: [50, 0] }) }] }]}>
-            <Text style={styles.title}>Welcome Back</Text>
-            <View style={styles.inputContainer}>
-              <FontAwesome name="envelope" size={20} color={colorScheme === 'dark' ? '#FFF' : '#888'} style={styles.icon} />
-              <TextInput
-                onChangeText={(value) => handleChange('email', value)}
-                style={[styles.input, { borderColor: errors.email ? 'red' : colorScheme === 'dark' ? '#FFF' : '#ccc' }]}
-                value={clientData.email}
-                placeholder='Email Address'
-                placeholderTextColor={colorScheme === 'dark' ? '#FFF' : '#888'}
-                onFocus={() => Animated.timing(emailLabelAnim, {
-                  toValue: 1,
-                  duration: 200,
-                  useNativeDriver: true,
-                }).start()}
-                onBlur={() => !clientData.email && Animated.timing(emailLabelAnim, {
-                  toValue: 0,
-                  duration: 200,
-                  useNativeDriver: true,
-                }).start()}
-                autoCapitalize='none'
-              />
-            </View>
-            <View style={styles.inputContainer}>
-              <FontAwesome name="lock" size={20} color={colorScheme === 'dark' ? '#FFF' : '#888'} style={styles.icon} />
-              <TextInput
-                onChangeText={(value) => handleChange('password', value)}
-                style={[styles.input, { borderColor: errors.password ? 'red' : colorScheme === 'dark' ? '#FFF' : '#ccc' }]}
-                secureTextEntry={!showPassword}
-                value={clientData.password}
-                placeholder='Password'
-                placeholderTextColor={colorScheme === 'dark' ? '#FFF' : '#888'}
-                onFocus={() => Animated.timing(passwordLabelAnim, {
-                  toValue: 1,
-                  duration: 200,
-                  useNativeDriver: true,
-                }).start()}
-                onBlur={() => !clientData.password && Animated.timing(passwordLabelAnim, {
-                  toValue: 0,
-                  duration: 200,
-                  useNativeDriver: true,
-                }).start()}
-                autoCapitalize='none'
-              />
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.showPasswordButton}>
-                <FontAwesome name={showPassword ? "eye-slash" : "eye"} size={20} color={colorScheme === 'dark' ? '#FFF' : '#888'} />
-              </TouchableOpacity>
-            </View>
-            <View style={styles.rememberForgotContainer}>
-              <TouchableOpacity>
-                <Text style={styles.forgotText}>Forgot Password?</Text>
-              </TouchableOpacity>
-            </View>
-            <TouchableOpacity onPress={handleLogin} style={styles.signInButton} disabled={loading}>
-              {loading ? (
-                <ActivityIndicator size="small" color="#FFF" />
-              ) : (
-                <Animated.Text style={[styles.signInButtonText, { transform: [{ scale: buttonAnim }] }]}>SIGN IN</Animated.Text>
-              )}
-            </TouchableOpacity>
+    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <SafeAreaView style={styles.safeArea}>
+          <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={colorScheme === 'dark' ? '#333' : '#F2BA25'} />
+          <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+            <View style={styles.container}>
+              <Animated.View style={[styles.header, { opacity: logoAnim, transform: [{ translateY: logoAnim.interpolate({ inputRange: [0, 1], outputRange: [-50, 0] }) }] }]}>
+                <LinearGradient
+                  colors={['#F2BB26', '#F2BB26']}
+                  style={styles.headerGradient}
+                >
+                  <Image
+                    source={{ uri: "https://res.cloudinary.com/doqyrz0sg/image/upload/v1724135145/discount/zyc3nulkzjbwzs4u7cvw.jpg" }}
+                    style={styles.logo}
+                    resizeMode="contain"
+                  />
+                </LinearGradient>
+              </Animated.View>
+              <Animated.View style={[styles.formContainer, { opacity: formAnim, transform: [{ translateY: formAnim.interpolate({ inputRange: [0, 1], outputRange: [50, 0] }) }] }]}>
+                <Text style={styles.title}>Welcome Back</Text>
+                <View style={styles.inputContainer}>
+                  <FontAwesome name="envelope" size={20} color={'#888'} style={styles.icon} />
+                  <TextInput
+                    onChangeText={(value) => handleChange('email', value)}
+                    style={[styles.input, { borderColor: errors.email ? 'red' : '#ccc' }]}
+                    value={clientData.email}
+                    placeholder='Email Address'
+                    placeholderTextColor={'#888'}
+                    onFocus={() => Animated.timing(emailLabelAnim, {
+                      toValue: 1,
+                      duration: 200,
+                      useNativeDriver: true,
+                    }).start()}
+                    onBlur={() => !clientData.email && Animated.timing(emailLabelAnim, {
+                      toValue: 0,
+                      duration: 200,
+                      useNativeDriver: true,
+                    }).start()}
+                    autoCapitalize='none'
+                  />
+                </View>
+                <View style={styles.inputContainer}>
+                  <FontAwesome name="lock" size={20} color={'#888'} style={styles.icon} />
+                  <TextInput
+                    onChangeText={(value) => handleChange('password', value)}
+                    style={[styles.input, { borderColor: errors.password ? 'red' : '#ccc' }]}
+                    secureTextEntry={!showPassword}
+                    value={clientData.password}
+                    placeholder='Password'
+                    placeholderTextColor={'#888'}
+                    onFocus={() => Animated.timing(passwordLabelAnim, {
+                      toValue: 1,
+                      duration: 200,
+                      useNativeDriver: true,
+                    }).start()}
+                    onBlur={() => !clientData.password && Animated.timing(passwordLabelAnim, {
+                      toValue: 0,
+                      duration: 200,
+                      useNativeDriver: true,
+                    }).start()}
+                    autoCapitalize='none'
+                  />
+                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.showPasswordButton}>
+                    <FontAwesome name={showPassword ? "eye-slash" : "eye"} size={20} color={'#888'} />
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.rememberForgotContainer}>
+                  <TouchableOpacity>
+                    <Text style={styles.forgotText}>Forgot Password?</Text>
+                  </TouchableOpacity>
+                </View>
+                <TouchableOpacity onPress={handleLogin} style={styles.signInButton} disabled={loading}>
+                  {loading ? (
+                    <ActivityIndicator size="small" color="#FFF" />
+                  ) : (
+                    <Animated.Text style={[styles.signInButtonText, { transform: [{ scale: buttonAnim }] }]}>SIGN IN</Animated.Text>
+                  )}
+                </TouchableOpacity>
 
-            <Text style={styles.orText}>or login with</Text>
+                <Text style={styles.orText}>or login with</Text>
 
-            {/* Íconos de Google y Apple Sign-In */}
-            <View style={styles.socialContainer}>
-              <TouchableOpacity onPress={() => promptAsync()} style={[styles.socialButton, styles.googleButtonBg]}>
-                <FontAwesome name="google" size={30} color="#FFF" />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => console.log('Apple Sign-In')} style={[styles.socialButton, styles.appleButtonBg]}>
-                <FontAwesome name="apple" size={30} color="#FFF" />
-              </TouchableOpacity>
-            </View>
+                {/* Íconos de Google y Apple Sign-In */}
+                <View style={styles.socialContainer}>
+                  <TouchableOpacity onPress={() => promptAsync()} style={[styles.socialButton, styles.googleButtonBg]}>
+                    <FontAwesome name="google" size={30} color="#FFF" />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={handleAppleLogin} style={[styles.socialButton, styles.appleButtonBg]}>
+                    <FontAwesome name="apple" size={30} color="#FFF" />
+                  </TouchableOpacity>
+                </View>
 
-            <View style={styles.signUpContainer}>
-              <Text style={styles.signUpText}>Don't you have an account? </Text>
-              <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
-                <Text style={styles.signUpLink}>Sign Up from here</Text>
-              </TouchableOpacity>
+                <View style={styles.signUpContainer}>
+                  <Text style={styles.signUpText}>Don't you have an account? </Text>
+                  <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
+                    <Text style={styles.signUpLink}>Sign Up from here</Text>
+                  </TouchableOpacity>
+                </View>
+                <TouchableOpacity onPress={handleGuestLogin} style={styles.guestLink}>
+                  <Text style={styles.guestText}>Continue as Guest</Text>
+                </TouchableOpacity>
+              </Animated.View>
             </View>
-            <TouchableOpacity onPress={handleGuestLogin} style={styles.guestLink}>
-              <Text style={styles.guestText}>Continue as Guest</Text>
-            </TouchableOpacity>
-          </Animated.View>
-        </View>
-        <Toast />
-      </SafeAreaView>
-    </TouchableWithoutFeedback>
+          </ScrollView>
+          <Toast />
+        </SafeAreaView>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 };
 

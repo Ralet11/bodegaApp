@@ -50,7 +50,7 @@ const PromoMealScreen = ({ route, navigation }) => {
     navigation.goBack();
   };
 
-  const styles = colorScheme === 'dark' ? darkStyles : lightStyles;
+  const styles = lightStyles;
 
   return (
     <View style={styles.screenContainer}>

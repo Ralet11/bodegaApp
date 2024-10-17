@@ -18,8 +18,8 @@ const DiscountShopScroll = ({ title, items, handleItemPress, allTags }) => {
   const scheme = useColorScheme();
   const colors = getColors(scheme);
   const styles = scheme === 'dark' ? darkTheme(colors) : lightTheme(colors);
-  const navigation = useNavigation()
-  const tag = allTags.find(tag => tag.name === title);
+  const navigation = useNavigation();
+  const tag = allTags.find((tag) => tag.name === title);
 
   const [distances, setDistances] = useState({});
   const [isLoading, setIsLoading] = useState(true);
@@ -110,14 +110,14 @@ const DiscountShopScroll = ({ title, items, handleItemPress, allTags }) => {
 
   const handleSeeMore = (tag) => {
     navigation.navigate('CategoryShops', { selectedTag: tag, allTags });
-  }
+  };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>{getCategoryMessage(tag)}</Text>
-        <TouchableOpacity onPress={() => {handleSeeMore(tag)}}>
-          <Text style={styles.viewMore}>See more</Text>
+    <View style={lightTheme(colors).container}>
+      <View style={lightTheme(colors).header}>
+        <Text style={lightTheme(colors).headerTitle}>{getCategoryMessage(tag)}</Text>
+        <TouchableOpacity onPress={() => handleSeeMore(tag)}>
+          <Text style={lightTheme(colors).viewMore}>See more</Text>
         </TouchableOpacity>
       </View>
       {isLoading ? (
@@ -126,7 +126,7 @@ const DiscountShopScroll = ({ title, items, handleItemPress, allTags }) => {
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          style={styles.scrollView}
+          style={lightTheme(colors).scrollView}
         >
           {items.map((item, index) => {
             if (!distances[item.address]) {
@@ -135,45 +135,45 @@ const DiscountShopScroll = ({ title, items, handleItemPress, allTags }) => {
             return (
               <TouchableOpacity
                 key={index}
-                style={styles.itemContainer}
+                style={lightTheme(colors).itemContainer}
                 onPress={() => handleItemPress(item)}
               >
-                <View style={styles.card}>
+                <View style={lightTheme(colors).card}>
                   <Image
                     source={{ uri: item.image || item.deliveryImage }}
-                    style={styles.itemImage}
+                    style={lightTheme(colors).itemImage}
                   />
-                  <View style={styles.itemContent}>
-                    <View style={styles.row}>
+                  <View style={lightTheme(colors).itemContent}>
+                    <View style={lightTheme(colors).row}>
                       <View
                         style={[
-                          styles.logoContainer,
+                          lightTheme(colors).logoContainer,
                           { backgroundColor: colors.cardBackgroundColor },
                         ]}
                       >
-                        <Image source={{ uri: item.logo }} style={styles.logoImage} />
+                        <Image source={{ uri: item.logo }} style={lightTheme(colors).logoImage} />
                       </View>
-                      <View style={styles.infoColumn}>
+                      <View style={lightTheme(colors).infoColumn}>
                         <Text
-                          style={styles.itemName}
+                          style={lightTheme(colors).itemName}
                           numberOfLines={1}
                           adjustsFontSizeToFit
                           minimumFontScale={0.5}
                         >
                           {item.name || item.product}
                         </Text>
-                        <View style={styles.subInfoRow}>
-                          <View style={styles.iconRow}>
+                        <View style={lightTheme(colors).subInfoRow}>
+                          <View style={lightTheme(colors).iconRow}>
                             <FontAwesome
                               name="street-view"
                               size={14}
                               color={colors.iconColor}
                             />
-                            <Text style={styles.distanceText}>{distances[item.address]}</Text>
+                            <Text style={lightTheme(colors).distanceText}>{distances[item.address]}</Text>
                           </View>
-                          <View style={styles.ratingContainer}>
+                          <View style={lightTheme(colors).ratingContainer}>
                             <FontAwesome name="star" size={14} color={colors.starColor} />
-                            <Text style={styles.ratingText}>{item.rating.toFixed(2)}</Text>
+                            <Text style={lightTheme(colors).ratingText}>{item.rating.toFixed(2)}</Text>
                           </View>
                         </View>
                       </View>
@@ -191,46 +191,46 @@ const DiscountShopScroll = ({ title, items, handleItemPress, allTags }) => {
 
 // Function to define colors based on the theme
 const getColors = (scheme) => ({
-  textColor: scheme === 'dark' ? '#FFFFFF' : '#000000',
-  secondaryTextColor: scheme === 'dark' ? '#BBBBBB' : '#777777',
-  backgroundColor: scheme === 'dark' ? '#121212' : '#FFFFFF',
+  textColor: scheme === 'dark' ? '#E0E0E0' : '#000000', // Cambiado a negro puro
+  secondaryTextColor: scheme === 'dark' ? '#B0B0B0' : '#333333', // Un gris oscuro más visible
+  backgroundColor: scheme === 'dark' ? '#121212' : '#F5F5F5',
   cardBackgroundColor: scheme === 'dark' ? '#1E1E1E' : '#FFFFFF',
-  borderColor: scheme === 'dark' ? '#333333' : '#CCCCCC',
-  iconColor: scheme === 'dark' ? '#FFFFFF' : '#000000',
-  accentColor: scheme === 'dark' ? '#FFD700' : 'tomato',
+  borderColor: scheme === 'dark' ? '#333333' : '#E0E0E0',
+  iconColor: scheme === 'dark' ? '#B0B0B0' : '#666666',
+  accentColor: scheme === 'dark' ? '#FFC300' : '#FF6347',
   starColor: '#FFD700',
 });
 
 // Common styles shared between themes
 const commonStyles = {
-  container: { marginVertical: 20, paddingHorizontal: 10 },
+  container: { marginVertical: 20, paddingHorizontal: 15 },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 15,
   },
   headerTitle: { fontSize: 18, fontWeight: 'bold' },
   scrollView: { paddingVertical: 10 },
-  viewMore: { fontSize: 14 },
-  itemContainer: { marginRight: 10, padding: 10 },
+  viewMore: { fontSize: 14, fontWeight: '600' },
+  itemContainer: { marginRight: 15, padding: 0 },
   card: {
     width: 250,
-    borderRadius: 15,
+    borderRadius: 12,
     overflow: 'hidden',
-    borderWidth: 1,
+
     marginBottom: 5,
   },
   itemImage: {
     width: '100%',
-    height: 125,
-    borderTopLeftRadius: 15,
-    borderTopRightRadius: 15,
+    height: 140,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
     resizeMode: 'cover',
   },
   itemContent: {
-    paddingVertical: 10,
-    paddingHorizontal: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
   },
   row: { flexDirection: 'row', alignItems: 'center' },
   logoContainer: {
@@ -240,7 +240,8 @@ const commonStyles = {
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
-    marginRight: 10,
+    marginRight: 12,
+    borderWidth: 1,
   },
   logoImage: { width: '100%', height: '100%', resizeMode: 'cover' },
   infoColumn: {
@@ -250,9 +251,8 @@ const commonStyles = {
   },
   itemName: {
     fontSize: 16,
-    fontWeight: '900',
-    marginBottom: 5,
-    color: '#000',
+    fontWeight: '700',
+    marginBottom: 6,
     width: '100%',
   },
   subInfoRow: {
@@ -262,12 +262,39 @@ const commonStyles = {
   },
   iconRow: { flexDirection: 'row', alignItems: 'center' },
   ratingContainer: { flexDirection: 'row', alignItems: 'center' },
-  ratingText: { marginLeft: 5, fontSize: 14, fontWeight: '600' },
-  distanceText: { fontSize: 14, marginLeft: 5 },
+  ratingText: { marginLeft: 4, fontSize: 14, fontWeight: '600' },
+  distanceText: { fontSize: 14, marginLeft: 4 },
 };
 
 // Styles for light theme
 const lightTheme = (colors) =>
+  StyleSheet.create({
+    ...commonStyles,
+    container: { ...commonStyles.container, backgroundColor: '#FFFFFF' }, // Fondo blanco
+    headerTitle: { ...commonStyles.headerTitle },
+    viewMore: { ...commonStyles.viewMore, color: colors.accentColor },
+    card: {
+      ...commonStyles.card,
+      backgroundColor: '#FFFFFF', // Fondo blanco en las cards también
+   
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    logoContainer: {
+      ...commonStyles.logoContainer,
+      borderColor: colors.borderColor,
+    },
+    itemName: { ...commonStyles.itemName}, // Negro puro
+    ratingText: { ...commonStyles.ratingText }, // Cambiado a negro puro
+    distanceText: { ...commonStyles.distanceText}, // Cambiado a negro puro
+    itemContent: { ...commonStyles.itemContent, backgroundColor: '#FFFFFF' }, // Fondo blanco para el contenido
+  });
+
+// Styles for dark theme
+const darkTheme = (colors) =>
   StyleSheet.create({
     ...commonStyles,
     container: { ...commonStyles.container, backgroundColor: colors.backgroundColor },
@@ -277,23 +304,14 @@ const lightTheme = (colors) =>
       ...commonStyles.card,
       backgroundColor: colors.cardBackgroundColor,
       borderColor: colors.borderColor,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2,
+      shadowRadius: 4,
+      elevation: 4,
     },
-    itemName: { ...commonStyles.itemName, color: colors.textColor },
-    ratingText: { ...commonStyles.ratingText, color: colors.secondaryTextColor },
-    distanceText: { ...commonStyles.distanceText, color: colors.secondaryTextColor },
-    itemContent: { ...commonStyles.itemContent, backgroundColor: colors.cardBackgroundColor },
-  });
-
-// Styles for dark theme
-const darkTheme = (colors) =>
-  StyleSheet.create({
-    ...commonStyles,
-    container: { ...commonStyles.container, backgroundColor: colors.cardBackgroundColor },
-    headerTitle: { ...commonStyles.headerTitle, color: colors.textColor },
-    viewMore: { ...commonStyles.viewMore, color: colors.accentColor },
-    card: {
-      ...commonStyles.card,
-      backgroundColor: colors.cardBackgroundColor,
+    logoContainer: {
+      ...commonStyles.logoContainer,
       borderColor: colors.borderColor,
     },
     itemName: { ...commonStyles.itemName, color: colors.textColor },

@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, useColorScheme, FlatList } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
 import { setCurrentOrder, updateOrderIn, removeOrderIn } from '../redux/slices/orders.slice';
@@ -8,11 +8,10 @@ import { API_URL } from '@env';
 import Axios from 'react-native-axios';
 import { Package, ArrowRight, CheckCircle, XCircle, Clock, Truck } from 'lucide-react-native';
 
-
-const OrderItem = React.memo(({ item, onPress, colorScheme }) => {
+const OrderItem = React.memo(({ item, onPress }) => {
   const { mainText, icon, color } = getOrderStatusInfo(item);
   const token = useSelector(state => state?.user?.userInfo.data.token);
-  const dispatch = useDispatch()
+  const dispatch = useDispatch();
 
   const navigation = useNavigation();
 
@@ -32,12 +31,10 @@ const OrderItem = React.memo(({ item, onPress, colorScheme }) => {
           const updatedOrder = response.data;
           dispatch(updateOrderIn({ orderId: updatedOrder.id, status: updatedOrder.status }));
 
-          // Si la orden es "rejected" o "finished", navega a la pantalla correspondiente
           if (updatedOrder.status === 'rejected' || updatedOrder.status === 'finished') {
             dispatch(removeOrderIn({ orderId: updatedOrder.id }));
             dispatch(setCurrentOrder(updatedOrder));
 
-            // Verificar el tipo de orden y navegar a la pantalla correspondiente
             if (updatedOrder.type === 'Delivery') {
               navigation.navigate('AcceptedOrder');
             } else {
@@ -58,12 +55,7 @@ const OrderItem = React.memo(({ item, onPress, colorScheme }) => {
   }, [dispatch, token, navigation]);
 
   return (
-    <View
-      style={[
-        styles.orderContainer,
-        colorScheme === 'dark' ? styles.darkContainer : styles.lightContainer,
-      ]}
-    >
+    <View style={[styles.orderContainer, styles.lightContainer]}>
       <TouchableOpacity
         style={styles.orderContent}
         onPress={() => onPress(item)}
@@ -71,18 +63,17 @@ const OrderItem = React.memo(({ item, onPress, colorScheme }) => {
       >
         <View style={styles.orderHeader}>
           {icon}
-          <Text style={[styles.orderNumber, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>
+          <Text style={[styles.orderNumber, styles.lightText]}>
             Order #{item.id}
           </Text>
           <View style={[styles.statusBadge, { backgroundColor: color }]}>
             <Text style={styles.statusText}>{item.status}</Text>
           </View>
         </View>
-        <Text style={[styles.orderStatus, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>
+        <Text style={[styles.orderStatus, styles.lightText]}>
           {mainText}
         </Text>
-        {/* Muestra el código de la orden aquí debajo del estado */}
-        <Text style={[styles.orderCode, colorScheme === 'dark' ? styles.darkText : styles.lightText]}>
+        <Text style={[styles.orderCode, styles.lightText]}>
           Order Code: {item.code}
         </Text>
         <View style={styles.seeOrderContainer}>
@@ -141,9 +132,8 @@ const getOrderStatusInfo = (order) => {
   return { mainText, icon, color };
 };
 
-const OrderStatus = ({finishedProcessed, setFinishedProcessed}) => {
+const OrderStatus = ({ finishedProcessed, setFinishedProcessed }) => {
   const ordersIn = useSelector((state) => state.orders.ordersIn);
-  const colorScheme = useColorScheme();
   const navigation = useNavigation();
   const dispatch = useDispatch();
   const token = useSelector((state) => state?.user?.userInfo.data.token);
@@ -166,7 +156,7 @@ const OrderStatus = ({finishedProcessed, setFinishedProcessed}) => {
           if (updatedOrder.status === 'rejected' || updatedOrder.status === 'finished') {
             dispatch(removeOrderIn({ orderId: updatedOrder.id }));
             dispatch(setCurrentOrder(updatedOrder));
-            setFinishedProcessed(!finishedProcessed)
+            setFinishedProcessed(!finishedProcessed);
 
             if (updatedOrder.type === 'Delivery') {
               navigation.navigate('AcceptedOrder');
@@ -204,9 +194,8 @@ const OrderStatus = ({finishedProcessed, setFinishedProcessed}) => {
     <OrderItem
       item={item}
       onPress={handleSeeOrder}
-      colorScheme={colorScheme}
     />
-  ), [handleSeeOrder, colorScheme]);
+  ), [handleSeeOrder]);
 
   return (
     <FlatList
@@ -232,9 +221,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 5,
     overflow: 'hidden',
-  },
-  darkContainer: {
-    backgroundColor: '#2c2c2c',
   },
   orderContent: {
     padding: 16,
@@ -262,18 +248,15 @@ const styles = StyleSheet.create({
   },
   orderStatus: {
     fontSize: 16,
-    marginBottom: 8, // Reduce el margen para ajustarlo mejor
+    marginBottom: 8,
   },
   orderCode: {
     fontSize: 14,
-    color: '#7f8c8d', // Un tono gris para diferenciar el código
+    color: '#7f8c8d',
     marginBottom: 12,
   },
   lightText: {
     color: '#333',
-  },
-  darkText: {
-    color: '#f0f0f0',
   },
   seeOrderContainer: {
     flexDirection: 'row',
