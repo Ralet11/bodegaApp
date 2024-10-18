@@ -23,10 +23,11 @@ import { API_URL } from '@env'; // Replace with your actual API URL
 import OrderStatus from '../components/OrderStatus';
 
 const OrderScreen = () => {
-  const orders = useSelector((state) => state?.orders.historicOrders);
+  const orders = useSelector((state) => state?.orders?.historicOrders || []);
   const dispatch = useDispatch();
-  const user = useSelector((state) => state?.user.userInfo.data.client);
-  const token = useSelector((state) => state?.user.userInfo.data.token);
+  const userInfo = useSelector((state) => state?.user?.userInfo);
+  const user = userInfo?.data?.client || null;
+  const token = userInfo?.data?.token || null;
   const navigation = useNavigation();
   const scheme = useColorScheme(); // Detects the current color scheme
 
@@ -47,17 +48,19 @@ const OrderScreen = () => {
     return Math.round((num + Number.EPSILON) * 100) / 100;
   };
 
-  const totalUserSavings = roundToTwo(Number(user.savings || 0));
+  const totalUserSavings = user ? roundToTwo(Number(user.savings || 0)) : 0;
 
   useEffect(() => {
     const fetchReviews = async () => {
       try {
-        const response = await Axios.get(`${API_URL}/api/reviews/getByUser/${user.id}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        setReviews(response.data);
+        if (user) {
+          const response = await Axios.get(`${API_URL}/api/reviews/getByUser/${user.id}`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          setReviews(response.data);
+        }
       } catch (error) {
         console.log(error);
       }
@@ -93,8 +96,8 @@ const OrderScreen = () => {
 
   const calculateTotalSavings = (orderDetails) => {
     const totalSavings = orderDetails.reduce((total, item) => {
-      const originalPrice = parseFloat(item.originalPrice);
-      const currentPrice = parseFloat(item.currentPrice);
+      const originalPrice = parseFloat(item.originalPrice || 0);
+      const currentPrice = parseFloat(item.currentPrice || 0);
       const quantity = item.quantity || 1;
       const savingsPerItem = (originalPrice - currentPrice) * quantity;
       return total + savingsPerItem;
@@ -130,13 +133,15 @@ const OrderScreen = () => {
 
   const handleDeleteReview = async () => {
     try {
-      await Axios.delete(`${API_URL}/api/reviews/delete/${selectedReview.id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      setReviews(reviews.filter((review) => review.id !== selectedReview.id));
-      setShowReviewModal(false);
+      if (selectedReview) {
+        await Axios.delete(`${API_URL}/api/reviews/delete/${selectedReview.id}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        setReviews(reviews.filter((review) => review.id !== selectedReview.id));
+        setShowReviewModal(false);
+      }
     } catch (error) {
       console.log(error);
     }
@@ -144,23 +149,25 @@ const OrderScreen = () => {
 
   const handleSubmitReview = async () => {
     try {
-      await Axios.post(
-        `${API_URL}/api/reviews/create`,
-        {
-          local_id: reviewLocalId,
-          user_id: user.id,
-          rating: currentReview.rating,
-          message: currentReview.message,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
+      if (user) {
+        await Axios.post(
+          `${API_URL}/api/reviews/create`,
+          {
+            local_id: reviewLocalId,
+            user_id: user.id,
+            rating: currentReview.rating,
+            message: currentReview.message,
           },
-        }
-      );
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
 
-      await fetchOrdersAndReviews();
-      setShowReviewModal(false);
+        await fetchOrdersAndReviews();
+        setShowReviewModal(false);
+      }
     } catch (error) {
       console.log(error);
     }
@@ -260,25 +267,7 @@ const OrderScreen = () => {
     ? [...filteredOrders].sort((a, b) => new Date(b.date_time) - new Date(a.date_time))
     : [];
 
-  // Function to render stars
-  const renderStars = () => {
-    const stars = [];
-    for (let i = 1; i <= 5; i++) {
-      stars.push(
-        <TouchableOpacity key={i} onPress={() => setCurrentReview({ ...currentReview, rating: i })}>
-          <FontAwesome
-            name={i <= currentReview.rating ? 'star' : 'star-o'}
-            size={30}
-            color="#FFD700"
-            style={{ marginHorizontal: 5 }}
-          />
-        </TouchableOpacity>
-      );
-    }
-    return <View style={styles.ratingContainer}>{stars}</View>;
-  };
-
-  const styles = lightStyles;
+  const styles = scheme === 'dark' ? darkStyles : lightStyles;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -289,27 +278,6 @@ const OrderScreen = () => {
           <Text style={styles.savingsAmount}>${totalUserSavings.toFixed(2)}</Text>
           <Text style={styles.savingsSubtitle}>WITH BODEGA+ DISCOUNTS</Text>
         </View>
-
-        {/* Filter Section */}
-        <View style={styles.filterContainer}>
-          <Feather name="sliders" size={24} color={styles.iconColor.color} />
-          <Text style={styles.filterText}>Filter</Text>
-          <TouchableOpacity style={styles.filterButton} onPress={() => setFilterStatus('newOrder')}>
-            <Text style={styles.filterButtonText}>New Orders</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.filterButton} onPress={() => setFilterStatus('finished')}>
-            <Text style={styles.filterButtonText}>Finished</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.filterButton} onPress={() => setFilterStatus('')}>
-            <Text style={styles.filterButtonText}>All</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Order Status */}
-        <OrderStatus
-          finishedProcessed={finishedProcessed}
-          setFinishedProcessed={setFinishedProcessed}
-        />
 
         {/* Orders List */}
         {sortedOrders.length > 0 ? (
@@ -326,6 +294,7 @@ const OrderScreen = () => {
           </View>
         )}
 
+        {/* Modals for order details and reviews */}
         {/* Order Details Modal */}
         <Modal
           animationType="slide"
@@ -424,7 +393,6 @@ const OrderScreen = () => {
     </SafeAreaView>
   );
 };
-
 const commonStyles = {
   container: {
     flex: 1,

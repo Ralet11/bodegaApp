@@ -29,6 +29,7 @@ const CheckoutConfirmationModal = ({
   deliveryFee,
   calculateTax,
   calculateTotal,
+  calculateSavings, // Added this line
 }) => {
   return (
     <Modal
@@ -63,7 +64,9 @@ const CheckoutConfirmationModal = ({
                   ]}
                   placeholder="Enter delivery instructions"
                   placeholderTextColor="#A9A9A9"
-                  value={deliveryInstructions || addressInfo?.deliveryInstructions}
+                  value={
+                    deliveryInstructions || addressInfo?.deliveryInstructions
+                  }
                   onChangeText={setDeliveryInstructions}
                   multiline
                 />
@@ -74,7 +77,9 @@ const CheckoutConfirmationModal = ({
                 Order Summary
               </Text>
               {cart.map((item) => {
-                const selectedExtrasArray = Object.values(item.selectedExtras || {}).flat();
+                const selectedExtrasArray = Object.values(
+                  item.selectedExtras || {}
+                ).flat();
                 const itemPrice =
                   typeof item.price === 'string'
                     ? parseFloat(item.price.replace('$', ''))
@@ -93,7 +98,10 @@ const CheckoutConfirmationModal = ({
 
                 return (
                   <View key={item.id} style={styles.cartItem}>
-                    <Image source={{ uri: item.image || item.img }} style={styles.cartItemImage} />
+                    <Image
+                      source={{ uri: item.image || item.img }}
+                      style={styles.cartItemImage}
+                    />
                     <View style={styles.cartItemDetails}>
                       <Text style={[styles.cartItemName, { color: '#000' }]}>
                         {item.name}
@@ -101,17 +109,27 @@ const CheckoutConfirmationModal = ({
                       {selectedExtrasArray.length > 0 && (
                         <View style={styles.cartItemExtras}>
                           {selectedExtrasArray.map((extra, index) => (
-                            <Text key={index} style={[styles.cartItemExtraText, { color: '#666' }]}>
+                            <Text
+                              key={index}
+                              style={[
+                                styles.cartItemExtraText,
+                                { color: '#666' },
+                              ]}
+                            >
                               {extra.name} (${extra.price})
                             </Text>
                           ))}
                         </View>
                       )}
                       <View style={styles.cartItemPriceRow}>
-                        <Text style={[styles.cartItemPrice, { color: '#000' }]}>
+                        <Text
+                          style={[styles.cartItemPrice, { color: '#000' }]}
+                        >
                           ${totalPrice}
                         </Text>
-                        <Text style={[styles.cartItemQuantity, { color: '#666' }]}>
+                        <Text
+                          style={[styles.cartItemQuantity, { color: '#666' }]}
+                        >
                           Qty: {item.quantity}
                         </Text>
                       </View>
@@ -146,10 +164,22 @@ const CheckoutConfirmationModal = ({
                   </Text>
                   {user.subscription === 1 ? (
                     <View style={styles.feeContainer}>
-                      <Text style={[styles.summaryValue, styles.strikethrough, { color: '#000' }]}>
-                        ${originalDeliveryFee}
+                      <Text
+                        style={[
+                          styles.summaryValue,
+                          styles.strikethrough,
+                          { color: '#000' },
+                        ]}
+                      >
+                        ${originalDeliveryFee.toFixed(2)}
                       </Text>
-                      <Text style={[styles.summaryValue, styles.freeText, { color: '#4CAF50' }]}>
+                      <Text
+                        style={[
+                          styles.summaryValue,
+                          styles.freeText,
+                          { color: '#4CAF50' },
+                        ]}
+                      >
                         Free
                       </Text>
                     </View>
@@ -166,8 +196,16 @@ const CheckoutConfirmationModal = ({
                 </Text>
                 {user.subscription === 1 ? (
                   <View style={styles.feeContainer}>
-                    <Text style={[styles.summaryValue, styles.strikethrough, { color: '#000' }]}>
-                      ${(calculateTax(parseFloat(calculateSubtotal())) * 2).toFixed(2)}
+                    <Text
+                      style={[
+                        styles.summaryValue,
+                        styles.strikethrough,
+                        { color: '#000' },
+                      ]}
+                    >
+                      ${(
+                        calculateTax(parseFloat(calculateSubtotal())) * 2
+                      ).toFixed(2)}
                     </Text>
                     <Text style={[styles.summaryValue, { color: '#000' }]}>
                       ${calculateTax(parseFloat(calculateSubtotal())).toFixed(2)}
@@ -179,8 +217,25 @@ const CheckoutConfirmationModal = ({
                   </Text>
                 )}
               </View>
+
+              {/* Savings Row */}
+              {parseFloat(calculateSavings()) > 0 && (
+                <View style={styles.summaryRow}>
+                  <Text style={[styles.summaryLabel, { color: '#000' }]}>
+                    Savings:
+                  </Text>
+                  <Text
+                    style={[styles.summaryValue, { color: '#4CAF50' }]}
+                  >
+                    -${parseFloat(calculateSavings()).toFixed(2)}
+                  </Text>
+                </View>
+              )}
+
               <View style={[styles.summaryRow, styles.totalRow]}>
-                <Text style={[styles.totalLabel, { color: '#000' }]}>Total:</Text>
+                <Text style={[styles.totalLabel, { color: '#000' }]}>
+                  Total:
+                </Text>
                 <Text style={[styles.totalValue, { color: '#000' }]}>
                   ${calculateTotal()}
                 </Text>
@@ -188,14 +243,19 @@ const CheckoutConfirmationModal = ({
             </View>
           </ScrollView>
           <View style={styles.modalButtons}>
-            <TouchableOpacity style={[styles.confirmButton, { backgroundColor: '#FFA500' }]} onPress={onConfirm}>
+            <TouchableOpacity
+              style={[styles.confirmButton, { backgroundColor: '#FFA500' }]}
+              onPress={onConfirm}
+            >
               <Text style={styles.confirmButtonText}>Confirm</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.cancelButton, { backgroundColor: '#f0f0f0' }]}
               onPress={onClose}
             >
-              <Text style={[styles.cancelButtonText, { color: '#000' }]}>Cancel</Text>
+              <Text style={[styles.cancelButtonText, { color: '#000' }]}>
+                Cancel
+              </Text>
             </TouchableOpacity>
           </View>
         </View>

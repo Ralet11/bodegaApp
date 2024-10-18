@@ -319,6 +319,8 @@ const CartScreen = () => {
     );
   };
 
+  console.log(cart, "cart")
+
   const calculateSavings = () => {
     return cart
       .reduce((totalSavings, item) => {
@@ -911,6 +913,7 @@ const CartScreen = () => {
             calculateTotal={calculateTotal}
             address={address}
             styles={styles}
+            calculateSavings={calculateSavings} 
           />
   
           {/* Address Selection Modal */}
