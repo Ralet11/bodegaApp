@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Image, useColorScheme, Modal, BackHandler, FlatList } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Image, useColorScheme, Modal, BackHandler, FlatList, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import { useDispatch, useSelector } from 'react-redux';
@@ -12,7 +12,7 @@ import AccountDrawer from '../components/AccountDrawer';
 import { setAddress, setAddresses } from '../redux/slices/user.slice';
 import SkeletonLoader from '../components/SkeletonLoader';
 import { lightTheme } from '../components/themes';
-import socketIOClient from "socket.io-client";
+import socketIOClient from 'socket.io-client';
 import DiscountShopScroll from '../components/DiscountShopScroll';
 
 const DashboardDiscount = () => {
@@ -24,7 +24,7 @@ const DashboardDiscount = () => {
     const [modalVisible, setModalVisible] = useState(false);
     const [addressModalVisible, setAddressModalVisible] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
-    const [deliveryMode, setDeliveryMode] = useState('orderIn');
+    const [deliveryMode, setDeliveryMode] = useState('Dine-in');
     const categories = useSelector((state) => state?.setUp?.categories) || [];
     const address = useSelector((state) => state?.user?.address?.formatted_address);
     const addresses = useSelector((state) => state?.user?.addresses);
@@ -35,9 +35,9 @@ const DashboardDiscount = () => {
     const auxShops = useSelector((state) => state?.setUp?.auxShops);
     const [allTags, setAllTags] = useState([]);
 
-    const orderTypeParam = deliveryMode === 'orderIn' ? 0 : deliveryMode === 'Pickup' ? 1 : null;
+    const orderTypeParam = deliveryMode === 'Dine-in' ? 0 : deliveryMode === 'Pickup' ? 1 : null;
 
-    // Extraer los tags únicos de los shops
+    // Extract unique tags from shops
     const extractTags = (shops) => {
         const tags = new Set();
         Object.keys(shops).forEach((categoryId) => {
@@ -47,11 +47,11 @@ const DashboardDiscount = () => {
                 }
             });
         });
-        const uniqueTagsArray = Array.from(tags).map(tag => JSON.parse(tag));
+        const uniqueTagsArray = Array.from(tags).map((tag) => JSON.parse(tag));
         setAllTags(uniqueTagsArray);
     };
 
-    // Manejar la conexión de sockets para sincronizar shops
+    // Handle socket connections to sync shops
     useEffect(() => {
         const socket = socketIOClient(`${API_URL}`);
 
@@ -67,25 +67,10 @@ const DashboardDiscount = () => {
         };
     }, [dispatch]);
 
-    // Verificar el token y redirigir si no está disponible
-    useEffect(() => {
-        if (!token) {
-            console.warn('Token not available');
-            navigation.reset({
-                index: 0,
-                routes: [{ name: 'Login' }],
-            });
-        }
-    }, [token, navigation]);
-
-    // Función para obtener los shops
+    // Function to fetch shops
     const fetchShops = async () => {
         if (!token) {
             console.warn('Token not available');
-            navigation.reset({
-                index: 0,
-                routes: [{ name: 'Login' }],
-            });
             return;
         }
         try {
@@ -105,14 +90,10 @@ const DashboardDiscount = () => {
         }
     };
 
-    // Función para obtener las direcciones del usuario
+    // Function to fetch user's addresses
     const fetchAddress = async () => {
         if (!token) {
             console.warn('Token not available');
-            navigation.reset({
-                index: 0,
-                routes: [{ name: 'Login' }],
-            });
             return;
         }
 
@@ -137,7 +118,7 @@ const DashboardDiscount = () => {
         }
     };
 
-    // Obtener los descuentos del usuario
+    // Fetch user discounts
     useEffect(() => {
         if (user?.id && token) {
             const fetchUserDiscounts = async () => {
@@ -157,13 +138,15 @@ const DashboardDiscount = () => {
         }
     }, [user?.id, token, dispatch]);
 
-    // Obtener shops y direcciones al montar el componente
+    // Fetch shops and addresses when component mounts
     useEffect(() => {
-        fetchShops();
-        fetchAddress();
-    }, [auxShops]);
+        if (token) {
+            fetchShops();
+            fetchAddress();
+        }
+    }, [auxShops, token]);
 
-    // Prevenir que el botón de back cierre la app
+    // Prevent back button from closing the app
     useFocusEffect(
         useCallback(() => {
             const onBackPress = () => true;
@@ -176,7 +159,7 @@ const DashboardDiscount = () => {
         }, [])
     );
 
-    // Mostrar modal si no hay dirección seleccionada
+    // Show modal if no address is selected
     useFocusEffect(
         useCallback(() => {
             let timer;
@@ -191,7 +174,7 @@ const DashboardDiscount = () => {
         }, [address])
     );
 
-    // Limpiar el campo de búsqueda al enfocar la pantalla
+    // Clear search query when screen is focused
     useFocusEffect(
         useCallback(() => {
             setSearchQuery('');
@@ -241,11 +224,13 @@ const DashboardDiscount = () => {
         }
     };
 
+    // Updated handleToggle function to use 'Dine-in' and 'Pickup'
     const handleToggle = (mode) => {
         setDeliveryMode(mode);
         filterShopsByTags(shopsByCategory, mode);
     };
 
+    // Updated filterShopsByTags function to match new delivery modes
     const filterShopsByTags = (shops, mode) => {
         const currentDateTime = new Date();
         const currentDay = currentDateTime.toLocaleString('en-US', { weekday: 'short' }).toLowerCase();
@@ -254,7 +239,12 @@ const DashboardDiscount = () => {
         const filtered = {};
         Object.keys(shops).forEach((categoryId) => {
             shops[categoryId].forEach((shop) => {
-                const isModeMatch = mode === 'orderIn' ? shop.orderIn : shop.pickUp;
+                let isModeMatch = false;
+                if (mode === 'Dine-in') {
+                    isModeMatch = shop.orderIn;
+                } else if (mode === 'Pickup') {
+                    isModeMatch = shop.pickUp;
+                }
                 const isOpen = shop.openingHours.some((hour) => {
                     return (
                         hour.day === currentDay &&
@@ -277,51 +267,75 @@ const DashboardDiscount = () => {
         setFilteredShopsByTags(filtered);
     };
 
+    console.log('filteredShopsByTags:', filteredShopsByTags);
+
     const noShopsAvailable = !Object.keys(filteredShopsByTags).some(
         (tagName) => filteredShopsByTags[tagName].length > 0
     );
 
-    if (loading) {
+    if (loading || !token) {
         return <SkeletonLoader />;
     }
 
     return (
         <SafeAreaView style={lightTheme.safeArea}>
             <View style={lightTheme.header}>
-                <View style={lightTheme.addressToggleContainer}>
-                    <TouchableOpacity onPress={changeAddress} style={{ flexDirection: 'row', alignItems: 'center' }}>
-                        <FontAwesome name="map-marker" size={20} color={'#333'} style={{ marginRight: 5 }} />
+                <View style={styles.addressToggleContainer}>
+                    <TouchableOpacity onPress={changeAddress} style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                        <FontAwesome name="map-marker" size={18} color={'#333'} style={{ marginRight: 5 }} />
                         <Text
                             style={lightTheme.addressText}
                             numberOfLines={1}
-                            ellipsizeMode='tail'
+                            ellipsizeMode="tail"
                         >
                             {address}
                         </Text>
-                        <FontAwesome name="caret-down" size={16} color={'#333'} style={{ marginLeft: 5 }} />
+                        <FontAwesome name="caret-down" size={14} color={'#333'} style={{ marginLeft: 5 }} />
                     </TouchableOpacity>
-                    <View style={lightTheme.deliveryToggleContainer}>
+                    <View style={styles.deliveryToggleContainer}>
                         <TouchableOpacity
                             style={[
-                                lightTheme.deliveryToggleButton,
-                                { backgroundColor: deliveryMode === 'orderIn' ? '#FFC300' : 'transparent' },
+                                styles.deliveryToggleButton,
+                                deliveryMode === 'Dine-in' && styles.selectedButton,
                             ]}
-                            onPress={() => handleToggle('orderIn')}
+                            onPress={() => handleToggle('Dine-in')}
                         >
-                            <Text style={{ color: deliveryMode === 'orderIn' ? '#000' : '#fff' }}>Order In</Text>
+                            <Text
+                                style={[
+                                    styles.deliveryToggleText,
+                                    deliveryMode === 'Dine-in' && styles.selectedButtonText,
+                                ]}
+                            >
+                                Dine-in
+                            </Text>
                         </TouchableOpacity>
-                        {/* Puedes agregar otros modos de entrega aquí */}
+                        <TouchableOpacity
+                            style={[
+                                styles.deliveryToggleButton,
+                                deliveryMode === 'Pickup' && styles.selectedButton,
+                            ]}
+                            onPress={() => handleToggle('Pickup')}
+                        >
+                            <Text
+                                style={[
+                                    styles.deliveryToggleText,
+                                    deliveryMode === 'Pickup' && styles.selectedButtonText,
+                                ]}
+                            >
+                                Pickup
+                            </Text>
+                        </TouchableOpacity>
                     </View>
                 </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', paddingHorizontal: 10 }}>
+                <View style={styles.searchContainer}>
                     <TouchableOpacity
                         onPress={toggleDrawer}
                         style={lightTheme.iconButton}
                     >
-                        <FontAwesome name="bars" size={24} color={'#333'} />
+                        <FontAwesome name="bars" size={20} color={'#333'} />
                     </TouchableOpacity>
                     <TextInput
-                        style={lightTheme.searchInput}
+                        style={styles.searchInput}
                         placeholder="Search places, foods..."
                         placeholderTextColor="#aaa"
                         value={searchQuery}
@@ -367,7 +381,7 @@ const DashboardDiscount = () => {
                         </Text>
                     </View>
                 ) : (
-                    Object.keys(filteredShopsByTags).map((name) => (
+                    Object.keys(filteredShopsByTags).map((name) =>
                         filteredShopsByTags[name].length > 0 && (
                             <DiscountShopScroll
                                 key={name}
@@ -378,7 +392,7 @@ const DashboardDiscount = () => {
                                 allTags={allTags}
                             />
                         )
-                    ))
+                    )
                 )}
             </ScrollView>
 
@@ -390,7 +404,7 @@ const DashboardDiscount = () => {
                 user={user}
             />
 
-            {/* Modal para seleccionar dirección */}
+            {/* Modal to select address */}
             <Modal
                 animationType="slide"
                 transparent={true}
@@ -399,26 +413,26 @@ const DashboardDiscount = () => {
                     setModalVisible(!modalVisible);
                 }}
             >
-                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
-                    <View style={{ width: 300, padding: 20, backgroundColor: '#fff', borderRadius: 10, alignItems: 'center' }}>
+                <View style={styles.modalBackground}>
+                    <View style={styles.modalContainer}>
                         <FontAwesome name="map-marker" size={50} color="#FFC107" />
-                        <Text style={{ marginTop: 15, fontSize: 18, textAlign: 'center', color: '#333' }}>
+                        <Text style={styles.modalText}>
                             You need to select an address to continue
                         </Text>
                         <TouchableOpacity
-                            style={{ marginTop: 20, paddingVertical: 10, paddingHorizontal: 20, backgroundColor: '#FFC300', borderRadius: 5 }}
+                            style={styles.modalButton}
                             onPress={() => {
                                 setModalVisible(false);
                                 navigation.navigate('SetAddressScreen');
                             }}
                         >
-                            <Text style={{ color: 'black' }}>Select Address</Text>
+                            <Text style={styles.modalButtonText}>Select Address</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
             </Modal>
 
-            {/* Modal para cambiar dirección */}
+            {/* Modal to change address */}
             <Modal
                 animationType="slide"
                 transparent={true}
@@ -466,5 +480,88 @@ const DashboardDiscount = () => {
         </SafeAreaView>
     );
 };
+
+const styles = StyleSheet.create({
+    addressToggleContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+    },
+    deliveryToggleContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        height: 30,
+        paddingHorizontal: 5,
+    },
+    deliveryToggleButton: {
+        paddingVertical: 3,
+        paddingHorizontal: 8,
+        marginHorizontal: 2,
+        borderRadius: 5,
+        borderWidth: 1,
+        borderColor: '#ccc',
+        backgroundColor: 'transparent',
+    },
+    selectedButton: {
+        backgroundColor: '#FFC300',
+        borderColor: '#FFC300',
+    },
+    deliveryToggleText: {
+        fontSize: 12,
+        color: '#000',
+    },
+    selectedButtonText: {
+        color: '#000',
+    },
+    searchContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        width: '100%',
+        paddingHorizontal: 10,
+        marginTop: 5,
+        gap: 5
+    },
+    searchInput: {
+        flex: 1,
+        height: 35,
+        backgroundColor: '#f0f0f0',
+        borderRadius: 5,
+        paddingHorizontal: 10,
+        fontSize: 14,
+        color: '#333',
+    },
+    modalBackground: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0,0,0,0.5)',
+    },
+    modalContainer: {
+        width: 300,
+        padding: 20,
+        backgroundColor: '#fff',
+        borderRadius: 10,
+        alignItems: 'center',
+    },
+    modalText: {
+        marginTop: 15,
+        fontSize: 18,
+        textAlign: 'center',
+        color: '#333',
+    },
+    modalButton: {
+        marginTop: 20,
+        paddingVertical: 10,
+        paddingHorizontal: 20,
+        backgroundColor: '#FFC300',
+        borderRadius: 5,
+    },
+    modalButtonText: {
+        color: 'black',
+    },
+    // ... other styles if needed
+});
 
 export default DashboardDiscount;

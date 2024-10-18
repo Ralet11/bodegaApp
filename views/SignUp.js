@@ -131,46 +131,42 @@ export default function Signup() {
             ],
         });
 
-        // Comprueba si se ha recibido un token de identidad
         if (!credential.identityToken) {
             throw new Error('No identity token received');
         }
 
-        // Procesa los resultados de inicio de sesión de Apple
         const userInfo = {
-            email: credential.email || '', // Puede que Apple no devuelva el correo
+            email: credential.email || '', 
             fullName: credential.fullName?.givenName || 'Apple User',
-            appleUserId: credential.user, // ID único de usuario de Apple
+            appleUserId: credential.user,
         };
 
-        // Envío de la solicitud al backend
         const backendResponse = await Axios.post(`${API_URL}/api/auth/appleSignIn`, {
-            token: credential.identityToken, // Envío del token al backend
+            token: credential.identityToken,
         });
 
-        // Manejo de la respuesta del backend
         if (backendResponse.data.error === false) {
             const _clientData = backendResponse.data;
-            dispatch(setUser(_clientData)); // Actualiza el estado global
-            dispatch(fetchCategories()); // Carga las categorías
-            navigation.navigate('Main'); // Navega a la pantalla principal
+            dispatch(setUser(_clientData)); 
+            dispatch(fetchCategories()); 
+            navigation.navigate('Main'); 
         } else {
-            Toast.show({
-                type: 'error',
-                text1: 'Error',
-                text2: backendResponse.data.message || 'Error en la respuesta del servidor.',
-            });
+            Alert.alert(
+                'Error',
+                backendResponse.data.message || 'Error en la respuesta del servidor.',
+                [{ text: 'OK' }]
+            );
         }
     } catch (e) {
-        console.error('Error en Apple Sign-In:', e); // Log del error para depuración
+        console.error('Error en Apple Sign-In:', e); 
         if (e.code === 'ERR_CANCELED') {
             console.log('El usuario canceló la operación.');
         } else {
-            Toast.show({
-                type: 'error',
-                text1: 'Error',
-                text2: `Algo salió mal durante el inicio de sesión con Apple: ${e.message}`, // Mensaje más específico
-            });
+            Alert.alert(
+                'Error',
+                `Algo salió mal durante el inicio de sesión con Apple: ${e.message} ${e}`,
+                [{ text: 'OK' }]
+            );
         }
     }
 };

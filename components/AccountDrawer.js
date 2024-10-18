@@ -7,6 +7,7 @@ import { useNavigation } from '@react-navigation/native';
 import { clearUser } from '../redux/slices/user.slice'; // Ajusta la ruta según la ubicación de tu archivo userSlice
 import { clearOrders } from '../redux/slices/orders.slice';
 import { clearCart } from '../redux/slices/cart.slice';
+import { CommonActions } from '@react-navigation/native';
 
 const AccountDrawer = ({ user, visible, onClose, onNavigate }) => {
   const dispatch = useDispatch();
@@ -14,20 +15,24 @@ const AccountDrawer = ({ user, visible, onClose, onNavigate }) => {
   const slideAnim = useRef(new Animated.Value(-Dimensions.get('window').width)).current;
   const handleLogout = async () => {
     try {
-      dispatch(clearUser());
-      dispatch(clearOrders());
-      dispatch(clearCart());
-  
-      onClose(); // Cierra el modal
-  
-      setTimeout(() => {
-        navigation.replace('Login'); // Reemplaza la pantalla actual por la de Login
-      }, 300);  // Ajusta el tiempo si es necesario
-    } catch (error) {
-      console.error('Error al cerrar sesión:', error);
-    }
-  }
+         dispatch(clearUser());
+         dispatch(clearOrders());
+         dispatch(clearCart());
 
+        onClose(); // Cierra el modal
+
+        setTimeout(() => {
+            navigation.dispatch(
+                CommonActions.reset({
+                    index: 0,
+                    routes: [{ name: 'Login' }],
+                })
+            );
+        }, 300);
+    } catch (error) {
+        console.error('Error al cerrar sesión:', error);
+    }
+};
   useEffect(() => {
     if (visible) {
       Animated.timing(slideAnim, {

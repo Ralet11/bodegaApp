@@ -2,13 +2,13 @@ import React, { useEffect, useRef } from 'react';
 import { NavigationContainer, DefaultTheme, useTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { StyleSheet, View, Text, TouchableOpacity, Animated, Dimensions } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Animated, Dimensions, Platform } from 'react-native';
 import { useSelector } from 'react-redux';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-// Import all your screen components
+// Importa tus componentes de pantalla
 import DashboardDiscounts from './views/DashboardDiscounts';
 import MapViewComponent from './views/Map';
 import OrderScreen from './views/OrdersView';
@@ -34,19 +34,19 @@ const Stack = createNativeStackNavigator();
 
 const { width } = Dimensions.get('window');
 
-// Custom light theme
+// Tema personalizado
 const customLightTheme = {
   ...DefaultTheme,
   colors: {
     ...DefaultTheme.colors,
-    primary: '#E6B000', // Custom primary color for light theme
+    primary: '#E6B000', // Color primario personalizado
   },
 };
 
 const CustomTabBar = ({ state, descriptors, navigation }) => {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const tabWidth = (width - 40) / state.routes.length; // Adjust for left and right padding
+  const tabWidth = (width - 40) / state.routes.length; // Ajuste para el padding lateral
   const translateX = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -58,83 +58,83 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
   }, [state.index, tabWidth]);
 
   return (
-    <BlurView
-      intensity={90}
-      tint='light' // Ensure light tint is always used
+    <View
       style={[
         styles.tabBar,
         {
-          paddingBottom: insets.bottom,
-          backgroundColor: '#FFFFFF', // Always use white background
+          paddingBottom: insets.bottom > 0 ? insets.bottom : 10, // Asegura que haya espacio suficiente en iOS
+          backgroundColor: '#FFFFFF',
         },
       ]}
     >
-      <View style={styles.tabBarInner}>
-        <Animated.View
-          style={[
-            styles.slider,
-            {
-              transform: [{ translateX }],
-              width: tabWidth,
-              backgroundColor: theme.colors.primary, // Custom primary color
-            },
-          ]}
-        />
-        {state.routes.map((route, index) => {
-          const { options } = descriptors[route.key];
-          const label =
-            options.tabBarLabel !== undefined
-              ? options.tabBarLabel
-              : options.title !== undefined
-              ? options.title
-              : route.name;
+      <BlurView intensity={90} tint='light' style={styles.blurContainer}>
+        <View style={styles.tabBarInner}>
+          <Animated.View
+            style={[
+              styles.slider,
+              {
+                transform: [{ translateX }],
+                width: tabWidth,
+                backgroundColor: theme.colors.primary,
+              },
+            ]}
+          />
+          {state.routes.map((route, index) => {
+            const { options } = descriptors[route.key];
+            const label =
+              options.tabBarLabel !== undefined
+                ? options.tabBarLabel
+                : options.title !== undefined
+                ? options.title
+                : route.name;
 
-          const isFocused = state.index === index;
+            const isFocused = state.index === index;
 
-          const onPress = () => {
-            const event = navigation.emit({
-              type: 'tabPress',
-              target: route.key,
-              canPreventDefault: true,
-            });
+            const onPress = () => {
+              const event = navigation.emit({
+                type: 'tabPress',
+                target: route.key,
+                canPreventDefault: true,
+              });
 
-            if (!isFocused && !event.defaultPrevented) {
-              navigation.navigate(route.name);
-            }
-          };
+              if (!isFocused && !event.defaultPrevented) {
+                navigation.navigate(route.name);
+              }
+            };
 
-          return (
-            <TouchableOpacity
-              key={index}
-              accessibilityRole="button"
-              accessibilityState={isFocused ? { selected: true } : {}}
-              accessibilityLabel={options.tabBarAccessibilityLabel}
-              testID={options.tabBarTestID}
-              onPress={onPress}
-              style={styles.tabItem}
-            >
-              <Animated.View style={styles.tabItemContainer}>
-                <MaterialCommunityIcons
-                  name={options.tabBarIcon}
-                  size={24}
-                  color={isFocused ? theme.colors.primary : theme.colors.text} // Custom primary color
-                />
-                <Text
-                  style={[
-                    styles.tabBarLabel,
-                    {
-                      color: isFocused ? theme.colors.primary : theme.colors.text, // Custom primary color
-                    },
-                  ]}
-                >
-                  {label}
-                </Text>
-              </Animated.View>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-    </BlurView>
+            return (
+              <TouchableOpacity
+                key={index}
+                accessibilityRole="button"
+                accessibilityState={isFocused ? { selected: true } : {}}
+                accessibilityLabel={options.tabBarAccessibilityLabel}
+                testID={options.tabBarTestID}
+                onPress={onPress}
+                style={styles.tabItem}
+              >
+                <View style={styles.tabItemContainer}>
+                  <MaterialCommunityIcons
+                    name={options.tabBarIcon}
+                    size={24}
+                    color={isFocused ? theme.colors.primary : theme.colors.text}
+                  />
+                  <Text
+                    style={[
+                      styles.tabBarLabel,
+                      {
+                        color: isFocused ? theme.colors.primary : theme.colors.text,
+                      },
+                    ]}
+                  >
+                    {label}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </BlurView>
+    </View>
   );
 };
 
@@ -175,7 +175,6 @@ function TabNavigator() {
 }
 
 export default function Navigation() {
-  // Removed useColorScheme, always use the light theme
   return (
     <NavigationContainer theme={customLightTheme}>
       <Stack.Navigator initialRouteName="Logo">
@@ -272,20 +271,32 @@ export default function Navigation() {
 const styles = StyleSheet.create({
   tabBar: {
     position: 'absolute',
-    bottom: 25,
-    left: 20,
-    right: 20,
+    bottom: 10, // Reduce el espacio inferior para iOS
+    left: 10, // Reduce los márgenes laterales
+    right: 10,
     elevation: 0,
     borderRadius: 15,
-    height: 60,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 10,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.5,
-    elevation: 5,
+    height: 70, // Aumenta la altura para dar más espacio a los iconos
+    overflow: 'hidden', // Evita que los elementos se desborden
+    backgroundColor: 'transparent', // Establece el fondo transparente para el BlurView
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: {
+          width: 0,
+          height: -3,
+        },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+      },
+      android: {
+        elevation: 5,
+      },
+    }),
+  },
+  blurContainer: {
+    flex: 1,
+    borderRadius: 15, // Asegura que el BlurView también tenga las esquinas redondeadas
   },
   tabBarInner: {
     flexDirection: 'row',
@@ -301,11 +312,10 @@ const styles = StyleSheet.create({
   },
   tabItem: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     height: '100%',
   },
   tabItemContainer: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
