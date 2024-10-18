@@ -63,6 +63,7 @@ export default function Signup() {
   const [request, response, promptAsync] = Google.useAuthRequest({
     androidClientId: '446223706539-i8b0j8tasvjm66luvhvt67gtgjl4h41a.apps.googleusercontent.com',
     expoClientId: '446223706539-u2lnq90ruft4lk7onsp9dmot8dh811eb.apps.googleusercontent.com',
+    iosClientId:'446223706539-f18kn0300m6l69q9ccj3j4lj27q51att.apps.googleusercontent.com',
     scopes: ['profile', 'email']
   });
 
@@ -123,54 +124,56 @@ export default function Signup() {
   // Logic for Apple Sign-In
   const handleAppleSignIn = async () => {
     try {
-      const credential = await AppleAuthentication.signInAsync({
-        requestedScopes: [
-          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-          AppleAuthentication.AppleAuthenticationScope.EMAIL,
-        ],
-      });
-  
-      // Process Apple Sign-In result
-      const userInfo = {
-        email: credential.email || '', // Sometimes Apple does not return the email
-        fullName: credential.fullName?.givenName || 'Apple User',
-        appleUserId: credential.user,  // Apple's unique user ID
-      };
-  
-      // Send request to backend to process login
-      const backendResponse = await Axios.post(`${API_URL}/api/auth/appleSignIn`, {
-        userInfo,
-      });
-  
-      // Handle backend response
-      if (backendResponse.data.error === false) {
-        const _clientData = backendResponse.data;
-        dispatch(setUser(_clientData));  // Update user in global state
-        dispatch(fetchCategories());     // Load categories
-        navigation.navigate('Main');     // Navigate to the main screen
-      } else {
-        Toast.show({
-          type: 'error',
-          text1: 'Error',
-          text2: backendResponse.data.message || 'Error in server response.',
+        const credential = await AppleAuthentication.signInAsync({
+            requestedScopes: [
+                AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+                AppleAuthentication.AppleAuthenticationScope.EMAIL,
+            ],
         });
-      }
-    } catch (e) {
-      if (e.code === 'ERR_CANCELED') {
-        // User canceled the operation
-        console.log('User canceled the operation.');
-      } else {
-        // An error occurred during the process
-        console.error(e);
-        Toast.show({
-          type: 'error',
-          text1: 'Error',
-          text2: 'Something went wrong during Apple Sign-In.',
-        });
-      }
-    }
-  };
 
+        // Comprueba si se ha recibido un token de identidad
+        if (!credential.identityToken) {
+            throw new Error('No identity token received');
+        }
+
+        // Procesa los resultados de inicio de sesión de Apple
+        const userInfo = {
+            email: credential.email || '', // Puede que Apple no devuelva el correo
+            fullName: credential.fullName?.givenName || 'Apple User',
+            appleUserId: credential.user, // ID único de usuario de Apple
+        };
+
+        // Envío de la solicitud al backend
+        const backendResponse = await Axios.post(`${API_URL}/api/auth/appleSignIn`, {
+            token: credential.identityToken, // Envío del token al backend
+        });
+
+        // Manejo de la respuesta del backend
+        if (backendResponse.data.error === false) {
+            const _clientData = backendResponse.data;
+            dispatch(setUser(_clientData)); // Actualiza el estado global
+            dispatch(fetchCategories()); // Carga las categorías
+            navigation.navigate('Main'); // Navega a la pantalla principal
+        } else {
+            Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: backendResponse.data.message || 'Error en la respuesta del servidor.',
+            });
+        }
+    } catch (e) {
+        console.error('Error en Apple Sign-In:', e); // Log del error para depuración
+        if (e.code === 'ERR_CANCELED') {
+            console.log('El usuario canceló la operación.');
+        } else {
+            Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: `Algo salió mal durante el inicio de sesión con Apple: ${e.message}`, // Mensaje más específico
+            });
+        }
+    }
+};
   const handleChange = (fieldName, value) => {
     setClientData(prevState => ({
       ...prevState,

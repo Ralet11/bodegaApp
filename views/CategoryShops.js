@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   ScrollView,
   Image,
-  useColorScheme,
   StyleSheet,
   TextInput,
 } from 'react-native';
@@ -15,14 +14,11 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 
 const CategoryShops = () => {
-  const scheme = useColorScheme();
   const navigation = useNavigation();
   const route = useRoute();
 
   // Recibimos el tag seleccionado, todos los tags y el searchQuery desde route.params
   const { selectedTag = null, allTags = [], searchQuery: initialSearchQuery = '' } = route.params;
-
-  console.log(selectedTag, "selectedTag");
 
   // Estado para manejar el tag activo y el query de búsqueda
   const [activeTag, setActiveTag] = useState(selectedTag);
@@ -31,8 +27,6 @@ const CategoryShops = () => {
   // Unificamos todos los shops en un solo array
   const shopsByCategory = useSelector((state) => state.setUp.shopsDiscounts);
   const allShops = Object.values(shopsByCategory).flat();
-
-
 
   // Función para filtrar los shops según el searchQuery y el tag activo
   const filteredShops = allShops.filter((shop) => {
@@ -51,7 +45,6 @@ const CategoryShops = () => {
       return matchesName || matchesTag;
     }
   });
-  console.log(filteredShops, "shopsByCategory");
 
   const handleShopPress = (shop) => {
     navigation.navigate('Shop', { shop });
@@ -80,13 +73,11 @@ const CategoryShops = () => {
     }
   }, [initialSearchQuery]);
 
-  const styles = scheme === 'dark' ? darkTheme : lightTheme;
-
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={[styles.header, { backgroundColor: '#F2BB26' }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton}>
-          <FontAwesome name="arrow-left" size={24} color={scheme === 'dark' ? '#000' : '#000'} />
+          <FontAwesome name="arrow-left" size={24} color="#000" />
         </TouchableOpacity>
         <View style={styles.headerTitleContainer}>
           <Text style={styles.headerTitle}>{activeTag ? activeTag.name : 'Todos los Negocios'}</Text>
@@ -99,7 +90,7 @@ const CategoryShops = () => {
         <TextInput
           style={styles.searchInput}
           placeholder="Search restaurants..."
-          placeholderTextColor={scheme === 'dark' ? '#888' : '#aaa'}
+          placeholderTextColor="#aaa"
           value={searchQuery}
           onChangeText={handleSearch} // Aquí actualizamos el input de búsqueda
         />
@@ -152,7 +143,7 @@ const CategoryShops = () => {
   );
 };
 
-const commonStyles = {
+const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#FFF',
@@ -258,113 +249,6 @@ const commonStyles = {
     marginTop: 20,
     fontSize: 16,
     color: '#777',
-  },
-};
-
-const lightTheme = StyleSheet.create({
-  ...commonStyles,
-  safeArea: {
-    ...commonStyles.safeArea,
-    backgroundColor: '#FFF',
-  },
-  header: {
-    ...commonStyles.header,
-    backgroundColor: '#F2BB26',
-  },
-  searchInput: {
-    ...commonStyles.searchInput,
-    backgroundColor: '#EEE',
-    color: '#000',
-  },
-  tagButton: {
-    ...commonStyles.tagButton,
-    backgroundColor: '#E0E0E0',
-  },
-  tagButtonSelected: {
-    ...commonStyles.tagButtonSelected,
-    backgroundColor: '#F2BB26',
-  },
-  tagText: {
-    ...commonStyles.tagText,
-    color: '#333',
-  },
-  tagTextSelected: {
-    ...commonStyles.tagTextSelected,
-    color: '#FFF',
-  },
-  card: {
-    ...commonStyles.card,
-    backgroundColor: '#FFF',
-  },
-  cardTitle: {
-    ...commonStyles.cardTitle,
-    color: '#333',
-  },
-  cardSubtitle: {
-    ...commonStyles.cardSubtitle,
-    color: '#777',
-  },
-  noShopsText: {
-    ...commonStyles.noShopsText,
-    color: '#777',
-  },
-});
-
-const darkTheme = StyleSheet.create({
-  ...commonStyles,
-  safeArea: {
-    ...commonStyles.safeArea,
-    backgroundColor: '#121212',
-  },
-  headerTitleContainer: {
-    ...commonStyles.headerTitleContainer,
-    color: '#000',
-  },
-  header: {
-    ...commonStyles.header,
-    backgroundColor: '#333',
-    borderBottomColor: '#444',
-  },
-  headerTitle: {
-    ...commonStyles.headerTitle,
-    color: '#000',
-  },
-  searchInput: {
-    ...commonStyles.searchInput,
-    backgroundColor: '#222',
-    color: '#FFF',
-  },
-  tagButton: {
-    ...commonStyles.tagButton,
-    backgroundColor: '#444',
-  },
-  tagButtonSelected: {
-    ...commonStyles.tagButtonSelected,
-    backgroundColor: '#FFD700',
-  },
-  tagText: {
-    ...commonStyles.tagText,
-    color: '#FFF',
-  },
-  tagTextSelected: {
-    ...commonStyles.tagTextSelected,
-    color: '#000',
-  },
-  card: {
-    ...commonStyles.card,
-    backgroundColor: '#1E1E1E',
-  },
-  cardTitle: {
-    ...commonStyles.cardTitle,
-    color: '#FFF',
-  },
-  cardSubtitle: {
-    ...commonStyles.cardSubtitle,
-    color: '#AAA',
-  },
-  noShopsText: {
-    ...commonStyles.noShopsText,
-    color: '#AAA',
   },
 });
 

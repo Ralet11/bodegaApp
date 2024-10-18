@@ -1,19 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Image, useColorScheme, Modal, BackHandler, FlatList, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Image, useColorScheme, Modal, BackHandler, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import { useDispatch, useSelector } from 'react-redux';
-import Axios, { all } from 'react-native-axios';
+import Axios from 'react-native-axios';
 import { API_URL } from '@env';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { setAuxShops, setShops, setShopsDiscounts } from '../redux/slices/setUp.slice';
-import PromoSlider from '../components/PromotionSlider'; // Slider Component
+import { setAuxShops, setShopsDiscounts, setUserDiscounts } from '../redux/slices/setUp.slice';
+import PromoSlider from '../components/PromotionSlider';
 import AccountDrawer from '../components/AccountDrawer';
 import { setAddress, setAddresses } from '../redux/slices/user.slice';
-import OrderStatus from '../components/OrderStatus';
 import SkeletonLoader from '../components/SkeletonLoader';
-import { setUserDiscounts } from '../redux/slices/setUp.slice';
-import { lightTheme, darkTheme } from '../components/themes';
+import { lightTheme } from '../components/themes';
 import socketIOClient from "socket.io-client";
 import DiscountShopScroll from '../components/DiscountShopScroll';
 
@@ -27,7 +25,6 @@ const DashboardDiscount = () => {
     const [addressModalVisible, setAddressModalVisible] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [deliveryMode, setDeliveryMode] = useState('orderIn');
-    const [uniqueTags, setUniqueTags] = useState([]); // Guardar los tags únicos aquí
     const categories = useSelector((state) => state?.setUp?.categories) || [];
     const address = useSelector((state) => state?.user?.address?.formatted_address);
     const addresses = useSelector((state) => state?.user?.addresses);
@@ -35,34 +32,32 @@ const DashboardDiscount = () => {
     const dispatch = useDispatch();
     const user = useSelector((state) => state?.user?.userInfo?.data?.client);
     const token = useSelector((state) => state?.user?.userInfo?.data?.token);
-    const ordersIn = useSelector((state) => state?.orders?.ordersIn);
     const auxShops = useSelector((state) => state?.setUp?.auxShops);
     const [allTags, setAllTags] = useState([]);
 
-    console.log(shopsByCategory, "shopsByCategory");
-
     const orderTypeParam = deliveryMode === 'orderIn' ? 0 : deliveryMode === 'Pickup' ? 1 : null;
-    console.log(allTags, 'allTags');
+
+    // Extraer los tags únicos de los shops
     const extractTags = (shops) => {
-        const tags = new Set(); // Usamos un Set para evitar duplicados
+        const tags = new Set();
         Object.keys(shops).forEach((categoryId) => {
             shops[categoryId].forEach((shop) => {
                 if (shop.tags && Array.isArray(shop.tags)) {
-                    shop.tags.forEach((tag) => tags.add(JSON.stringify(tag))); // Convertimos el objeto tag a string para que Set pueda detectar duplicados
+                    shop.tags.forEach((tag) => tags.add(JSON.stringify(tag)));
                 }
             });
         });
-        const uniqueTagsArray = Array.from(tags).map(tag => JSON.parse(tag)); // Volvemos a convertir los tags a objetos
-        setAllTags(uniqueTagsArray); // Guardamos los tags completos en el estado
+        const uniqueTagsArray = Array.from(tags).map(tag => JSON.parse(tag));
+        setAllTags(uniqueTagsArray);
     };
 
-
+    // Manejar la conexión de sockets para sincronizar shops
     useEffect(() => {
         const socket = socketIOClient(`${API_URL}`);
 
         const syncShops = () => {
             dispatch(setAuxShops());
-        }
+        };
 
         socket.on('syncShops', syncShops);
 
@@ -70,9 +65,29 @@ const DashboardDiscount = () => {
             socket.off('syncShops');
             socket.disconnect();
         };
-    }, [dispatch, token]);
+    }, [dispatch]);
 
+    // Verificar el token y redirigir si no está disponible
+    useEffect(() => {
+        if (!token) {
+            console.warn('Token not available');
+            navigation.reset({
+                index: 0,
+                routes: [{ name: 'Login' }],
+            });
+        }
+    }, [token, navigation]);
+
+    // Función para obtener los shops
     const fetchShops = async () => {
+        if (!token) {
+            console.warn('Token not available');
+            navigation.reset({
+                index: 0,
+                routes: [{ name: 'Login' }],
+            });
+            return;
+        }
         try {
             const response = await Axios.get(`${API_URL}/api/local/app/getShopsOrderByCatDiscount`, {
                 headers: {
@@ -80,32 +95,24 @@ const DashboardDiscount = () => {
                 },
             });
             setShopsByCategory(response.data);
-            extractTags(response.data); // Extraer y guardar los tags
+            extractTags(response.data);
             filterShopsByTags(response.data, deliveryMode);
             setLoading(false);
             dispatch(setShopsDiscounts(response.data));
-
-            // Obtener tags únicos de los shops
-            const allTags = [];
-            Object.keys(response.data).forEach(categoryId => {
-                response.data[categoryId].forEach(shop => {
-                    shop.tags.forEach(tag => {
-                        if (!allTags.includes(tag.name)) {
-                            allTags.push(tag.name); // Agregar tag único
-                        }
-                    });
-                });
-            });
-            setUniqueTags(allTags); // Guardar tags únicos
         } catch (error) {
             console.error('Error fetching shops:', error);
             setLoading(false);
         }
     };
 
+    // Función para obtener las direcciones del usuario
     const fetchAddress = async () => {
         if (!token) {
             console.warn('Token not available');
+            navigation.reset({
+                index: 0,
+                routes: [{ name: 'Login' }],
+            });
             return;
         }
 
@@ -130,14 +137,15 @@ const DashboardDiscount = () => {
         }
     };
 
+    // Obtener los descuentos del usuario
     useEffect(() => {
         if (user?.id && token) {
             const fetchUserDiscounts = async () => {
                 try {
                     const response = await Axios.get(`${API_URL}/api/discounts/userDiscount/${user.id}`, {
                         headers: {
-                            Authorization: `Bearer ${token}`
-                        }
+                            Authorization: `Bearer ${token}`,
+                        },
                     });
                     dispatch(setUserDiscounts(response.data));
                 } catch (error) {
@@ -147,18 +155,18 @@ const DashboardDiscount = () => {
 
             fetchUserDiscounts();
         }
-    }, [user, token, auxShops]);
+    }, [user?.id, token, dispatch]);
 
+    // Obtener shops y direcciones al montar el componente
     useEffect(() => {
         fetchShops();
         fetchAddress();
-    }, [dispatch, token, auxShops]);
+    }, [auxShops]);
 
+    // Prevenir que el botón de back cierre la app
     useFocusEffect(
         useCallback(() => {
-            const onBackPress = () => {
-                return true;
-            };
+            const onBackPress = () => true;
 
             BackHandler.addEventListener('hardwareBackPress', onBackPress);
 
@@ -168,6 +176,7 @@ const DashboardDiscount = () => {
         }, [])
     );
 
+    // Mostrar modal si no hay dirección seleccionada
     useFocusEffect(
         useCallback(() => {
             let timer;
@@ -182,6 +191,7 @@ const DashboardDiscount = () => {
         }, [address])
     );
 
+    // Limpiar el campo de búsqueda al enfocar la pantalla
     useFocusEffect(
         useCallback(() => {
             setSearchQuery('');
@@ -200,11 +210,11 @@ const DashboardDiscount = () => {
     const handleShopPress = (shop) => {
         navigation.navigate('Shop', { shop, orderTypeParam });
     };
+
     const handleCategoryPress = (selectedTag) => {
-        console.log(selectedTag, "tag")
-        /*  navigation.navigate('CategoryShops', { categoryId: category.id, categoryName: category.name }); */
         navigation.navigate('CategoryShops', { selectedTag, allTags });
     };
+
     const toggleDrawer = () => {
         setDrawerVisible(!drawerVisible);
     };
@@ -218,7 +228,6 @@ const DashboardDiscount = () => {
         if (searchQuery.trim()) {
             const filteredShops = [];
 
-            // Filtrar los shops por el input de búsqueda
             Object.keys(filteredShopsByTags).forEach((tagName) => {
                 const shops = filteredShopsByTags[tagName].filter((shop) =>
                     shop.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -228,7 +237,6 @@ const DashboardDiscount = () => {
                 }
             });
 
-            // Navegar a CategoryShops, pasando el searchQuery y un selectedTag como null
             navigation.navigate('CategoryShops', { filteredShops, searchQuery, selectedTag: null, allTags });
         }
     };
@@ -296,11 +304,13 @@ const DashboardDiscount = () => {
                         <TouchableOpacity
                             style={[
                                 lightTheme.deliveryToggleButton,
-                                { backgroundColor: deliveryMode === 'orderIn' ? '#FFC300' : 'transparent' }
+                                { backgroundColor: deliveryMode === 'orderIn' ? '#FFC300' : 'transparent' },
                             ]}
+                            onPress={() => handleToggle('orderIn')}
                         >
                             <Text style={{ color: deliveryMode === 'orderIn' ? '#000' : '#fff' }}>Order In</Text>
                         </TouchableOpacity>
+                        {/* Puedes agregar otros modos de entrega aquí */}
                     </View>
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', paddingHorizontal: 10 }}>
@@ -320,7 +330,7 @@ const DashboardDiscount = () => {
                     />
                 </View>
             </View>
-    
+
             <ScrollView contentContainerStyle={lightTheme.contentContainer}>
                 <PromoSlider />
                 <View style={{ paddingHorizontal: 15, paddingVertical: 10 }}>
@@ -345,7 +355,7 @@ const DashboardDiscount = () => {
                         </TouchableOpacity>
                     ))}
                 </ScrollView>
-    
+
                 {noShopsAvailable ? (
                     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 50 }}>
                         <Image
@@ -371,7 +381,7 @@ const DashboardDiscount = () => {
                     ))
                 )}
             </ScrollView>
-    
+
             <AccountDrawer
                 visible={drawerVisible}
                 onClose={toggleDrawer}
@@ -379,7 +389,8 @@ const DashboardDiscount = () => {
                 scheme={scheme}
                 user={user}
             />
-    
+
+            {/* Modal para seleccionar dirección */}
             <Modal
                 animationType="slide"
                 transparent={true}
@@ -406,7 +417,8 @@ const DashboardDiscount = () => {
                     </View>
                 </View>
             </Modal>
-    
+
+            {/* Modal para cambiar dirección */}
             <Modal
                 animationType="slide"
                 transparent={true}
@@ -453,7 +465,6 @@ const DashboardDiscount = () => {
             </Modal>
         </SafeAreaView>
     );
-    
 };
 
 export default DashboardDiscount;

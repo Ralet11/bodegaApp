@@ -1343,7 +1343,6 @@ const styles = StyleSheet.create({
   // Container
   container: {
     flex: 1,
-    marginTop:30
   },
   // Header
   header: {

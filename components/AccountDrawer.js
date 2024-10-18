@@ -17,20 +17,17 @@ const AccountDrawer = ({ user, visible, onClose, onNavigate }) => {
       dispatch(clearUser());
       dispatch(clearOrders());
       dispatch(clearCart());
-      
+  
       onClose(); // Cierra el modal
   
-      // Retrasa la navegación unos milisegundos para asegurarte de que el modal se haya cerrado
       setTimeout(() => {
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'Login' }],
-        });
+        navigation.replace('Login'); // Reemplaza la pantalla actual por la de Login
       }, 300);  // Ajusta el tiempo si es necesario
     } catch (error) {
       console.error('Error al cerrar sesión:', error);
     }
-  };
+  }
+
   useEffect(() => {
     if (visible) {
       Animated.timing(slideAnim, {
