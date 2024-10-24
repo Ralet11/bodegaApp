@@ -8,6 +8,7 @@ import { clearUser } from '../redux/slices/user.slice'; // Ajusta la ruta según
 import { clearOrders } from '../redux/slices/orders.slice';
 import { clearCart } from '../redux/slices/cart.slice';
 import { CommonActions } from '@react-navigation/native';
+import { clearSetUp } from '../redux/slices/setUp.slice';
 
 const AccountDrawer = ({ user, visible, onClose, onNavigate }) => {
   const dispatch = useDispatch();
@@ -18,6 +19,7 @@ const AccountDrawer = ({ user, visible, onClose, onNavigate }) => {
          dispatch(clearUser());
          dispatch(clearOrders());
          dispatch(clearCart());
+         dispatch(clearSetUp())
 
         onClose(); // Cierra el modal
 

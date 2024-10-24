@@ -310,7 +310,7 @@ export default function Signup() {
               style={styles.headerGradient}
             >
               <Image
-                source={{ uri: "https://res.cloudinary.com/doqyrz0sg/image/upload/v1724135145/discount/zyc3nulkzjbwzs4u7cvw.jpg" }}
+                source={{ uri: "https://res.cloudinary.com/doqyrz0sg/image/upload/v1728602580/WhatsApp_Image_2024-08-31_at_14.14.14_jhjq2g.jpg" }}
                 style={styles.logo}
                 resizeMode="contain"
               />

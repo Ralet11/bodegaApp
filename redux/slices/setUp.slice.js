@@ -21,7 +21,8 @@ const initialState = {
   error: null,
   auxShops: 0,
   userDiscounts: [],
-  shopsDiscounts:[]
+  shopsDiscounts: [],
+  orderAux: 0,
 };
 
 const setUpSlice = createSlice({
@@ -32,17 +33,22 @@ const setUpSlice = createSlice({
       state.categories = action.payload;
     },
     setShops: (state, action) => {
-      state.shops = action.payload
+      state.shops = action.payload;
     },
     setShopsDiscounts: (state, action) => {
-      state.shopsDiscounts = action.payload
+      state.shopsDiscounts = action.payload;
     },
     setAuxShops: (state) => {
-      state.auxShops = state.auxShops + 1
+      state.auxShops = state.auxShops + 1;
+    },
+    setOrderAux: (state) => {
+      state.orderAux = state.orderAux + 1;
     },
     setUserDiscounts: (state, action) => {
-      state.userDiscounts = action.payload
-    }
+      state.userDiscounts = action.payload;
+    },
+    // Nueva acción para limpiar el estado
+    clearSetUp: () => initialState,
   },
 
   extraReducers: (builder) => {
@@ -61,5 +67,6 @@ const setUpSlice = createSlice({
   },
 });
 
-export const { setCategories, setShops, setAuxShops, setUserDiscounts, setShopsDiscounts } = setUpSlice.actions;
+// Exportamos la nueva acción clearSetUp
+export const { setCategories, setShops, setAuxShops, setUserDiscounts, setShopsDiscounts, setOrderAux, clearSetUp } = setUpSlice.actions;
 export default setUpSlice.reducer;

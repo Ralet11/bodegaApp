@@ -50,17 +50,22 @@ export const orderSlice = createSlice({
       state.ordersIn = state.ordersIn.filter(order => order.info.newOrderId !== Number(orderIdToRemove));
     },
     getOrdersByUser: (state, action) => {
-      state.historicOrders = action.payload; // Ajusta esto según la estructura real de tu respuesta
+      state.historicOrders = action.payload || [];
     },
     getOrdersByUserStart: (state) => {
       state.historicStatus = "loading";
+      state.historicOrders = [];
     },
     getOrdersByUserFailure: (state, action) => {
       state.historicStatus = 'failed';
       state.historicError = action.payload;
+      state.historicOrders = [];
     },
     setCurrentOrder: (state, action) => {
       state.currentOrder = action.payload;
+    },
+    setHistoricOrders: (state, action) => {
+      state.historicOrders = action.payload;
     },
     clearOrders: (state) => {
       return initialState;
@@ -77,7 +82,8 @@ export const {
   getOrdersByUserFailure, 
   getOrdersByUserStart, 
   updateOrderIn, 
-  setOrderIn, 
+  setOrderIn,
+  setHistoricOrders,
   removeOrderIn, // Exportamos la nueva acción
   clearOrders // Exportamos la acción clearOrders
 } = orderSlice.actions;

@@ -1,17 +1,20 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
-import { setCurrentOrder, updateOrderIn, removeOrderIn } from '../redux/slices/orders.slice';
+import { setCurrentOrder, updateOrderIn, removeOrderIn, setHistoricOrders } from '../redux/slices/orders.slice';
 import socketIOClient from "socket.io-client";
 import { API_URL } from '@env';
 import Axios from 'react-native-axios';
 import { Package, ArrowRight, CheckCircle, XCircle, Clock, Truck } from 'lucide-react-native';
+import { setOrderAux } from '../redux/slices/setUp.slice';
 
 const OrderItem = React.memo(({ item, onPress }) => {
   const { mainText, icon, color } = getOrderStatusInfo(item);
   const token = useSelector(state => state?.user?.userInfo.data.token);
+  const user = useSelector((state) => state?.user?.userInfo?.data?.client);
   const dispatch = useDispatch();
+
 
   const navigation = useNavigation();
 
@@ -34,7 +37,7 @@ const OrderItem = React.memo(({ item, onPress }) => {
           if (updatedOrder.status === 'rejected' || updatedOrder.status === 'finished') {
             dispatch(removeOrderIn({ orderId: updatedOrder.id }));
             dispatch(setCurrentOrder(updatedOrder));
-
+            dispatch(setOrderAux());
             if (updatedOrder.type === 'Delivery') {
               navigation.navigate('AcceptedOrder');
             } else {
@@ -53,6 +56,9 @@ const OrderItem = React.memo(({ item, onPress }) => {
       socket.disconnect();
     };
   }, [dispatch, token, navigation]);
+
+
+  
 
   return (
     <View style={[styles.orderContainer, styles.lightContainer]}>

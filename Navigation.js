@@ -2,13 +2,21 @@ import React, { useEffect, useRef } from 'react';
 import { NavigationContainer, DefaultTheme, useTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { StyleSheet, View, Text, TouchableOpacity, Animated, Dimensions, Platform } from 'react-native';
+import {
+  StyleSheet,
+  View,
+  Text,
+  TouchableOpacity,
+  Animated,
+  Dimensions,
+  Platform,
+} from 'react-native';
 import { useSelector } from 'react-redux';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-// Importa tus componentes de pantalla
+// Import your screen components
 import DashboardDiscounts from './views/DashboardDiscounts';
 import MapViewComponent from './views/Map';
 import OrderScreen from './views/OrdersView';
@@ -31,23 +39,23 @@ import PromoMealScreen from './views/PromoMealScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
-
 const { width } = Dimensions.get('window');
 
-// Tema personalizado
+// Custom theme
 const customLightTheme = {
   ...DefaultTheme,
   colors: {
     ...DefaultTheme.colors,
-    primary: '#E6B000', // Color primario personalizado
+    primary: '#E6B000',
   },
 };
 
 const CustomTabBar = ({ state, descriptors, navigation }) => {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const tabWidth = (width - 40) / state.routes.length; // Ajuste para el padding lateral
+  const tabWidth = (width - 40) / state.routes.length;
   const translateX = useRef(new Animated.Value(0)).current;
+  const ordersIn = useSelector((state) => state.orders.ordersIn);
 
   useEffect(() => {
     Animated.spring(translateX, {
@@ -62,12 +70,12 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
       style={[
         styles.tabBar,
         {
-          paddingBottom: insets.bottom > 0 ? insets.bottom : 10, // Asegura que haya espacio suficiente en iOS
+          paddingBottom: insets.bottom > 0 ? insets.bottom : 10,
           backgroundColor: '#FFFFFF',
         },
       ]}
     >
-      <BlurView intensity={90} tint='light' style={styles.blurContainer}>
+      <BlurView intensity={90} tint="light" style={styles.blurContainer}>
         <View style={styles.tabBarInner}>
           <Animated.View
             style={[
@@ -102,6 +110,15 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
               }
             };
 
+            // Get the icon name
+            const iconName = options.tabBarIcon;
+
+            // Handle the badge
+            let badgeCount;
+            if (route.name === 'Orders' && ordersIn.length > 0) {
+              badgeCount = ordersIn.length;
+            }
+
             return (
               <TouchableOpacity
                 key={index}
@@ -113,11 +130,18 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
                 style={styles.tabItem}
               >
                 <View style={styles.tabItemContainer}>
-                  <MaterialCommunityIcons
-                    name={options.tabBarIcon}
-                    size={24}
-                    color={isFocused ? theme.colors.primary : theme.colors.text}
-                  />
+                  <View style={styles.iconContainer}>
+                    <MaterialCommunityIcons
+                      name={iconName}
+                      size={24}
+                      color={isFocused ? theme.colors.primary : theme.colors.text}
+                    />
+                    {badgeCount ? (
+                      <View style={styles.badgeContainer}>
+                        <Text style={styles.badgeText}>{badgeCount}</Text>
+                      </View>
+                    ) : null}
+                  </View>
                   <Text
                     style={[
                       styles.tabBarLabel,
@@ -139,8 +163,6 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
 };
 
 function TabNavigator() {
-  const ordersIn = useSelector((state) => state.orders.ordersIn);
-
   return (
     <Tab.Navigator
       tabBar={(props) => <CustomTabBar {...props} />}
@@ -167,7 +189,6 @@ function TabNavigator() {
         component={OrderScreen}
         options={{
           tabBarIcon: 'clipboard-list',
-          tabBarBadge: ordersIn.length > 0 ? ordersIn.length : undefined,
         }}
       />
     </Tab.Navigator>
@@ -271,14 +292,14 @@ export default function Navigation() {
 const styles = StyleSheet.create({
   tabBar: {
     position: 'absolute',
-    bottom: 10, // Reduce el espacio inferior para iOS
-    left: 10, // Reduce los márgenes laterales
+    bottom: 10,
+    left: 10,
     right: 10,
     elevation: 0,
     borderRadius: 15,
-    height: 70, // Aumenta la altura para dar más espacio a los iconos
-    overflow: 'hidden', // Evita que los elementos se desborden
-    backgroundColor: 'transparent', // Establece el fondo transparente para el BlurView
+    height: 70,
+    overflow: 'hidden',
+    backgroundColor: 'transparent',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -296,7 +317,7 @@ const styles = StyleSheet.create({
   },
   blurContainer: {
     flex: 1,
-    borderRadius: 15, // Asegura que el BlurView también tenga las esquinas redondeadas
+    borderRadius: 15,
   },
   tabBarInner: {
     flexDirection: 'row',
@@ -323,5 +344,25 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     marginTop: 4,
+  },
+  iconContainer: {
+    position: 'relative',
+  },
+  badgeContainer: {
+    position: 'absolute',
+    right: -10,
+    top: -5,
+    backgroundColor: 'red',
+    borderRadius: 10,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    minWidth: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
 });
