@@ -30,7 +30,7 @@ import LottieView from 'lottie-react-native';
 
 const { width, height } = Dimensions.get('window');
 
-const GOOGLE_API_KEY = 'AIzaSyAvritMA-llcdIPnOpudxQ4aZ1b5WsHHUc';
+const GOOGLE_API_KEY = 'AIzaSyAvritMA-llcdIPnOpudxQ4aZ1b5WsHHUc'; // Replace with your actual API key
 
 const MapViewComponent = () => {
   const dispatch = useDispatch();
@@ -298,20 +298,7 @@ const MapViewComponent = () => {
     const appleMapsUrl = `http://maps.apple.com/?q=${encodedAddress}`;
 
     if (Platform.OS === 'ios') {
-      Alert.alert(
-        'Open in Maps',
-        'Would you like to open the address in Google Maps or Apple Maps?',
-        [
-          {
-            text: 'Google Maps',
-            onPress: () => Linking.openURL(googleMapsUrl),
-          },
-          {
-            text: 'Apple Maps',
-            onPress: () => Linking.openURL(appleMapsUrl),
-          },
-        ]
-      );
+      Linking.openURL(appleMapsUrl);
     } else {
       Linking.openURL(googleMapsUrl);
     }
@@ -376,13 +363,16 @@ const MapViewComponent = () => {
             style={styles.lottieAnimation}
           />
           <Text style={styles.permissionDeniedText}>
-            Permiso para acceder a la ubicación denegado. Por favor, habilita los servicios de
-            ubicación para usar la aplicación.
+            Permission to access location was denied. Please enable location services to use the app.
           </Text>
         </View>
       ) : (
         region && (
-          <MapView style={styles.map} region={region} provider={PROVIDER_GOOGLE}>
+          <MapView
+            style={styles.map}
+            region={region}
+            {...(Platform.OS === 'android' ? { provider: PROVIDER_GOOGLE } : {})}
+          >
             {marker && (
               <Marker coordinate={marker}>
                 <View style={styles.userMarker}>
@@ -403,12 +393,13 @@ const MapViewComponent = () => {
                     {
                       transform: [
                         {
-                          scale: selectedLocalIndex === index
-                            ? scaleAnim.interpolate({
-                                inputRange: [0.5, 1],
-                                outputRange: [1, 1.2],
-                              })
-                            : 1,
+                          scale:
+                            selectedLocalIndex === index
+                              ? scaleAnim.interpolate({
+                                  inputRange: [0.5, 1],
+                                  outputRange: [1, 1.2],
+                                })
+                              : 1,
                         },
                       ],
                     },
@@ -471,7 +462,10 @@ const MapViewComponent = () => {
                           </View>
                         )}
                       </View>
-                      <Text style={styles.modalAddress} onPress={() => openAddressInMaps(item.address)}>
+                      <Text
+                        style={styles.modalAddress}
+                        onPress={() => openAddressInMaps(item.address)}
+                      >
                         {item.address}
                       </Text>
                       <TouchableOpacity

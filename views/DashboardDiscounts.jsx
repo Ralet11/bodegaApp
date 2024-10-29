@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Image, useColorScheme, Modal, BackHandler, FlatList, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Image, useColorScheme, BackHandler, FlatList, StyleSheet, Alert, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import { useDispatch, useSelector } from 'react-redux';
@@ -14,6 +14,8 @@ import SkeletonLoader from '../components/SkeletonLoader';
 import { lightTheme } from '../components/themes';
 import socketIOClient from 'socket.io-client';
 import DiscountShopScroll from '../components/DiscountShopScroll';
+import { clearCart } from '../redux/slices/cart.slice';
+import * as Location from 'expo-location';
 
 const DashboardDiscount = () => {
     const scheme = useColorScheme();
@@ -21,7 +23,6 @@ const DashboardDiscount = () => {
     const [filteredShopsByTags, setFilteredShopsByTags] = useState({});
     const [loading, setLoading] = useState(true);
     const [drawerVisible, setDrawerVisible] = useState(false);
-    const [modalVisible, setModalVisible] = useState(false);
     const [addressModalVisible, setAddressModalVisible] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [deliveryMode, setDeliveryMode] = useState('Dine-in');
@@ -34,8 +35,13 @@ const DashboardDiscount = () => {
     const token = useSelector((state) => state?.user?.userInfo?.data?.token);
     const auxShops = useSelector((state) => state?.setUp?.auxShops);
     const [allTags, setAllTags] = useState([]);
-
+    const cart = useSelector(state => state.cart.items);
+    const auxCart = useSelector((state) => state?.setUp?.auxCart);
     const orderTypeParam = deliveryMode === 'Dine-in' ? 0 : deliveryMode === 'Pickup' ? 1 : null;
+
+    useEffect(() => { 
+        dispatch(clearCart());
+    }, [auxCart]);
 
     // Extract unique tags from shops
     const extractTags = (shops) => {
@@ -90,31 +96,65 @@ const DashboardDiscount = () => {
         }
     };
 
-    // Function to fetch user's addresses
-    const fetchAddress = async () => {
-        if (!token) {
-            console.warn('Token not available');
-            return;
-        }
-
+    // Function to get user's current location and set address
+    const getCurrentLocation = async () => {
         try {
-            const response = await Axios.get(`${API_URL}/api/addresses/getById`, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
+            let { status } = await Location.requestForegroundPermissionsAsync();
+            if (status !== 'granted') {
+                Alert.alert(
+                    'Permission Required',
+                    'Location permission is needed to set your address.',
+                    [{ text: 'OK' }]
+                );
+                return;
+            }
 
-            if (response.status === 200) {
-                dispatch(setAddresses(response.data));
-                if (!response.data || response.data.length === 0) {
-                    setModalVisible(true);
-                } else {
-                    dispatch(setAddress(response.data[0]));
-                    setModalVisible(false);
-                }
+            const locationEnabled = await Location.hasServicesEnabledAsync();
+            if (!locationEnabled) {
+                Alert.alert(
+                    'Location Services Disabled',
+                    'Please enable location services to continue.',
+                    [
+                        {
+                            text: 'Cancel',
+                            style: 'cancel'
+                        },
+                        {
+                            text: 'Open Settings',
+                            onPress: () => {
+                                Location.enableNetworkProviderAsync();
+                            }
+                        }
+                    ]
+                );
+                return;
+            }
+
+            let location = await Location.getCurrentPositionAsync({});
+            let { latitude, longitude } = location.coords;
+
+            let geocode = await Location.reverseGeocodeAsync({ latitude, longitude });
+
+            if (geocode && geocode.length > 0) {
+                const formatted_address = `${geocode[0].street || ''} ${geocode[0].name || ''}, ${geocode[0].city || ''}, ${geocode[0].region || ''}, ${geocode[0].postalCode || ''}, ${geocode[0].country || ''}`;
+
+                const currentAddress = {
+                    id: 'current_location',
+                    name: 'Current Location',
+                    formatted_address: formatted_address,
+                    latitude,
+                    longitude,
+                };
+
+                dispatch(setAddress(currentAddress));
             }
         } catch (error) {
-            console.error('Error fetching address:', error);
+            console.error('Error getting current location:', error);
+            Alert.alert(
+                'Error',
+                'Unable to get current location. Please try again.',
+                [{ text: 'OK' }]
+            );
         }
     };
 
@@ -138,11 +178,13 @@ const DashboardDiscount = () => {
         }
     }, [user?.id, token, dispatch]);
 
-    // Fetch shops and addresses when component mounts
+    // Fetch shops and set current location when component mounts
     useEffect(() => {
         if (token) {
             fetchShops();
-            fetchAddress();
+            if (!address) {
+                getCurrentLocation();
+            }
         }
     }, [auxShops, token]);
 
@@ -157,21 +199,6 @@ const DashboardDiscount = () => {
                 BackHandler.removeEventListener('hardwareBackPress', onBackPress);
             };
         }, [])
-    );
-
-    // Show modal if no address is selected
-    useFocusEffect(
-        useCallback(() => {
-            let timer;
-            if (!address) {
-                timer = setTimeout(() => {
-                    setModalVisible(true);
-                }, 2000);
-            } else {
-                setModalVisible(false);
-            }
-            return () => clearTimeout(timer);
-        }, [address])
     );
 
     // Clear search query when screen is focused
@@ -267,8 +294,6 @@ const DashboardDiscount = () => {
         setFilteredShopsByTags(filtered);
     };
 
-    console.log('filteredShopsByTags:', filteredShopsByTags);
-
     const noShopsAvailable = !Object.keys(filteredShopsByTags).some(
         (tagName) => filteredShopsByTags[tagName].length > 0
     );
@@ -281,7 +306,7 @@ const DashboardDiscount = () => {
         <SafeAreaView style={lightTheme.safeArea}>
             <View style={lightTheme.header}>
                 <View style={styles.addressToggleContainer}>
-                    <TouchableOpacity onPress={changeAddress} style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                    <View onPress={changeAddress} style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
                         <FontAwesome name="map-marker" size={18} color={'#333'} style={{ marginRight: 5 }} />
                         <Text
                             style={lightTheme.addressText}
@@ -290,8 +315,8 @@ const DashboardDiscount = () => {
                         >
                             {address}
                         </Text>
-                        <FontAwesome name="caret-down" size={14} color={'#333'} style={{ marginLeft: 5 }} />
-                    </TouchableOpacity>
+                       
+                    </View>
                     <View style={styles.deliveryToggleContainer}>
                         <TouchableOpacity
                             style={[
@@ -390,6 +415,7 @@ const DashboardDiscount = () => {
                                 scheme={scheme}
                                 handleItemPress={handleShopPress}
                                 allTags={allTags}
+                               
                             />
                         )
                     )
@@ -403,34 +429,6 @@ const DashboardDiscount = () => {
                 scheme={scheme}
                 user={user}
             />
-
-            {/* Modal to select address */}
-            <Modal
-                animationType="slide"
-                transparent={true}
-                visible={modalVisible}
-                onRequestClose={() => {
-                    setModalVisible(!modalVisible);
-                }}
-            >
-                <View style={styles.modalBackground}>
-                    <View style={styles.modalContainer}>
-                        <FontAwesome name="map-marker" size={50} color="#FFC107" />
-                        <Text style={styles.modalText}>
-                            You need to select an address to continue
-                        </Text>
-                        <TouchableOpacity
-                            style={styles.modalButton}
-                            onPress={() => {
-                                setModalVisible(false);
-                                navigation.navigate('SetAddressScreen');
-                            }}
-                        >
-                            <Text style={styles.modalButtonText}>Select Address</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </Modal>
 
             {/* Modal to change address */}
             <Modal

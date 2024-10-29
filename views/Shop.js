@@ -12,6 +12,7 @@ import { API_URL } from '@env';
 import { useDispatch, useSelector } from 'react-redux';
 import { addToCart, clearCart } from '../redux/slices/cart.slice';
 import { setCurrentShop } from '../redux/slices/currentShop.slice';
+import { setAuxCart } from '../redux/slices/setUp.slice';
 import CartSkeletonLoader from '../components/SkeletonLoaderCart';
 import ShopContent from '../components/ShopContent';
 import ShopContentOrderIn from '../components/ShopContentOrderIn';
@@ -47,7 +48,7 @@ const ShopScreen = () => {
   const categoryPositions = useRef([]);
   const params = route.params || {};
   const shop = params.shop || null;
-  const orderTypeParam = params.orderTypeParam || null;
+  const orderTypeParam = params.orderTypeParam;
   const orderDetails = params.orderDetails || null;
   const styles = stylesLight;
   const isNavigatingBack = useRef(false);
@@ -205,10 +206,12 @@ const ShopScreen = () => {
         if (!selectedProduct && !selectedDiscount) {
           if (cart.length > 0) {
             dispatch(clearCart());
-            navigation.goBack();
+            dispatch(setAuxCart());
+            navigation.navigate('Main'); // Cambiamos goBack() por navigate('Main')
             return true;
           } else {
-            navigation.goBack();
+            dispatch(setAuxCart());
+            navigation.navigate('Main'); // Cambiamos goBack() por navigate('Main')
             return true;
           }
         } else {
@@ -220,55 +223,58 @@ const ShopScreen = () => {
       };
 
       BackHandler.addEventListener('hardwareBackPress', onBackPress);
-      navigation.addListener('beforeRemove', (e) => {
-        if (isNavigatingBack.current) {
-          return;
-        }
-        isNavigatingBack.current = true;
-
-        const actionType = e.data.action.type;
-
-        if (cart.length > 0) {
-          if (actionType === 'POP') {
-            // User is going back (including slide-back gesture), empty the cart without asking
-            dispatch(clearCart());
-            navigation.dispatch(e.data.action);
-          } else {
-            // For other actions, show the alert
-            e.preventDefault();
-            Alert.alert(
-              "Empty Cart",
-              "If you go back, your cart will be emptied. Do you want to continue?",
-              [
-                {
-                  text: "Cancel",
-                  onPress: () => {
-                    isNavigatingBack.current = false;
-                  },
-                  style: "cancel"
-                },
-                {
-                  text: "Continue",
-                  onPress: () => {
-                    dispatch(clearCart());
-                    navigation.dispatch(e.data.action);
-                  }
-                }
-              ]
-            );
-          }
-        } else {
-          navigation.dispatch(e.data.action);
-        }
-      });
 
       return () => {
         BackHandler.removeEventListener('hardwareBackPress', onBackPress);
-        navigation.removeListener('beforeRemove', () => { });
         isNavigatingBack.current = false;
       };
     }, [cart, selectedProduct, selectedDiscount, navigation, dispatch])
   );
+
+  useEffect(() => {
+    const beforeRemoveListener = navigation.addListener('beforeRemove', (e) => {
+      if (isNavigatingBack.current) {
+        return;
+      }
+
+      isNavigatingBack.current = true;
+
+      const actionType = e.data.action.type;
+
+      if (cart.length > 0) {
+        e.preventDefault();
+
+        Alert.alert(
+          "Empty Cart",
+          "If you go back, your cart will be emptied. Do you want to continue?",
+          [
+            {
+              text: "Cancel",
+              onPress: () => {
+                isNavigatingBack.current = false;
+              },
+              style: "cancel"
+            },
+            {
+              text: "Continue",
+              onPress: () => {
+                dispatch(clearCart());
+                dispatch(setAuxCart());
+                navigation.dispatch(e.data.action);
+              }
+            }
+          ]
+        );
+      } else {
+        dispatch(setAuxCart());
+        navigation.dispatch(e.data.action);
+      }
+    });
+
+    return () => {
+      navigation.removeListener('beforeRemove', beforeRemoveListener);
+    };
+  }, [navigation, cart, dispatch]);
 
   const handleOrderTypeChange = (type) => {
     setOrderType(type);
@@ -449,9 +455,11 @@ const ShopScreen = () => {
                   if (!selectedProduct && !selectedDiscount) {
                     if (cart.length > 0) {
                       dispatch(clearCart());
-                      navigation.goBack();
+                      dispatch(setAuxCart());
+                      navigation.navigate('Main'); // Cambiamos goBack() por navigate('Main')
                     } else {
-                      navigation.goBack();
+                      dispatch(setAuxCart());
+                      navigation.navigate('Main'); // Cambiamos goBack() por navigate('Main')
                     }
                   } else {
                     setSelectedProduct(null);
@@ -596,7 +604,10 @@ const ShopScreen = () => {
             }
           ]}>
             <View style={styles.stickyHeader}>
-              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.stickyBackButton}>
+              <TouchableOpacity onPress={() => {
+                dispatch(setAuxCart());
+                navigation.navigate('Main'); // Cambiamos goBack() por navigate('Main')
+              }} style={styles.stickyBackButton}>
                 <FontAwesome name="arrow-left" size={20} color="#fff" />
               </TouchableOpacity>
               <View style={{ flex: 1, alignItems: "center" }}>

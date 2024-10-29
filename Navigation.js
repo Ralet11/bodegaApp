@@ -1,7 +1,4 @@
 import React, { useEffect, useRef } from 'react';
-import { NavigationContainer, DefaultTheme, useTheme } from '@react-navigation/native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import {
   StyleSheet,
   View,
@@ -11,12 +8,15 @@ import {
   Dimensions,
   Platform,
 } from 'react-native';
+import { NavigationContainer, DefaultTheme, useTheme } from '@react-navigation/native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useSelector } from 'react-redux';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-// Import your screen components
+// Importa tus componentes de pantalla
 import DashboardDiscounts from './views/DashboardDiscounts';
 import MapViewComponent from './views/Map';
 import OrderScreen from './views/OrdersView';
@@ -41,19 +41,56 @@ const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 const { width } = Dimensions.get('window');
 
-// Custom theme
-const customLightTheme = {
+// Tema personalizado con colores modernos
+const customTheme = {
   ...DefaultTheme,
   colors: {
     ...DefaultTheme.colors,
-    primary: '#E6B000',
+    primary: '#FF8C00',
+    secondary: '#FF6347',
+    background: '#FFFFFF',
+    card: 'rgba(255, 255, 255, 0.9)',
+    text: '#1A1A1A',
+    border: 'rgba(0, 0, 0, 0.1)',
+    notification: '#FF3B30',
   },
+};
+
+const TabIcon = ({ name, color, size, badge, isFocused }) => {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.sequence([
+      Animated.timing(scaleAnim, {
+        toValue: isFocused ? 1.2 : 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 4,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [isFocused]);
+
+  return (
+    <Animated.View style={[styles.iconWrapper, { transform: [{ scale: scaleAnim }] }]}>
+      <MaterialCommunityIcons name={name} size={size} color={color} />
+      {badge > 0 && (
+        <View style={[styles.badge, { backgroundColor: customTheme.colors.notification }]}>
+          <Text style={styles.badgeText}>{badge}</Text>
+        </View>
+      )}
+    </Animated.View>
+  );
 };
 
 const CustomTabBar = ({ state, descriptors, navigation }) => {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const tabWidth = (width - 40) / state.routes.length;
+  const totalWidth = width - 40; // 40 es la suma de los márgenes izquierdo y derecho
+  const tabWidth = totalWidth / state.routes.length;
   const translateX = useRef(new Animated.Value(0)).current;
   const ordersIn = useSelector((state) => state.orders.ordersIn);
 
@@ -61,98 +98,63 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
     Animated.spring(translateX, {
       toValue: state.index * tabWidth,
       useNativeDriver: true,
-      bounciness: 0,
+      friction: 4,
+      tension: 40,
     }).start();
   }, [state.index, tabWidth]);
 
   return (
-    <View
-      style={[
-        styles.tabBar,
-        {
-          paddingBottom: insets.bottom > 0 ? insets.bottom : 10,
-          backgroundColor: '#FFFFFF',
-        },
-      ]}
-    >
-      <BlurView intensity={90} tint="light" style={styles.blurContainer}>
-        <View style={styles.tabBarInner}>
-          <Animated.View
-            style={[
-              styles.slider,
-              {
-                transform: [{ translateX }],
-                width: tabWidth,
-                backgroundColor: theme.colors.primary,
-              },
-            ]}
-          />
+    <View style={[styles.tabBar, { paddingBottom: insets.bottom + 10 }]}>
+      <BlurView intensity={30} tint="light" style={styles.blurContainer}>
+        <Animated.View
+          style={[
+            styles.slider,
+            {
+              transform: [{ translateX }],
+              width: tabWidth,
+              backgroundColor: theme.colors.primary,
+            },
+          ]}
+        />
+        <View style={styles.tabsContainer}>
           {state.routes.map((route, index) => {
             const { options } = descriptors[route.key];
-            const label =
-              options.tabBarLabel !== undefined
-                ? options.tabBarLabel
-                : options.title !== undefined
-                ? options.title
-                : route.name;
-
+            const label = options.tabBarLabel ?? route.name;
             const isFocused = state.index === index;
+            const iconName = options.tabBarIcon;
+            const badge = route.name === 'Orders' ? ordersIn.length : 0;
 
             const onPress = () => {
-              const event = navigation.emit({
-                type: 'tabPress',
-                target: route.key,
-                canPreventDefault: true,
-              });
-
-              if (!isFocused && !event.defaultPrevented) {
-                navigation.navigate(route.name);
-              }
+              navigation.navigate(route.name);
             };
-
-            // Get the icon name
-            const iconName = options.tabBarIcon;
-
-            // Handle the badge
-            let badgeCount;
-            if (route.name === 'Orders' && ordersIn.length > 0) {
-              badgeCount = ordersIn.length;
-            }
 
             return (
               <TouchableOpacity
-                key={index}
+                key={route.key}
                 accessibilityRole="button"
                 accessibilityState={isFocused ? { selected: true } : {}}
                 accessibilityLabel={options.tabBarAccessibilityLabel}
-                testID={options.tabBarTestID}
                 onPress={onPress}
-                style={styles.tabItem}
+                style={styles.tab}
               >
-                <View style={styles.tabItemContainer}>
-                  <View style={styles.iconContainer}>
-                    <MaterialCommunityIcons
-                      name={iconName}
-                      size={24}
-                      color={isFocused ? theme.colors.primary : theme.colors.text}
-                    />
-                    {badgeCount ? (
-                      <View style={styles.badgeContainer}>
-                        <Text style={styles.badgeText}>{badgeCount}</Text>
-                      </View>
-                    ) : null}
-                  </View>
-                  <Text
-                    style={[
-                      styles.tabBarLabel,
-                      {
-                        color: isFocused ? theme.colors.primary : theme.colors.text,
-                      },
-                    ]}
-                  >
-                    {label}
-                  </Text>
-                </View>
+                <TabIcon
+                  name={iconName}
+                  color={isFocused ? theme.colors.primary : theme.colors.text}
+                  size={28}
+                  badge={badge}
+                  isFocused={isFocused}
+                />
+                <Text
+                  style={[
+                    styles.label,
+                    {
+                      color: isFocused ? theme.colors.primary : theme.colors.text,
+                      opacity: isFocused ? 1 : 0.7,
+                    },
+                  ]}
+                >
+                  {label}
+                </Text>
               </TouchableOpacity>
             );
           })}
@@ -168,6 +170,7 @@ function TabNavigator() {
       tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{
         headerShown: false,
+        tabBarHideOnKeyboard: true,
       }}
     >
       <Tab.Screen
@@ -175,6 +178,7 @@ function TabNavigator() {
         component={DashboardDiscounts}
         options={{
           tabBarIcon: 'food',
+          tabBarLabel: 'Restaurants',
         }}
       />
       <Tab.Screen
@@ -182,6 +186,7 @@ function TabNavigator() {
         component={MapViewComponent}
         options={{
           tabBarIcon: 'map',
+          tabBarLabel: 'Map',
         }}
       />
       <Tab.Screen
@@ -189,6 +194,7 @@ function TabNavigator() {
         component={OrderScreen}
         options={{
           tabBarIcon: 'clipboard-list',
+          tabBarLabel: 'Orders',
         }}
       />
     </Tab.Navigator>
@@ -197,93 +203,32 @@ function TabNavigator() {
 
 export default function Navigation() {
   return (
-    <NavigationContainer theme={customLightTheme}>
-      <Stack.Navigator initialRouteName="Logo">
-        <Stack.Screen
-          name="Logo"
-          component={LogoScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="Login"
-          component={Login}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="Main"
-          component={TabNavigator}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="Shop"
-          component={ShopScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="CartScreen"
-          component={CartScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="AcceptedOrder"
-          component={AcceptedOrder}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="SetAddressScreen"
-          component={SetAddressScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="CategoryShops"
-          component={CategoryShops}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="Signup"
-          component={Signup}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="AccountSettings"
-          component={AccountSettings}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="MyCoupons"
-          component={MyCoupons}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="Contact"
-          component={Contact}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="BodegaPro"
-          component={BodegaPro}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="SearchShops"
-          component={SearchShops}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="PickUpOrderFinish"
-          component={OrderSummary}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="ReviewSceen"
-          component={ReviewScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="PromoMealScreen"
-          component={PromoMealScreen}
-          options={{ headerShown: false }}
-        />
+    <NavigationContainer theme={customTheme}>
+      <Stack.Navigator
+        screenOptions={{
+          headerShown: false,
+          animation: 'fade_from_bottom',
+          contentStyle: { backgroundColor: customTheme.colors.background },
+        }}
+        initialRouteName="Logo"
+      >
+        <Stack.Screen name="Logo" component={LogoScreen} />
+        <Stack.Screen name="Login" component={Login} />
+        <Stack.Screen name="Main" component={TabNavigator} />
+        <Stack.Screen name="Shop" component={ShopScreen} />
+        <Stack.Screen name="CartScreen" component={CartScreen} />
+        <Stack.Screen name="AcceptedOrder" component={AcceptedOrder} />
+        <Stack.Screen name="SetAddressScreen" component={SetAddressScreen} />
+        <Stack.Screen name="CategoryShops" component={CategoryShops} />
+        <Stack.Screen name="Signup" component={Signup} />
+        <Stack.Screen name="AccountSettings" component={AccountSettings} />
+        <Stack.Screen name="MyCoupons" component={MyCoupons} />
+        <Stack.Screen name="Contact" component={Contact} />
+        <Stack.Screen name="BodegaPro" component={BodegaPro} />
+        <Stack.Screen name="SearchShops" component={SearchShops} />
+        <Stack.Screen name="PickUpOrderFinish" component={OrderSummary} />
+        <Stack.Screen name="ReviewSceen" component={ReviewScreen} />
+        <Stack.Screen name="PromoMealScreen" component={PromoMealScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
@@ -293,76 +238,76 @@ const styles = StyleSheet.create({
   tabBar: {
     position: 'absolute',
     bottom: 10,
-    left: 10,
-    right: 10,
-    elevation: 0,
-    borderRadius: 15,
+    left: 20,
+    right: 20,
     height: 70,
-    overflow: 'hidden',
+    borderRadius: 35,
     backgroundColor: 'transparent',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOffset: {
-          width: 0,
-          height: -3,
-        },
+        shadowOffset: { width: 0, height: 5 },
         shadowOpacity: 0.1,
-        shadowRadius: 3,
+        shadowRadius: 10,
       },
       android: {
-        elevation: 5,
+        elevation: 8,
       },
     }),
   },
   blurContainer: {
     flex: 1,
-    borderRadius: 15,
+    borderRadius: 35,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
   },
-  tabBarInner: {
+  tabsContainer: {
     flexDirection: 'row',
+    justifyContent: 'space-around',
     alignItems: 'center',
-    height: '100%',
+    flex: 1,
   },
   slider: {
-    height: 3,
+    height: 5,
     position: 'absolute',
     top: 0,
-    left: 0,
-    borderRadius: 10,
+    borderRadius: 2.5,
+    left: 5, // Ajuste para alinear el slider
   },
-  tabItem: {
+  tab: {
     flex: 1,
-    height: '100%',
+    alignItems: 'center',
+    paddingVertical: 10,
   },
-  tabItemContainer: {
-    flex: 1,
+  iconWrapper: {
+    width: 36,
+    height: 36,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  tabBarLabel: {
+  label: {
     fontSize: 12,
-    fontWeight: '600',
-    marginTop: 4,
+    fontWeight: '500',
+    marginTop: 2,
+    textAlign: 'center',
   },
-  iconContainer: {
-    position: 'relative',
-  },
-  badgeContainer: {
+  badge: {
     position: 'absolute',
-    right: -10,
-    top: -5,
-    backgroundColor: 'red',
-    borderRadius: 10,
-    paddingHorizontal: 5,
-    paddingVertical: 1,
+    top: -3,
+    right: -3,
     minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#FF3B30',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#FFF',
   },
   badgeText: {
-    color: '#fff',
+    color: '#FFF',
     fontSize: 10,
     fontWeight: 'bold',
+    paddingHorizontal: 2,
   },
 });
