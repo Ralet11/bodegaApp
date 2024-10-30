@@ -228,25 +228,26 @@ const ShopScreen = () => {
 
   useEffect(() => {
     const beforeRemoveListener = navigation.addListener('beforeRemove', (e) => {
-     
+      // Detectamos si la navegación fue mediante el gesto de swipe back en iOS
+      const isSwipeBack = e.data.action.type === 'POP';
   
-
       if (cart.length > 0) {
         e.preventDefault();
-
+  
         Alert.alert(
           "Empty Cart",
           "If you go back, your cart will be emptied. Do you want to continue?",
           [
-            {
+            // Para Android o navegaciones no swipe en iOS, incluimos la opción de "Cancelar"
+            ...(isSwipeBack ? [] : [{
               text: "Cancel",
               onPress: () => {
                 isNavigatingBack.current = false;
               },
               style: "cancel"
-            },
+            }]),
             {
-              text: "Continue",
+              text: "Accept",
               onPress: () => {
                 dispatch(clearCart());
                 dispatch(setAuxCart());
@@ -260,12 +261,11 @@ const ShopScreen = () => {
         navigation.dispatch(e.data.action);
       }
     });
-
+  
     return () => {
       navigation.removeListener('beforeRemove', beforeRemoveListener);
     };
   }, [navigation, cart, dispatch]);
-
   const handleOrderTypeChange = (type) => {
     setOrderType(type);
   };

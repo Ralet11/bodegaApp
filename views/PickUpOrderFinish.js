@@ -12,6 +12,7 @@ import {
   BackHandler,
   Platform,
   Alert,
+  SafeAreaView,
 } from 'react-native';
 import { FontAwesome5, Ionicons, FontAwesome } from '@expo/vector-icons';
 import { useDispatch, useSelector } from 'react-redux';
@@ -53,8 +54,6 @@ const OrderSummary = () => {
 
     fetchShopData();
   }, [order]);
-
-  console.log(order.type, 'order');
 
   useEffect(() => {
     const socket = socketIOClient(`${API_URL}`);
@@ -99,7 +98,7 @@ const OrderSummary = () => {
     }
   }, [order]);
 
-  // Handle hardware back button
+  // Manejar el botón de retroceso del hardware
   useEffect(() => {
     const backAction = () => {
       navigation.navigate('Main');
@@ -205,7 +204,7 @@ const OrderSummary = () => {
     navigation.navigate('Main');
   };
 
-  // Function to get order status info similar to OrderStatus component
+  // Función para obtener la información del estado del pedido
   const getOrderStatusInfo = (order) => {
     const { status } = order;
     let mainText = '';
@@ -248,105 +247,107 @@ const OrderSummary = () => {
   };
 
   return (
-    <ScrollView style={styles.screen}>
+    <SafeAreaView style={styles.safeArea}>
       <LinearGradient
         colors={['#ff9900', '#FFFFFF']}
         style={styles.gradient}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 0.3 }}
       >
-        <View style={styles.container}>
-          <View style={styles.header}>
-            <TouchableOpacity onPress={() => navigation.navigate('Main')}>
-              <Ionicons name="arrow-back" size={24} color={styles.iconColor.color} />
-            </TouchableOpacity>
-            <Text style={styles.status}>{order.status}</Text>
-          </View>
-
-          <View style={styles.yellowBackground}>
-            <Text style={styles.instruction}>Show this code to receive your order</Text>
-
-            <View style={styles.codeContainer}>
-              {order.code.split('').map((digit, index) => (
-                <View key={index} style={styles.codeDigit}>
-                  <Text style={styles.codeText}>{digit}</Text>
-                </View>
-              ))}
+        <ScrollView contentContainerStyle={styles.scrollContainer}>
+          <View style={styles.container}>
+            <View style={styles.header}>
+              <TouchableOpacity onPress={() => navigation.navigate('Main')}>
+                <Ionicons name="arrow-back" size={24} color={styles.iconColor.color} />
+              </TouchableOpacity>
+              <Text style={styles.status}>{order.status}</Text>
             </View>
-          </View>
 
-          <TouchableOpacity
-            style={styles.storeInfo}
-            onPress={() => openAddressInMaps(shopData?.address)}
-          >
-            <Image
-              source={{
-                uri:
-                  shopData?.logo ||
-                  'https://res.cloudinary.com/doqyrz0sg/image/upload/v1723576023/product/qlqgmmfijktkn17oqinu.jpg',
-              }}
-              style={styles.storeIcon}
-            />
-            <View style={styles.storeDetails}>
-              <Text style={styles.storeName}>{shopData?.name}</Text>
-              <Text style={styles.storeAddress}>{shopData?.address}</Text>
-              <Text style={styles.storeDistance}>2.5 KM</Text>
-            </View>
-            <FontAwesome name="arrow-right" size={20} color={styles.iconColor.color} />
-          </TouchableOpacity>
+            <View style={styles.yellowBackground}>
+              <Text style={styles.instruction}>Show this code to receive your order</Text>
 
-          {/* Conditional Rendering Based on Order Type */}
-          {order.type === 'Order-in' ? (
-            <View style={styles.deliveryInfo}>
-              <Text style={styles.deliveryTitle}>{getTodayOpeningHours()}</Text>
-              <Text style={styles.deliverySubtitle}>
-                Only the account holder can receive the order during this time slot.
-              </Text>
-            </View>
-          ) : order.type === 'Pick-up' ? (
-            <View style={styles.statusInfo}>
-              <View style={styles.statusHeader}>
-                {getOrderStatusInfo(order).icon}
-                <Text style={[styles.statusText, { color: getOrderStatusInfo(order).color }]}>
-                  {getOrderStatusInfo(order).mainText}
-                </Text>
+              <View style={styles.codeContainer}>
+                {order.code.split('').map((digit, index) => (
+                  <View key={index} style={styles.codeDigit}>
+                    <Text style={styles.codeText}>{digit}</Text>
+                  </View>
+                ))}
               </View>
             </View>
-          ) : null}
 
-          <View style={styles.summary}>
-            <Text style={styles.summaryTitle}>Order Summary</Text>
+            <TouchableOpacity
+              style={styles.storeInfo}
+              onPress={() => openAddressInMaps(shopData?.address)}
+            >
+              <Image
+                source={{
+                  uri:
+                    shopData?.logo ||
+                    'https://res.cloudinary.com/doqyrz0sg/image/upload/v1723576023/product/qlqgmmfijktkn17oqinu.jpg',
+                }}
+                style={styles.storeIcon}
+              />
+              <View style={styles.storeDetails}>
+                <Text style={styles.storeName}>{shopData?.name}</Text>
+                <Text style={styles.storeAddress}>{shopData?.address}</Text>
+                <Text style={styles.storeDistance}>2.5 KM</Text>
+              </View>
+              <FontAwesome name="arrow-right" size={20} color={styles.iconColor.color} />
+            </TouchableOpacity>
 
-            <FlatList
-              data={order.order_details}
-              renderItem={renderOrderDetails}
-              keyExtractor={(item) => item.id.toString()}
-              style={styles.orderDetailsList}
-              contentContainerStyle={styles.orderDetailsContent}
-              scrollEnabled={true}
-            />
+            {/* Renderizado condicional basado en el tipo de orden */}
+            {order.type === 'Order-in' ? (
+              <View style={styles.deliveryInfo}>
+                <Text style={styles.deliveryTitle}>{getTodayOpeningHours()}</Text>
+                <Text style={styles.deliverySubtitle}>
+                  Only the account holder can receive the order during this time slot.
+                </Text>
+              </View>
+            ) : order.type === 'Pick-up' ? (
+              <View style={styles.statusInfo}>
+                <View style={styles.statusHeader}>
+                  {getOrderStatusInfo(order).icon}
+                  <Text style={[styles.statusText, { color: getOrderStatusInfo(order).color }]}>
+                    {getOrderStatusInfo(order).mainText}
+                  </Text>
+                </View>
+              </View>
+            ) : null}
 
-            <View style={styles.totalContainer}>
-              <Text style={styles.totalLabel}>Additional Charges</Text>
-              <Text style={styles.totalPrice}>${calculateDifference()}</Text>
+            <View style={styles.summary}>
+              <Text style={styles.summaryTitle}>Order Summary</Text>
+
+              <FlatList
+                data={order.order_details}
+                renderItem={renderOrderDetails}
+                keyExtractor={(item) => item.id.toString()}
+                style={styles.orderDetailsList}
+                contentContainerStyle={styles.orderDetailsContent}
+                scrollEnabled={true}
+              />
+
+              <View style={styles.totalContainer}>
+                <Text style={styles.totalLabel}>Additional Charges</Text>
+                <Text style={styles.totalPrice}>${calculateDifference()}</Text>
+              </View>
+
+              <View style={styles.totalContainer}>
+                <Text style={styles.totalLabel}>Total</Text>
+                <Text style={styles.totalPrice}>${formatPrice(order.total_price)}</Text>
+              </View>
+
+              <View style={styles.discountContainer}>
+                <FontAwesome5 name="tags" size={16} color="#FFD700" style={{ marginRight: 8 }} />
+                <Text style={styles.discountText}>You saved with Bodega+</Text>
+                <Text style={styles.discountAmount}>${calculateTotalSavings()}</Text>
+              </View>
             </View>
 
-            <View style={styles.totalContainer}>
-              <Text style={styles.totalLabel}>Total</Text>
-              <Text style={styles.totalPrice}>${formatPrice(order.total_price)}</Text>
-            </View>
-
-            <View style={styles.discountContainer}>
-              <FontAwesome5 name="tags" size={16} color="#FFD700" style={{ marginRight: 8 }} />
-              <Text style={styles.discountText}>You saved with Bodega+</Text>
-              <Text style={styles.discountAmount}>${calculateTotalSavings()}</Text>
+            <View style={Platform.OS === 'ios' ? { marginTop: 20 } : {}}>
+              <Text style={styles.transactionId}>Transaction ID: {order.pi}</Text>
             </View>
           </View>
-
-          <View style={Platform.OS === 'ios' ? { marginTop: 20 } : {}}>
-  <Text style={styles.transactionId}>Transaction ID: {order.pi}</Text>
-</View>
-        </View>
+        </ScrollView>
       </LinearGradient>
 
       <Modal visible={showRatingModal} transparent animationType="slide">
@@ -365,31 +366,31 @@ const OrderSummary = () => {
           </View>
         </View>
       </Modal>
-    </ScrollView>
+    </SafeAreaView>
   );
 };
-
 const commonStyles = {
-  screen: {
+safeArea: {
     flex: 1,
-    
+    backgroundColor: '#FFFFFF',
   },
   gradient: {
     flex: 1,
   },
   container: {
+    flex: 1,
     padding: 20,
     borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 20,
+    marginVertical: 20,
+    // Eliminamos width y márgenes innecesarios
+    // Ajustamos las sombras y elevación según sea necesario
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.1,
     shadowRadius: 6,
     elevation: 5,
-    margin: 40,
-    width: '90%',
-    backgroundColor: '#FFFFFF',
     shadowColor: '#000000',
-    marginHorizontal:20,
-    ...(Platform.OS === 'ios' && { flex: 1, marginTop:60 }),
   },
   header: {
     flexDirection: 'row',
