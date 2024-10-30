@@ -343,7 +343,9 @@ const OrderSummary = () => {
             </View>
           </View>
 
-          <Text style={styles.transactionId}>Transaction ID: {order.pi}</Text>
+          <View style={Platform.OS === 'ios' ? { marginTop: 20 } : {}}>
+  <Text style={styles.transactionId}>Transaction ID: {order.pi}</Text>
+</View>
         </View>
       </LinearGradient>
 
@@ -387,7 +389,7 @@ const commonStyles = {
     backgroundColor: '#FFFFFF',
     shadowColor: '#000000',
     marginHorizontal:20,
-    ...(Platform.OS === 'ios' && { flex: 1 }),
+    ...(Platform.OS === 'ios' && { flex: 1, marginTop:60 }),
   },
   header: {
     flexDirection: 'row',
