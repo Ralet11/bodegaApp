@@ -36,6 +36,7 @@ import SearchShops from './views/SearchShops';
 import OrderSummary from './views/PickUpOrderFinish';
 import ReviewScreen from './views/ReviewsScreen';
 import PromoMealScreen from './views/PromoMealScreen';
+import colors from './components/themes/colors';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -46,7 +47,7 @@ const customTheme = {
   ...DefaultTheme,
   colors: {
     ...DefaultTheme.colors,
-    primary: '#FF8C00',
+    primary: colors.primary,
     secondary: '#FF6347',
     background: '#FFFFFF',
     card: 'rgba(255, 255, 255, 0.9)',
@@ -240,7 +241,7 @@ const styles = StyleSheet.create({
     bottom: 10,
     left: 20,
     right: 20,
-    height: 70,
+    height: Platform.OS === 'ios' ? 120 : 70, // Incrementa la altura en iOS
     borderRadius: 35,
     backgroundColor: 'transparent',
     ...Platform.select({

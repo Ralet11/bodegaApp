@@ -5,6 +5,7 @@ import ProductDetail from '../components/ProductDetail';
 import DiscountDetail from '../components/DiscountDetail';
 import { useDispatch, useSelector } from 'react-redux';
 import { useColorScheme } from 'react-native';
+import colors from './themes/colors';
 
 const ShopContentOrderIn = ({
   selectedProduct,
@@ -187,7 +188,7 @@ const commonStyles = {
   discountPercentage: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: '#FF6F00',
+    color: colors.primary,
     marginLeft: 5,
     textAlign: 'left',
   },

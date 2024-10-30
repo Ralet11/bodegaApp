@@ -13,6 +13,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import { useSelector } from 'react-redux';
 import Axios from 'react-native-axios';
 import { useNavigation } from '@react-navigation/native';
+import colors from './themes/colors';
 
 const DiscountShopScroll = ({ title, items, handleItemPress, allTags }) => {
   const scheme = useColorScheme();
@@ -197,7 +198,7 @@ const getColors = (scheme) => ({
   cardBackgroundColor: scheme === 'dark' ? '#1E1E1E' : '#FFFFFF',
   borderColor: scheme === 'dark' ? '#333333' : '#E0E0E0',
   iconColor: scheme === 'dark' ? '#B0B0B0' : '#666666',
-  accentColor: scheme === 'dark' ? '#FFC300' : '#FF6347',
+  accentColor: scheme === 'dark' ? colors.primary : '#FF6347',
   starColor: '#FFD700',
 });
 

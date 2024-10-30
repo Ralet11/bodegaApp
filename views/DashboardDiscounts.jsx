@@ -16,6 +16,7 @@ import socketIOClient from 'socket.io-client';
 import DiscountShopScroll from '../components/DiscountShopScroll';
 import { clearCart } from '../redux/slices/cart.slice';
 import * as Location from 'expo-location';
+import colors from '../components/themes/colors';
 
 const DashboardDiscount = () => {
     const scheme = useColorScheme();
@@ -503,8 +504,8 @@ const styles = StyleSheet.create({
         backgroundColor: 'transparent',
     },
     selectedButton: {
-        backgroundColor: '#FFC300',
-        borderColor: '#FFC300',
+        backgroundColor: colors.primary,
+        borderColor: colors.primary,
     },
     deliveryToggleText: {
         fontSize: 12,

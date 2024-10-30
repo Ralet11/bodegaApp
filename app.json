@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Bodega+",
-    "slug": "augustoApp",
+    "slug": "bodega",
     "version": "2.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -41,7 +41,7 @@
     "extra": {
       "stripePublishableKey": "pk_test_51OJV6vCtqRjqS5ch2BT38s88U8qgkJeqWLZ8ODgOfB95sfshzLQw8gvkcmu4yplXKbuL8nnO85We2r1Ie7nYQkue00FX8swMRF",
       "eas": {
-        "projectId": "b82244d1-6590-44d1-9254-5fd97b5d397b"
+        "projectId": "970339da-ca20-4e85-b0fd-b3d562637f41"
       }
     },
  "scheme": "bodegaplus"

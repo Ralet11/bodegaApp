@@ -1,5 +1,3 @@
-// ShopScreen.js
-
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, Image,
@@ -17,10 +15,9 @@ import CartSkeletonLoader from '../components/SkeletonLoaderCart';
 import ShopContent from '../components/ShopContent';
 import ShopContentOrderIn from '../components/ShopContentOrderIn';
 import { stylesDark, stylesLight } from '../components/themeShop';
-
 import PromoCard from '../components/PromoMealCard';
 import DiscountDetailScreen from '../components/DiscountDetail';
-import ProductDetail from '../components/ProductDetail'; // Import the product detail component
+import ProductDetail from '../components/ProductDetail';
 
 const ShopScreen = () => {
   const route = useRoute();
@@ -53,7 +50,6 @@ const ShopScreen = () => {
   const styles = stylesLight;
   const isNavigatingBack = useRef(false);
   const [reviews, setReviews] = useState([]);
-
   const [positionsReady, setPositionsReady] = useState(false);
   const [isComponentReady, setIsComponentReady] = useState(false);
 
@@ -131,7 +127,7 @@ const ShopScreen = () => {
         });
         const discounts = response.data;
         setDiscounts(discounts);
-        setGroupedDiscounts(groupDiscountsByCategory(discounts)); // Always group discounts
+        setGroupedDiscounts(groupDiscountsByCategory(discounts));
       } catch (error) {
         console.log(error);
       }
@@ -152,7 +148,6 @@ const ShopScreen = () => {
           },
         });
         setPromotion(response.data);
-        console.log(response.data, "response promotion");
       } catch (error) {
         console.log(error);
       }
@@ -207,11 +202,11 @@ const ShopScreen = () => {
           if (cart.length > 0) {
             dispatch(clearCart());
             dispatch(setAuxCart());
-            navigation.navigate('Main'); // Cambiamos goBack() por navigate('Main')
+            navigation.navigate('Main');
             return true;
           } else {
             dispatch(setAuxCart());
-            navigation.navigate('Main'); // Cambiamos goBack() por navigate('Main')
+            navigation.navigate('Main');
             return true;
           }
         } else {
@@ -233,13 +228,8 @@ const ShopScreen = () => {
 
   useEffect(() => {
     const beforeRemoveListener = navigation.addListener('beforeRemove', (e) => {
-      if (isNavigatingBack.current) {
-        return;
-      }
-
-      isNavigatingBack.current = true;
-
-      const actionType = e.data.action.type;
+     
+  
 
       if (cart.length > 0) {
         e.preventDefault();
@@ -373,7 +363,6 @@ const ShopScreen = () => {
     if (shop?.orderIn && shop?.pickUp) {
       return (
         <>
-          {/* Button for Order-in */}
           <TouchableOpacity
             style={[styles.orderTypeButton, orderType === 'Order-in' && styles.selectedOrderTypeButton]}
             onPress={() => handleOrderTypeChange('Order-in')}
@@ -382,7 +371,6 @@ const ShopScreen = () => {
             <Text style={styles.orderTypeText}>Dine-in</Text>
           </TouchableOpacity>
 
-          {/* Button for Pick-up */}
           <TouchableOpacity
             style={[styles.orderTypeButton, orderType === 'Pick-up' && styles.selectedOrderTypeButton]}
             onPress={() => handleOrderTypeChange('Pick-up')}
@@ -416,6 +404,7 @@ const ShopScreen = () => {
   };
   const totalItems = cart.reduce((total, item) => total + item.quantity, 0);
   const totalAmount = cart.reduce((total, item) => total + item.currentPrice * item.quantity, 0).toFixed(2);
+
 
   return (
     <SafeAreaView style={styles.safeArea}>

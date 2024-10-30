@@ -8,11 +8,10 @@ import {
   TouchableOpacity,
   Linking,
   Modal,
-  useColorScheme,
   StyleSheet,
   BackHandler,
   Platform,
-  Alert
+  Alert,
 } from 'react-native';
 import { FontAwesome5, Ionicons, FontAwesome } from '@expo/vector-icons';
 import { useDispatch, useSelector } from 'react-redux';
@@ -39,7 +38,6 @@ const OrderSummary = () => {
   const orderRef = useRef(order);
   const navigation = useNavigation();
   const dispatch = useDispatch();
-  const colorScheme = useColorScheme();
   const styles = lightStyles;
 
   useEffect(() => {
@@ -56,7 +54,7 @@ const OrderSummary = () => {
     fetchShopData();
   }, [order]);
 
-  console.log(order.type, "order");
+  console.log(order.type, 'order');
 
   useEffect(() => {
     const socket = socketIOClient(`${API_URL}`);
@@ -257,99 +255,96 @@ const OrderSummary = () => {
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 0.3 }}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <View style={styles.container}>
-            <View style={styles.header}>
-              <TouchableOpacity onPress={() => navigation.navigate('Main')}>
-                <Ionicons name="arrow-back" size={24} color={styles.iconColor.color} />
-              </TouchableOpacity>
-              <Text style={styles.status}>{order.status}</Text>
-            </View>
-
-            <View style={styles.yellowBackground}>
-              <Text style={styles.instruction}>Show this code to receive your order</Text>
-
-              <View style={styles.codeContainer}>
-                {order.code.split('').map((digit, index) => (
-                  <View key={index} style={styles.codeDigit}>
-                    <Text style={styles.codeText}>{digit}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-
-            <TouchableOpacity
-              style={styles.storeInfo}
-              onPress={() => openAddressInMaps(shopData?.address)}
-            >
-              <Image
-                source={{
-                  uri:
-                    shopData?.logo ||
-                    'https://res.cloudinary.com/doqyrz0sg/image/upload/v1723576023/product/qlqgmmfijktkn17oqinu.jpg',
-                }}
-                style={styles.storeIcon}
-              />
-              <View style={styles.storeDetails}>
-                <Text style={styles.storeName}>{shopData?.name}</Text>
-                <Text style={styles.storeAddress}>{shopData?.address}</Text>
-                <Text style={styles.storeDistance}>2.5 KM</Text>
-              </View>
-              <FontAwesome name="arrow-right" size={20} color={styles.iconColor.color} />
+        <View style={styles.container}>
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => navigation.navigate('Main')}>
+              <Ionicons name="arrow-back" size={24} color={styles.iconColor.color} />
             </TouchableOpacity>
+            <Text style={styles.status}>{order.status}</Text>
+          </View>
 
-            {/* Conditional Rendering Based on Order Type */}
-            {order.type === 'Order-in' ? (
-              <View style={styles.deliveryInfo}>
-                <Text style={styles.deliveryTitle}>{getTodayOpeningHours()}</Text>
-                <Text style={styles.deliverySubtitle}>
-                  Only the account holder can receive the order during this time slot.
+          <View style={styles.yellowBackground}>
+            <Text style={styles.instruction}>Show this code to receive your order</Text>
+
+            <View style={styles.codeContainer}>
+              {order.code.split('').map((digit, index) => (
+                <View key={index} style={styles.codeDigit}>
+                  <Text style={styles.codeText}>{digit}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={styles.storeInfo}
+            onPress={() => openAddressInMaps(shopData?.address)}
+          >
+            <Image
+              source={{
+                uri:
+                  shopData?.logo ||
+                  'https://res.cloudinary.com/doqyrz0sg/image/upload/v1723576023/product/qlqgmmfijktkn17oqinu.jpg',
+              }}
+              style={styles.storeIcon}
+            />
+            <View style={styles.storeDetails}>
+              <Text style={styles.storeName}>{shopData?.name}</Text>
+              <Text style={styles.storeAddress}>{shopData?.address}</Text>
+              <Text style={styles.storeDistance}>2.5 KM</Text>
+            </View>
+            <FontAwesome name="arrow-right" size={20} color={styles.iconColor.color} />
+          </TouchableOpacity>
+
+          {/* Conditional Rendering Based on Order Type */}
+          {order.type === 'Order-in' ? (
+            <View style={styles.deliveryInfo}>
+              <Text style={styles.deliveryTitle}>{getTodayOpeningHours()}</Text>
+              <Text style={styles.deliverySubtitle}>
+                Only the account holder can receive the order during this time slot.
+              </Text>
+            </View>
+          ) : order.type === 'Pick-up' ? (
+            <View style={styles.statusInfo}>
+              <View style={styles.statusHeader}>
+                {getOrderStatusInfo(order).icon}
+                <Text style={[styles.statusText, { color: getOrderStatusInfo(order).color }]}>
+                  {getOrderStatusInfo(order).mainText}
                 </Text>
               </View>
-            ) : order.type === 'Pick-up' ? (
-              <View style={styles.statusInfo}>
-                <View style={styles.statusHeader}>
-                  {getOrderStatusInfo(order).icon}
-                  <Text style={[styles.statusText, { color: getOrderStatusInfo(order).color }]}>
-                    {getOrderStatusInfo(order).mainText}
-                  </Text>
-                </View>
-               
-              </View>
-            ) : null}
+            </View>
+          ) : null}
 
-            <View style={styles.summary}>
-              <Text style={styles.summaryTitle}>Order Summary</Text>
+          <View style={styles.summary}>
+            <Text style={styles.summaryTitle}>Order Summary</Text>
 
-              <FlatList
-                data={order.order_details}
-                renderItem={renderOrderDetails}
-                keyExtractor={(item) => item.id.toString()}
-                style={styles.orderDetailsList}
-                contentContainerStyle={styles.orderDetailsContent}
-                scrollEnabled={true}
-              />
+            <FlatList
+              data={order.order_details}
+              renderItem={renderOrderDetails}
+              keyExtractor={(item) => item.id.toString()}
+              style={styles.orderDetailsList}
+              contentContainerStyle={styles.orderDetailsContent}
+              scrollEnabled={true}
+            />
 
-              <View style={styles.totalContainer}>
-                <Text style={styles.totalLabel}>Additional Charges</Text>
-                <Text style={styles.totalPrice}>${calculateDifference()}</Text>
-              </View>
-
-              <View style={styles.totalContainer}>
-                <Text style={styles.totalLabel}>Total</Text>
-                <Text style={styles.totalPrice}>${formatPrice(order.total_price)}</Text>
-              </View>
-
-              <View style={styles.discountContainer}>
-                <FontAwesome5 name="tags" size={16} color="#FFD700" style={{ marginRight: 8 }} />
-                <Text style={styles.discountText}>You saved with Bodega+</Text>
-                <Text style={styles.discountAmount}>${calculateTotalSavings()}</Text>
-              </View>
+            <View style={styles.totalContainer}>
+              <Text style={styles.totalLabel}>Additional Charges</Text>
+              <Text style={styles.totalPrice}>${calculateDifference()}</Text>
             </View>
 
-            <Text style={styles.transactionId}>Transaction ID: {order.pi}</Text>
+            <View style={styles.totalContainer}>
+              <Text style={styles.totalLabel}>Total</Text>
+              <Text style={styles.totalPrice}>${formatPrice(order.total_price)}</Text>
+            </View>
+
+            <View style={styles.discountContainer}>
+              <FontAwesome5 name="tags" size={16} color="#FFD700" style={{ marginRight: 8 }} />
+              <Text style={styles.discountText}>You saved with Bodega+</Text>
+              <Text style={styles.discountAmount}>${calculateTotalSavings()}</Text>
+            </View>
           </View>
-        </ScrollView>
+
+          <Text style={styles.transactionId}>Transaction ID: {order.pi}</Text>
+        </View>
       </LinearGradient>
 
       <Modal visible={showRatingModal} transparent animationType="slide">
@@ -375,14 +370,10 @@ const OrderSummary = () => {
 const commonStyles = {
   screen: {
     flex: 1,
+    
   },
   gradient: {
     flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   container: {
     padding: 20,
@@ -393,6 +384,10 @@ const commonStyles = {
     elevation: 5,
     margin: 40,
     width: '90%',
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000000',
+    marginHorizontal:20,
+    ...(Platform.OS === 'ios' && { flex: 1 }),
   },
   header: {
     flexDirection: 'row',
@@ -403,17 +398,20 @@ const commonStyles = {
   status: {
     fontSize: 18,
     fontWeight: 'bold',
+    color: '#333333',
   },
   yellowBackground: {
     paddingVertical: 20,
     paddingHorizontal: 10,
     borderRadius: 20,
     marginBottom: 20,
+    backgroundColor: '#FFEFCF',
   },
   instruction: {
     fontSize: 14,
     textAlign: 'center',
     marginVertical: 10,
+    color: '#888888',
   },
   codeContainer: {
     flexDirection: 'row',
@@ -429,10 +427,12 @@ const commonStyles = {
     width: 40,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#FFFFFF',
   },
   codeText: {
     fontSize: 18,
     fontWeight: 'bold',
+    color: '#333333',
   },
   storeInfo: {
     flexDirection: 'row',
@@ -440,11 +440,13 @@ const commonStyles = {
     marginVertical: 15,
     paddingVertical: 10,
     borderBottomWidth: 1,
+    borderColor: '#E6E6E6',
   },
   storeIcon: {
     width: 40,
     height: 40,
     borderRadius: 20,
+    backgroundColor: '#F6F6F6',
   },
   storeDetails: {
     marginLeft: 10,
@@ -453,25 +455,47 @@ const commonStyles = {
   storeName: {
     fontSize: 16,
     fontWeight: 'bold',
+    color: '#000000',
   },
   storeAddress: {
     fontSize: 14,
+    color: '#888888',
   },
   storeDistance: {
     fontSize: 12,
+    color: '#888888',
   },
   deliveryInfo: {
     padding: 15,
     borderRadius: 10,
     marginBottom: 20,
+    backgroundColor: '#FFF8E1',
   },
   deliveryTitle: {
     fontSize: 14,
     fontWeight: 'bold',
     marginBottom: 5,
+    color: '#333333',
   },
   deliverySubtitle: {
     fontSize: 12,
+    color: '#888888',
+  },
+  statusInfo: {
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 20,
+    backgroundColor: '#FFF8E1',
+    alignItems: 'center',
+  },
+  statusHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statusText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginLeft: 10,
   },
   summary: {
     marginBottom: 20,
@@ -480,6 +504,7 @@ const commonStyles = {
     fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 10,
+    color: '#333333',
   },
   orderDetailsList: {
     maxHeight: 250,
@@ -500,6 +525,7 @@ const commonStyles = {
     fontSize: 16,
     fontWeight: 'bold',
     marginRight: 15,
+    color: '#333333',
   },
   itemDetails: {
     flexDirection: 'column',
@@ -507,11 +533,13 @@ const commonStyles = {
   itemName: {
     fontSize: 14,
     fontWeight: 'bold',
+    color: '#333333',
   },
   itemFinalPrice: {
     fontSize: 16,
     fontWeight: 'bold',
     textAlign: 'right',
+    color: '#333333',
   },
   totalContainer: {
     flexDirection: 'row',
@@ -519,14 +547,17 @@ const commonStyles = {
     marginTop: 20,
     borderTopWidth: 1,
     paddingTop: 10,
+    borderColor: '#E6E6E6',
   },
   totalLabel: {
     fontSize: 16,
     fontWeight: 'bold',
+    color: '#333333',
   },
   totalPrice: {
     fontSize: 16,
     fontWeight: 'bold',
+    color: '#333333',
   },
   discountContainer: {
     flexDirection: 'row',
@@ -537,58 +568,50 @@ const commonStyles = {
   discountText: {
     fontSize: 14,
     marginLeft: 5,
+    color: '#FF5722',
   },
   discountAmount: {
     fontSize: 14,
     marginLeft: 'auto',
+    color: '#FF5722',
   },
   transactionId: {
     fontSize: 12,
     textAlign: 'center',
     marginTop: 20,
+    color: '#888888',
   },
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
   modalContent: {
     padding: 20,
     borderRadius: 10,
     width: '80%',
     alignItems: 'center',
+    backgroundColor: '#FFFFFF',
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 10,
+    color: '#333333',
   },
   modalSubtitle: {
     fontSize: 14,
     marginBottom: 20,
+    color: '#666666',
+    textAlign: 'center',
   },
-  ratingContainer: {
-    flexDirection: 'row',
-    marginBottom: 20,
+  closeButton: {
+    marginTop: 20,
   },
-  commentInput: {
-    width: '100%',
-    height: 80,
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    marginBottom: 20,
-    textAlignVertical: 'top',
-  },
-  submitButton: {
-    padding: 15,
-    borderRadius: 8,
-    width: '100%',
-    alignItems: 'center',
-  },
-  submitButtonText: {
+  closeButtonText: {
     fontSize: 16,
-    fontWeight: 'bold',
+    color: '#333333',
   },
   supportButton: {
     marginTop: 10,
@@ -596,329 +619,15 @@ const commonStyles = {
   supportButtonText: {
     fontSize: 14,
     textDecorationLine: 'underline',
-  },
-  closeButton: {
-    marginTop: 20,
-  },
-  closeButtonText: {
-    fontSize: 16,
-  },
-  iconColor: {
-    color: '#000',
-  },
-  statusInfo: {
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 20,
-    alignItems: 'center',
-  },
-  statusHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  statusText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginLeft: 10,
-  },
-  orderCodeText: {
-    fontSize: 16,
-    marginTop: 10,
-  },
-};
-
-const lightStyles = StyleSheet.create({
-  ...commonStyles,
-  container: {
-    ...commonStyles.container,
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000000',
-  },
-  status: {
-    ...commonStyles.status,
-    color: '#333333',
-  },
-  yellowBackground: {
-    ...commonStyles.yellowBackground,
-    backgroundColor: '#FFEFCF',
-  },
-  instruction: {
-    ...commonStyles.instruction,
-    color: '#888888',
-  },
-  codeDigit: {
-    ...commonStyles.codeDigit,
-    backgroundColor: '#FFFFFF',
-  },
-  codeText: {
-    ...commonStyles.codeText,
-    color: '#333333',
-  },
-  storeInfo: {
-    ...commonStyles.storeInfo,
-    borderColor: '#E6E6E6',
-  },
-  storeIcon: {
-    ...commonStyles.storeIcon,
-    backgroundColor: '#F6F6F6',
-  },
-  storeName: {
-    ...commonStyles.storeName,
-    color: '#000000',
-  },
-  storeAddress: {
-    ...commonStyles.storeAddress,
-    color: '#888888',
-  },
-  storeDistance: {
-    ...commonStyles.storeDistance,
-    color: '#888888',
-  },
-  deliveryInfo: {
-    ...commonStyles.deliveryInfo,
-    backgroundColor: '#FFF8E1',
-  },
-  deliveryTitle: {
-    ...commonStyles.deliveryTitle,
-    color: '#333333',
-  },
-  deliverySubtitle: {
-    ...commonStyles.deliverySubtitle,
-    color: '#888888',
-  },
-  itemQuantity: {
-    ...commonStyles.itemQuantity,
-    color: '#333333',
-  },
-  itemName: {
-    ...commonStyles.itemName,
-    color: '#333333',
-  },
-  itemFinalPrice: {
-    ...commonStyles.itemFinalPrice,
-    color: '#333333',
-  },
-  totalLabel: {
-    ...commonStyles.totalLabel,
-    color: '#333333',
-  },
-  totalPrice: {
-    ...commonStyles.totalPrice,
-    color: '#333333',
-  },
-  discountText: {
-    ...commonStyles.discountText,
-    color: '#FF5722',
-  },
-  discountAmount: {
-    ...commonStyles.discountAmount,
-    color: '#FF5722',
-  },
-  transactionId: {
-    ...commonStyles.transactionId,
-    color: '#888888',
-  },
-  modalContainer: {
-    ...commonStyles.modalContainer,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  modalContent: {
-    ...commonStyles.modalContent,
-    backgroundColor: '#FFFFFF',
-  },
-  modalTitle: {
-    ...commonStyles.modalTitle,
-    color: '#333333',
-  },
-  modalSubtitle: {
-    ...commonStyles.modalSubtitle,
-    color: '#666666',
-  },
-  commentInput: {
-    ...commonStyles.commentInput,
-    borderColor: '#DDDDDD',
-    color: '#000000',
-  },
-  submitButton: {
-    ...commonStyles.submitButton,
-    backgroundColor: '#FF9900',
-  },
-  submitButtonText: {
-    ...commonStyles.submitButtonText,
-    color: '#FFFFFF',
-  },
-  closeButtonText: {
-    ...commonStyles.closeButtonText,
-    color: '#333333',
-  },
-  supportButtonText: {
-    ...commonStyles.supportButtonText,
     color: '#007BFF',
   },
   iconColor: {
     color: '#000000',
   },
-  statusInfo: {
-    ...commonStyles.statusInfo,
-    backgroundColor: '#FFF8E1',
-  },
-  statusText: {
-    ...commonStyles.statusText,
-    color: '#333333',
-  },
-  orderCodeText: {
-    ...commonStyles.orderCodeText,
-    color: '#333333',
-  },
-});
+};
 
-const darkStyles = StyleSheet.create({
+const lightStyles = StyleSheet.create({
   ...commonStyles,
-  container: {
-    ...commonStyles.container,
-    backgroundColor: '#1E1E1E',
-    shadowColor: '#000000',
-  },
-  status: {
-    ...commonStyles.status,
-    color: '#FFFFFF',
-  },
-  yellowBackground: {
-    ...commonStyles.yellowBackground,
-    backgroundColor: '#333333',
-  },
-  instruction: {
-    ...commonStyles.instruction,
-    color: '#CCCCCC',
-  },
-  codeDigit: {
-    ...commonStyles.codeDigit,
-    backgroundColor: '#2A2A2A',
-  },
-  codeText: {
-    ...commonStyles.codeText,
-    color: '#FFFFFF',
-  },
-  storeInfo: {
-    ...commonStyles.storeInfo,
-    borderColor: '#333333',
-  },
-  summaryTitle: {
-    ...commonStyles.summaryTitle,
-    color: '#FFFFFF'
-  },
-  storeIcon: {
-    ...commonStyles.storeIcon,
-    backgroundColor: '#2A2A2A',
-  },
-  storeName: {
-    ...commonStyles.storeName,
-    color: '#FFFFFF',
-  },
-  storeAddress: {
-    ...commonStyles.storeAddress,
-    color: '#CCCCCC',
-  },
-  storeDistance: {
-    ...commonStyles.storeDistance,
-    color: '#CCCCCC',
-  },
-  deliveryInfo: {
-    ...commonStyles.deliveryInfo,
-    backgroundColor: '#2A2A2A',
-  },
-  deliveryTitle: {
-    ...commonStyles.deliveryTitle,
-    color: '#FFFFFF',
-  },
-  deliverySubtitle: {
-    ...commonStyles.deliverySubtitle,
-    color: '#CCCCCC',
-  },
-  itemQuantity: {
-    ...commonStyles.itemQuantity,
-    color: '#FFFFFF',
-  },
-  itemName: {
-    ...commonStyles.itemName,
-    color: '#FFFFFF',
-  },
-  itemFinalPrice: {
-    ...commonStyles.itemFinalPrice,
-    color: '#FFFFFF',
-  },
-  totalLabel: {
-    ...commonStyles.totalLabel,
-    color: '#FFFFFF',
-  },
-  totalPrice: {
-    ...commonStyles.totalPrice,
-    color: '#FFFFFF',
-  },
-  discountText: {
-    ...commonStyles.discountText,
-    color: '#FFA726',
-  },
-  discountAmount: {
-    ...commonStyles.discountAmount,
-    color: '#FFA726',
-  },
-  transactionId: {
-    ...commonStyles.transactionId,
-    color: '#CCCCCC',
-  },
-  modalContainer: {
-    ...commonStyles.modalContainer,
-    backgroundColor: 'rgba(0,0,0,0.8)',
-  },
-  modalContent: {
-    ...commonStyles.modalContent,
-    backgroundColor: '#1E1E1E',
-  },
-  modalTitle: {
-    ...commonStyles.modalTitle,
-    color: '#FFFFFF',
-  },
-  modalSubtitle: {
-    ...commonStyles.modalSubtitle,
-    color: '#CCCCCC',
-  },
-  commentInput: {
-    ...commonStyles.commentInput,
-    borderColor: '#444444',
-    color: '#FFFFFF',
-  },
-  submitButton: {
-    ...commonStyles.submitButton,
-    backgroundColor: '#FFC107',
-  },
-  submitButtonText: {
-    ...commonStyles.submitButtonText,
-    color: '#000000',
-  },
-  closeButtonText: {
-    ...commonStyles.closeButtonText,
-    color: '#FFFFFF',
-  },
-  supportButtonText: {
-    ...commonStyles.supportButtonText,
-    color: '#FF9800',
-  },
-  iconColor: {
-    color: '#FFFFFF',
-  },
-  statusInfo: {
-    ...commonStyles.statusInfo,
-    backgroundColor: '#2A2A2A',
-  },
-  statusText: {
-    ...commonStyles.statusText,
-    color: '#FFFFFF',
-  },
-  orderCodeText: {
-    ...commonStyles.orderCodeText,
-    color: '#FFFFFF',
-  },
 });
 
 export default OrderSummary;

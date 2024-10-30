@@ -32,7 +32,7 @@ const OrderScreen = () => {
 
   const user = userInfo?.data?.client || null;
   const token = userInfo?.data?.token || null;
-
+  const ordersIn = useSelector((state) => state.orders.ordersIn);
   const [orders, setOrders] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedOrderDetails, setSelectedOrderDetails] = useState([]);
@@ -47,6 +47,8 @@ const OrderScreen = () => {
   const [selectedOrderType, setSelectedOrderType] = useState('');
   const [showDatePickerModal, setShowDatePickerModal] = useState(false);
   const [finishedProcessed, setFinishedProcessed] = useState(false);
+
+  console.log(ordersIn, "order")
 
   const roundToTwo = (num) => {
     return Math.round((num + Number.EPSILON) * 100) / 100;
@@ -795,18 +797,21 @@ const OrderScreen = () => {
 
         {/* Order List */}
         {sortedOrders.length > 0 ? (
-          sortedOrders.map((item) => renderOrderItem({ item }))
-        ) : (
-          <View style={styles.noOrdersContainer}>
-            <Text style={styles.noOrdersText}>You don't have any orders yet!</Text>
-            <TouchableOpacity
-              style={styles.browseButton}
-              onPress={() => navigation.navigate('Restaurants')}
-            >
-              <Text style={styles.browseButtonText}>Explore Businesses</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+  sortedOrders.map((item) => renderOrderItem({ item }))
+) : (
+  ordersIn.length === 0 && (
+    <View style={styles.noOrdersContainer}>
+      <Text style={styles.noOrdersText}>You don't have any orders yet!</Text>
+      <TouchableOpacity
+        style={styles.browseButton}
+        onPress={() => navigation.navigate('Restaurants')}
+      >
+        <Text style={styles.browseButtonText}>Explore Businesses</Text>
+      </TouchableOpacity>
+    </View>
+  )
+)}
+
 
         {/* Modals */}
         {/* Order Details Modal */}
