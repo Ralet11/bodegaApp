@@ -17,6 +17,8 @@ import DiscountShopScroll from '../components/DiscountShopScroll';
 import { clearCart } from '../redux/slices/cart.slice';
 import * as Location from 'expo-location';
 import colors from '../components/themes/colors';
+import DeliveryModeToggle from '../components/DeliveryModeToggle';
+
 
 const DashboardDiscount = () => {
     const scheme = useColorScheme();
@@ -44,7 +46,6 @@ const DashboardDiscount = () => {
         dispatch(clearCart());
     }, [auxCart]);
 
-    // Extract unique tags from shops
     const extractTags = (shops) => {
         const tags = new Set();
         Object.keys(shops).forEach((categoryId) => {
@@ -58,7 +59,6 @@ const DashboardDiscount = () => {
         setAllTags(uniqueTagsArray);
     };
 
-    // Handle socket connections to sync shops
     useEffect(() => {
         const socket = socketIOClient(`${API_URL}`);
 
@@ -74,7 +74,6 @@ const DashboardDiscount = () => {
         };
     }, [dispatch]);
 
-    // Function to fetch shops
     const fetchShops = async () => {
         if (!token) {
             console.warn('Token not available');
@@ -97,7 +96,6 @@ const DashboardDiscount = () => {
         }
     };
 
-    // Function to get user's current location and set address
     const getCurrentLocation = async () => {
         try {
             let { status } = await Location.requestForegroundPermissionsAsync();
@@ -159,7 +157,6 @@ const DashboardDiscount = () => {
         }
     };
 
-    // Fetch user discounts
     useEffect(() => {
         if (user?.id && token) {
             const fetchUserDiscounts = async () => {
@@ -179,7 +176,6 @@ const DashboardDiscount = () => {
         }
     }, [user?.id, token, dispatch]);
 
-    // Fetch shops and set current location when component mounts
     useEffect(() => {
         if (token) {
             fetchShops();
@@ -189,7 +185,6 @@ const DashboardDiscount = () => {
         }
     }, [auxShops, token]);
 
-    // Prevent back button from closing the app
     useFocusEffect(
         useCallback(() => {
             const onBackPress = () => true;
@@ -202,7 +197,6 @@ const DashboardDiscount = () => {
         }, [])
     );
 
-    // Clear search query when screen is focused
     useFocusEffect(
         useCallback(() => {
             setSearchQuery('');
@@ -252,13 +246,11 @@ const DashboardDiscount = () => {
         }
     };
 
-    // Updated handleToggle function to use 'Dine-in' and 'Pickup'
     const handleToggle = (mode) => {
         setDeliveryMode(mode);
         filterShopsByTags(shopsByCategory, mode);
     };
 
-    // Updated filterShopsByTags function to match new delivery modes
     const filterShopsByTags = (shops, mode) => {
         const currentDateTime = new Date();
         const currentDay = currentDateTime.toLocaleString('en-US', { weekday: 'short' }).toLowerCase();
@@ -316,42 +308,11 @@ const DashboardDiscount = () => {
                         >
                             {address}
                         </Text>
-                       
                     </View>
-                    <View style={styles.deliveryToggleContainer}>
-                        <TouchableOpacity
-                            style={[
-                                styles.deliveryToggleButton,
-                                deliveryMode === 'Dine-in' && styles.selectedButton,
-                            ]}
-                            onPress={() => handleToggle('Dine-in')}
-                        >
-                            <Text
-                                style={[
-                                    styles.deliveryToggleText,
-                                    deliveryMode === 'Dine-in' && styles.selectedButtonText,
-                                ]}
-                            >
-                                Dine-in
-                            </Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={[
-                                styles.deliveryToggleButton,
-                                deliveryMode === 'Pickup' && styles.selectedButton,
-                            ]}
-                            onPress={() => handleToggle('Pickup')}
-                        >
-                            <Text
-                                style={[
-                                    styles.deliveryToggleText,
-                                    deliveryMode === 'Pickup' && styles.selectedButtonText,
-                                ]}
-                            >
-                                Pickup
-                            </Text>
-                        </TouchableOpacity>
-                    </View>
+                    <DeliveryModeToggle
+                        deliveryMode={deliveryMode}
+                        onToggle={handleToggle}
+                    />
                 </View>
                 <View style={styles.searchContainer}>
                     <TouchableOpacity
@@ -416,7 +377,6 @@ const DashboardDiscount = () => {
                                 scheme={scheme}
                                 handleItemPress={handleShopPress}
                                 allTags={allTags}
-                               
                             />
                         )
                     )
@@ -431,7 +391,6 @@ const DashboardDiscount = () => {
                 user={user}
             />
 
-            {/* Modal to change address */}
             <Modal
                 animationType="slide"
                 transparent={true}
@@ -488,32 +447,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
         paddingVertical: 5,
     },
-    deliveryToggleContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        height: 30,
-        paddingHorizontal: 5,
-    },
-    deliveryToggleButton: {
-        paddingVertical: 3,
-        paddingHorizontal: 8,
-        marginHorizontal: 2,
-        borderRadius: 5,
-        borderWidth: 1,
-        borderColor: '#ccc',
-        backgroundColor: 'transparent',
-    },
-    selectedButton: {
-        backgroundColor: colors.primary,
-        borderColor: colors.primary,
-    },
-    deliveryToggleText: {
-        fontSize: 12,
-        color: '#000',
-    },
-    selectedButtonText: {
-        color: '#000',
-    },
     searchContainer: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -524,10 +457,10 @@ const styles = StyleSheet.create({
     },
     searchInput: {
         flex: 1,
-        height: 35,
+        height: 40,
         backgroundColor: '#f0f0f0',
         borderRadius: 5,
-        paddingHorizontal: 10,
+        paddingHorizontal: 20,
         fontSize: 14,
         color: '#333',
     },
@@ -560,7 +493,7 @@ const styles = StyleSheet.create({
     modalButtonText: {
         color: 'black',
     },
-    // ... other styles if needed
 });
 
 export default DashboardDiscount;
+

@@ -221,7 +221,7 @@ const LoginScreen = () => {
         if (response.data.error === false) {
           const _clientData = response.data;
           dispatch(setUser(_clientData));
-          dispatch(fetchCategories());
+       /*    dispatch(fetchCategories()); */
           navigation.navigate('Main');
         } else {
           Toast.show({
@@ -349,7 +349,7 @@ const LoginScreen = () => {
                 </View>
                 <View style={styles.rememberForgotContainer}>
                   <TouchableOpacity>
-                    <Text style={styles.forgotText}>Forgot Password?</Text>
+                    <Text style={styles.forgotText}>Forgot the Password?</Text>
                   </TouchableOpacity>
                 </View>
                 <TouchableOpacity onPress={handleLogin} style={styles.signInButton} disabled={loading}>

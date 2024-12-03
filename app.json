@@ -7,14 +7,17 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./assets/splash.jpg",
+      "image": "./assets/icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.khtech.bodega", //
-      "buildNumber": "2"
+      "bundleIdentifier": "com.khtech.bodega",
+      "buildNumber": "2",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "We need your location to provide better service."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -44,7 +47,8 @@
         "projectId": "970339da-ca20-4e85-b0fd-b3d562637f41"
       }
     },
- "scheme": "bodegaplus"
+    "scheme": "bodegaplus",
+    "jsEngine": "hermes",
+    "newArchEnabled": true,
   }
 }
-

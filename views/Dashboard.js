@@ -300,7 +300,7 @@ const filterShopsByTags = (shops, mode) => {
 
   return (
     <SafeAreaView style={lightTheme.safeArea}>
-      <View style={lightTheme.header}>
+     {/*  <View style={lightTheme.header}>
         <View style={lightTheme.addressToggleContainer}>
           <TouchableOpacity onPress={changeAddress} style={{ flexDirection: 'row', alignItems: 'center' }}>
             <FontAwesome name="map-marker" size={20} color="#333" style={{ marginRight: 5 }} />
@@ -434,7 +434,7 @@ const filterShopsByTags = (shops, mode) => {
             </TouchableOpacity>
           </View>
         </View>
-      </Modal>
+      </Modal> */}
     </SafeAreaView>
   );
 }  

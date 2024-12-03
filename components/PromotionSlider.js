@@ -1,46 +1,66 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
-  Image,
   StyleSheet,
   Dimensions,
   TouchableOpacity,
   Animated,
   Text,
+  Image,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Video } from 'expo-av';
+import { useIsFocused } from '@react-navigation/native';
 
 const { width } = Dimensions.get('window');
 
 const HypermodernImageSlider = ({
-  images = ['https://res.cloudinary.com/doqyrz0sg/image/upload/v1721243364/Portada_de_facebook_negro_y_amarillo_hamburguesa_y_patatas_fritas_foto_1_liby8y.png'], // Default to an empty array if images is undefined or null
+  items = [
+    {
+      uri: 'https://res.cloudinary.com/doqyrz0sg/video/upload/v1732142698/Red_Yellow_Modern_Bold_Fast_Food_Discount_Promotion_Video_zhptcf.mp4',
+      type: 'video',
+    },
+  ],
   autoPlayInterval = 3000,
   style,
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const scrollX = useRef(new Animated.Value(0)).current;
   const slideRef = useRef(null);
+  const intervalRef = useRef(null);
+  const videoRef = useRef(null); // Referencia al componente Video
+  const isFocused = useIsFocused(); // Saber si la pantalla está enfocada
 
+  // Manejo del desplazamiento automático
   useEffect(() => {
-    if (images.length === 0) return; // No images, no autoplay
+    if (items.length === 0 || !isFocused) return;
 
-    const timer = setInterval(() => {
-      if (currentIndex < images.length - 1) {
-        slideRef.current.scrollTo({
-          x: (currentIndex + 1) * width,
-          animated: true,
-        });
-      } else {
-        slideRef.current.scrollTo({
-          x: 0,
-          animated: true,
-        });
-      }
+    intervalRef.current = setInterval(() => {
+      setCurrentIndex((prevIndex) =>
+        prevIndex < items.length - 1 ? prevIndex + 1 : 0
+      );
     }, autoPlayInterval);
 
-    return () => clearInterval(timer);
-  }, [currentIndex, images.length, autoPlayInterval]);
+    return () => clearInterval(intervalRef.current);
+  }, [isFocused]);
+
+  // Desplazarse al índice actual
+  useEffect(() => {
+    if (slideRef.current) {
+      slideRef.current.scrollTo({
+        x: currentIndex * width,
+        animated: true,
+      });
+    }
+  }, [currentIndex]);
+
+  useEffect(() => {
+    if (!isFocused && videoRef.current) {
+      // Pausar el video cuando la pantalla pierde el foco
+      videoRef.current.stopAsync();
+    }
+  }, [isFocused]);
 
   const handleScroll = Animated.event(
     [{ nativeEvent: { contentOffset: { x: scrollX } } }],
@@ -52,7 +72,16 @@ const HypermodernImageSlider = ({
     setCurrentIndex(newIndex);
   };
 
-  return images.length > 0 ? (
+  const handlePlaybackStatusUpdate = (status) => {
+    if (status.didJustFinish) {
+      // Avanzar al siguiente slide cuando termine el video
+      setCurrentIndex((prevIndex) =>
+        prevIndex < items.length - 1 ? prevIndex + 1 : 0
+      );
+    }
+  };
+
+  return items.length > 0 ? (
     <View style={[styles.container, style]}>
       <Animated.ScrollView
         ref={slideRef}
@@ -63,82 +92,51 @@ const HypermodernImageSlider = ({
         onMomentumScrollEnd={handleMomentumScrollEnd}
         scrollEventThrottle={16}
       >
-        {images.map((image, index) => (
+        {items.map((item, index) => (
           <View key={index} style={styles.slide}>
-            <Image source={{ uri: image.uri || image }} style={styles.image} />
+            {item.type === 'video' ? (
+              <Video
+                ref={currentIndex === index ? videoRef : null} // Referencia solo si está activo
+                source={{ uri: item.uri }}
+                style={styles.media}
+                resizeMode="cover"
+                shouldPlay={isFocused && currentIndex === index}
+                isLooping={false}
+                onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
+                onError={(error) => console.error('Video Error:', error)}
+              />
+            ) : (
+              <Image
+                source={{ uri: item.uri }}
+                style={styles.media}
+                onError={() => console.error('Image failed to load:', item.uri)}
+              />
+            )}
             <LinearGradient
               colors={['transparent', 'rgba(0,0,0,0.7)']}
               style={styles.gradient}
             />
-            {image.title && (
+            {item.title && (
               <BlurView intensity={80} tint="dark" style={styles.titleContainer}>
-                <Animated.Text
-                  style={[
-                    styles.title,
-                    {
-                      opacity: scrollX.interpolate({
-                        inputRange: [
-                          (index - 1) * width,
-                          index * width,
-                          (index + 1) * width,
-                        ],
-                        outputRange: [0, 1, 0],
-                        extrapolate: 'clamp',
-                      }),
-                      transform: [
-                        {
-                          translateY: scrollX.interpolate({
-                            inputRange: [
-                              (index - 1) * width,
-                              index * width,
-                              (index + 1) * width,
-                            ],
-                            outputRange: [20, 0, 20],
-                            extrapolate: 'clamp',
-                          }),
-                        },
-                      ],
-                    },
-                  ]}
-                >
-                  {image.title}
-                </Animated.Text>
+                <Text style={styles.title}>{item.title}</Text>
               </BlurView>
             )}
           </View>
         ))}
       </Animated.ScrollView>
       <View style={styles.pagination}>
-        {images.map((_, index) => (
+        {items.map((_, index) => (
           <TouchableOpacity
             key={index}
             style={styles.paginationDotContainer}
             onPress={() => {
-              slideRef.current.scrollTo({
-                x: index * width,
-                animated: true,
-              });
+              setCurrentIndex(index);
             }}
           >
-            <Animated.View
+            <View
               style={[
                 styles.paginationDot,
-                {
-                  opacity: scrollX.interpolate({
-                    inputRange: [(index - 1) * width, index * width, (index + 1) * width],
-                    outputRange: [0.3, 1, 0.3],
-                    extrapolate: 'clamp',
-                  }),
-                  transform: [
-                    {
-                      scale: scrollX.interpolate({
-                        inputRange: [(index - 1) * width, index * width, (index + 1) * width],
-                        outputRange: [1, 1.5, 1],
-                        extrapolate: 'clamp',
-                      }),
-                    },
-                  ],
-                },
+                currentIndex === index && styles.paginationDotActive,
               ]}
             />
           </TouchableOpacity>
@@ -146,29 +144,30 @@ const HypermodernImageSlider = ({
       </View>
     </View>
   ) : (
-    <View style={styles.noImagesContainer}>
-      <Text style={styles.noImagesText}>No images to display</Text>
+    <View style={styles.noItemsContainer}>
+      <Text style={styles.noItemsText}>No items to display</Text>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    height: 200, // Reducimos la altura
+    height: 200,
     width: '100%',
-    borderRadius: 20, // Añadimos bordes redondeados
-    overflow: 'hidden', // Nos aseguramos de que los bordes redondeados funcionen
+    borderRadius: 20,
+    overflow: 'hidden',
   },
   slide: {
     width,
     height: '100%',
-    borderRadius: 20, // Borde redondeado en cada slide
+    borderRadius: 20,
   },
-  image: {
+  media: {
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
-    borderRadius: 20, // Bordes redondeados para las imágenes
+    borderRadius: 20,
+    backgroundColor: 'black',
   },
   gradient: {
     position: 'absolute',
@@ -176,7 +175,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     height: '50%',
-    borderRadius: 20, // Aplicamos el borde redondeado también al gradiente
+    borderRadius: 20,
   },
   titleContainer: {
     position: 'absolute',
@@ -208,15 +207,20 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: '#fff',
+    opacity: 0.5,
   },
-  noImagesContainer: {
-    height: 200, // Ajustamos la altura para que coincida
+  paginationDotActive: {
+    opacity: 1,
+    backgroundColor: '#fff',
+  },
+  noItemsContainer: {
+    height: 200,
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 20,
     overflow: 'hidden',
   },
-  noImagesText: {
+  noItemsText: {
     fontSize: 18,
     color: '#999',
   },

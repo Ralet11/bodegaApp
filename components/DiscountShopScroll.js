@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  useColorScheme,
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { useSelector } from 'react-redux';
@@ -16,14 +15,14 @@ import { useNavigation } from '@react-navigation/native';
 import colors from './themes/colors';
 
 const DiscountShopScroll = ({ title, items, handleItemPress, allTags }) => {
-  const scheme = useColorScheme();
-  const colors = getColors(scheme);
-  const styles = scheme === 'dark' ? darkTheme(colors) : lightTheme(colors);
+  const colors = getColors();
+  const styles = lightTheme(colors);
   const navigation = useNavigation();
   const tag = allTags.find((tag) => tag.name === title);
 
   const [distances, setDistances] = useState({});
   const [isLoading, setIsLoading] = useState(true);
+  const [nearbyShops, setNearbyShops] = useState([]);
   const address = useSelector((state) => state?.user?.address?.formatted_address);
 
   const GOOGLE_MAPS_API_KEY = 'AIzaSyAvritMA-llcdIPnOpudxQ4aZ1b5WsHHUc';
@@ -32,6 +31,7 @@ const DiscountShopScroll = ({ title, items, handleItemPress, allTags }) => {
     const fetchDistances = async () => {
       setIsLoading(true);
       const newDistances = {};
+      const nearby = [];
       for (const item of items) {
         if (item.address) {
           try {
@@ -43,13 +43,10 @@ const DiscountShopScroll = ({ title, items, handleItemPress, allTags }) => {
             const distanceTextKm = response.data.rows[0].elements[0].distance.text;
             const distanceValueKm = response.data.rows[0].elements[0].distance.value / 1000;
 
-            // Convert kilometers to miles (1 kilometer = 0.621371 miles)
-            const distanceValueMiles = distanceValueKm * 0.621371;
-            const distanceTextMiles = `${distanceValueMiles.toFixed(2)} mi`;
-
-            // Only add to distances if it's within 20 miles
-            if (distanceValueMiles <= 20) {
-              newDistances[item.address] = distanceTextMiles;
+            // Solo agregar direcciones dentro del rango de 50 kilómetros
+            if (distanceValueKm <= 50) {
+              newDistances[item.address] = distanceTextKm;
+              nearby.push(item);
             }
           } catch (error) {
             console.error('Error fetching distance:', error);
@@ -57,6 +54,7 @@ const DiscountShopScroll = ({ title, items, handleItemPress, allTags }) => {
         }
       }
       setDistances(newDistances);
+      setNearbyShops(nearby);
       setIsLoading(false);
     };
 
@@ -65,7 +63,7 @@ const DiscountShopScroll = ({ title, items, handleItemPress, allTags }) => {
     }
   }, [address, items]);
 
-  // Function to get category message with emoji
+  // Función para obtener el mensaje de categoría con emoji
   const getCategoryMessage = (tag) => {
     const { name, emoji } = tag;
 
@@ -113,96 +111,99 @@ const DiscountShopScroll = ({ title, items, handleItemPress, allTags }) => {
     navigation.navigate('CategoryShops', { selectedTag: tag, allTags });
   };
 
+  if (isLoading) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color={colors.textColor} />
+      </View>
+    );
+  }
+
+  if (nearbyShops.length === 0) {
+    return null; // No renderizar nada si no hay tiendas cercanas para esta categoría
+  }
+
   return (
-    <View style={lightTheme(colors).container}>
-      <View style={lightTheme(colors).header}>
-        <Text style={lightTheme(colors).headerTitle}>{getCategoryMessage(tag)}</Text>
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>{getCategoryMessage(tag)}</Text>
         <TouchableOpacity onPress={() => handleSeeMore(tag)}>
-          <Text style={lightTheme(colors).viewMore}>See more</Text>
+          <Text style={styles.viewMore}>See more</Text>
         </TouchableOpacity>
       </View>
-      {isLoading ? (
-        <ActivityIndicator size="large" color={colors.textColor} />
-      ) : (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={lightTheme(colors).scrollView}
-        >
-          {items.map((item, index) => {
-            if (!distances[item.address]) {
-              return null;
-            }
-            return (
-              <TouchableOpacity
-                key={index}
-                style={lightTheme(colors).itemContainer}
-                onPress={() => handleItemPress(item)}
-              >
-                <View style={lightTheme(colors).card}>
-                  <Image
-                    source={{ uri: item.image || item.deliveryImage }}
-                    style={lightTheme(colors).itemImage}
-                  />
-                  <View style={lightTheme(colors).itemContent}>
-                    <View style={lightTheme(colors).row}>
-                      <View
-                        style={[
-                          lightTheme(colors).logoContainer,
-                          { backgroundColor: colors.cardBackgroundColor },
-                        ]}
-                      >
-                        <Image source={{ uri: item.logo }} style={lightTheme(colors).logoImage} />
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.scrollView}
+      >
+        {nearbyShops.map((item, index) => (
+          <TouchableOpacity
+            key={index}
+            style={styles.itemContainer}
+            onPress={() => handleItemPress(item)}
+          >
+            <View style={styles.card}>
+              <Image
+                source={{ uri: item.image || item.deliveryImage }}
+                style={styles.itemImage}
+              />
+              <View style={styles.itemContent}>
+                <View style={styles.row}>
+                  <View
+                    style={[
+                      styles.logoContainer,
+                      { backgroundColor: colors.cardBackgroundColor },
+                    ]}
+                  >
+                    <Image source={{ uri: item.logo }} style={styles.logoImage} />
+                  </View>
+                  <View style={styles.infoColumn}>
+                    <Text
+                      style={styles.itemName}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.5}
+                    >
+                      {item.name || item.product}
+                    </Text>
+                    <View style={styles.subInfoRow}>
+                      <View style={styles.iconRow}>
+                        <FontAwesome
+                          name="street-view"
+                          size={14}
+                          color={colors.iconColor}
+                        />
+                        <Text style={styles.distanceText}>{distances[item.address]}</Text>
                       </View>
-                      <View style={lightTheme(colors).infoColumn}>
-                        <Text
-                          style={lightTheme(colors).itemName}
-                          numberOfLines={1}
-                          adjustsFontSizeToFit
-                          minimumFontScale={0.5}
-                        >
-                          {item.name || item.product}
-                        </Text>
-                        <View style={lightTheme(colors).subInfoRow}>
-                          <View style={lightTheme(colors).iconRow}>
-                            <FontAwesome
-                              name="street-view"
-                              size={14}
-                              color={colors.iconColor}
-                            />
-                            <Text style={lightTheme(colors).distanceText}>{distances[item.address]}</Text>
-                          </View>
-                          <View style={lightTheme(colors).ratingContainer}>
-                            <FontAwesome name="star" size={14} color={colors.starColor} />
-                            <Text style={lightTheme(colors).ratingText}>{item.rating.toFixed(2)}</Text>
-                          </View>
-                        </View>
+                      <View style={styles.ratingContainer}>
+                        <FontAwesome name="star" size={14} color={colors.starColor} />
+                        <Text style={styles.ratingText}>{item.rating.toFixed(2)}</Text>
                       </View>
                     </View>
                   </View>
                 </View>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      )}
+              </View>
+            </View>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
     </View>
   );
 };
 
-// Function to define colors based on the theme
-const getColors = (scheme) => ({
-  textColor: scheme === 'dark' ? '#E0E0E0' : '#000000', // Cambiado a negro puro
-  secondaryTextColor: scheme === 'dark' ? '#B0B0B0' : '#333333', // Un gris oscuro más visible
-  backgroundColor: scheme === 'dark' ? '#121212' : '#F5F5F5',
-  cardBackgroundColor: scheme === 'dark' ? '#1E1E1E' : '#FFFFFF',
-  borderColor: scheme === 'dark' ? '#333333' : '#E0E0E0',
-  iconColor: scheme === 'dark' ? '#B0B0B0' : '#666666',
-  accentColor: scheme === 'dark' ? colors.primary : '#FF6347',
+// Función para definir colores
+const getColors = () => ({
+  textColor: '#000000',
+  secondaryTextColor: '#333333',
+  backgroundColor: '#F5F5F5',
+  cardBackgroundColor: '#FFFFFF',
+  borderColor: '#E0E0E0',
+  iconColor: '#666666',
+  accentColor: '#FF6347',
   starColor: '#FFD700',
 });
 
-// Common styles shared between themes
+// Estilos comunes compartidos entre temas
 const commonStyles = {
   container: { marginVertical: 20, paddingHorizontal: 15 },
   header: {
@@ -219,7 +220,6 @@ const commonStyles = {
     width: 250,
     borderRadius: 12,
     overflow: 'hidden',
-
     marginBottom: 5,
   },
   itemImage: {
@@ -267,17 +267,16 @@ const commonStyles = {
   distanceText: { fontSize: 14, marginLeft: 4 },
 };
 
-// Styles for light theme
+// Estilos para el tema claro
 const lightTheme = (colors) =>
   StyleSheet.create({
     ...commonStyles,
-    container: { ...commonStyles.container, backgroundColor: '#FFFFFF' }, // Fondo blanco
+    container: { ...commonStyles.container, backgroundColor: '#FFFFFF' },
     headerTitle: { ...commonStyles.headerTitle },
     viewMore: { ...commonStyles.viewMore, color: colors.accentColor },
     card: {
       ...commonStyles.card,
-      backgroundColor: '#FFFFFF', // Fondo blanco en las cards también
-   
+      backgroundColor: '#FFFFFF',
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.1,
@@ -288,37 +287,10 @@ const lightTheme = (colors) =>
       ...commonStyles.logoContainer,
       borderColor: colors.borderColor,
     },
-    itemName: { ...commonStyles.itemName}, // Negro puro
-    ratingText: { ...commonStyles.ratingText }, // Cambiado a negro puro
-    distanceText: { ...commonStyles.distanceText}, // Cambiado a negro puro
-    itemContent: { ...commonStyles.itemContent, backgroundColor: '#FFFFFF' }, // Fondo blanco para el contenido
-  });
-
-// Styles for dark theme
-const darkTheme = (colors) =>
-  StyleSheet.create({
-    ...commonStyles,
-    container: { ...commonStyles.container, backgroundColor: colors.backgroundColor },
-    headerTitle: { ...commonStyles.headerTitle, color: colors.textColor },
-    viewMore: { ...commonStyles.viewMore, color: colors.accentColor },
-    card: {
-      ...commonStyles.card,
-      backgroundColor: colors.cardBackgroundColor,
-      borderColor: colors.borderColor,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.2,
-      shadowRadius: 4,
-      elevation: 4,
-    },
-    logoContainer: {
-      ...commonStyles.logoContainer,
-      borderColor: colors.borderColor,
-    },
-    itemName: { ...commonStyles.itemName, color: colors.textColor },
-    ratingText: { ...commonStyles.ratingText, color: colors.secondaryTextColor },
-    distanceText: { ...commonStyles.distanceText, color: colors.secondaryTextColor },
-    itemContent: { ...commonStyles.itemContent, backgroundColor: colors.cardBackgroundColor },
+    itemName: { ...commonStyles.itemName },
+    ratingText: { ...commonStyles.ratingText },
+    distanceText: { ...commonStyles.distanceText },
+    itemContent: { ...commonStyles.itemContent, backgroundColor: '#FFFFFF' },
   });
 
 export default DiscountShopScroll;
