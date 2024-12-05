@@ -3,6 +3,8 @@ import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-nati
 import { API_URL } from '@env';
 import Axios from 'react-native-axios';
 import { useNavigation } from '@react-navigation/native';
+import { useDispatch, useSelector } from 'react-redux';
+import { setAdjustedPurchaseCount } from '../redux/slices/promotion.slice';
 import { ShoppingBag, Gift } from 'lucide-react-native';
 import Animated, { FadeIn, Layout } from 'react-native-reanimated';
 
@@ -11,29 +13,50 @@ const CARD_WIDTH = width * 0.9;
 
 const ProductCard = ({ promotion, user, token, shop }) => {
   const navigation = useNavigation();
+  const dispatch = useDispatch();
+
+  // Leer el estado global
+  const adjustedPurchaseCounts = useSelector((state) => state.promotions.adjustedPurchaseCounts || {});
+
+  // Estado local para la promo del usuario
   const [userPromo, setUserPromo] = useState(null);
 
   useEffect(() => {
     const fetchUserPromotions = async () => {
       const data = {
         user_id: user.id,
-        promotion_id: promotion[0].id,
+        localId: shop.id,
       };
+
       try {
         const response = await Axios.post(`${API_URL}/api/promotions/getUserPromotions`, { data }, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
-        setUserPromo(response.data);
+
+        const fetchedPromo = response.data;
+        setUserPromo(fetchedPromo);
+
+        // Si no hay un valor en adjustedPurchaseCounts para este shopId, lo seteamos
+        if (adjustedPurchaseCounts[shop.id] === undefined && fetchedPromo) {
+          dispatch(setAdjustedPurchaseCount({
+            shopId: shop.id,
+            adjustedPurchaseCount: fetchedPromo.purchaseCount,
+          }));
+        }
       } catch (error) {
         console.error('Error fetching user promotions:', error);
       }
     };
+
     fetchUserPromotions();
   }, [user.id, promotion, token]);
 
-  const purchaseCount = userPromo?.purchaseCount || 0;
+  // Usar el valor ajustado del estado global si está definido, de lo contrario, usar el del backend
+  const purchaseCount = adjustedPurchaseCounts[shop.id] !== undefined
+    ? adjustedPurchaseCounts[shop.id]
+    : userPromo?.purchaseCount || 0;
 
   const availablePrizes = promotion.reduce((acc, promo) => {
     if (purchaseCount >= promo.quantity) {
@@ -43,7 +66,7 @@ const ProductCard = ({ promotion, user, token, shop }) => {
   }, 0);
 
   const goPromoScreen = () => {
-    navigation.navigate('PromoMealScreen', { promotion, userPromo, shopName: shop.name });
+    navigation.navigate('PromoMealScreen', { promotion, userPromo, shopName: shop.name, shopId: shop.id });
   };
 
   return (
@@ -53,6 +76,7 @@ const ProductCard = ({ promotion, user, token, shop }) => {
         entering={FadeIn.duration(500)}
         layout={Layout.springify()}
       >
+        <Text style={styles.titleText}>Eat & Earn</Text>
         <View style={styles.contentContainer}>
           <View style={styles.iconContainer}>
             <ShoppingBag size={24} color="#F59E0B" />
@@ -89,6 +113,15 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
     width: CARD_WIDTH,
+  },
+  titleText: {
+    position: 'absolute',
+    top: 8,
+    right: 12,
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#92400E',
+    opacity: 0.8,
   },
   contentContainer: {
     flexDirection: 'row',

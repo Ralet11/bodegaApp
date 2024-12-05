@@ -540,7 +540,7 @@ const ShopScreen = () => {
                   selectedDiscount={selectedDiscount}
                   setSelectedDiscount={setSelectedDiscount}
                   cart={cart}
-                  discounts={groupedDiscounts} // Already grouped regardless of orderType
+                  discounts={groupedDiscounts} 
                   handleAddToCart={handleAddToCart}
                   handleAddDiscountToCart={handleAddDiscountToCart}
                   selectedOptions={selectedOptions}

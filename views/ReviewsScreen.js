@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,30 +6,28 @@ import {
   ScrollView,
   StyleSheet,
   Alert,
+  Modal,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { API_URL } from '@env'; // Ensure you have your API URL configured
 import ReviewCard from '../components/ReviewsCards'; // Adjust the import path as needed
-import Axios from 'react-native-axios';
 import { useSelector } from 'react-redux';
-import { SafeAreaView } from 'react-native-safe-area-context'; // Import SafeAreaView
-
-const filters = ['Relevant', 'Recent', 'Highest Rated', 'Lowest Rated'];
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const ReviewScreen = () => {
-  const [selectedFilter, setSelectedFilter] = useState('Relevant');
-  
+  const [infoModalVisible, setInfoModalVisible] = useState(false);
   const navigation = useNavigation();
   const route = useRoute();
   const { shop, reviews } = route.params || {};
   const token = useSelector((state) => state?.user?.userInfo.data.token);
 
-
+  const toggleInfoModal = () => {
+    setInfoModalVisible(!infoModalVisible);
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* Header with the title */}
+      {/* Enhanced Header */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.goBackButton}
@@ -45,41 +43,15 @@ const ReviewScreen = () => {
         </TouchableOpacity>
 
         <Text style={styles.headerTitle}>Reviews</Text>
-      </View>
-
-      {/* Filters */}
-      <View style={styles.filterWrapper}>
-        <ScrollView
-          horizontal
-          style={styles.filterContainer}
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterContentContainer}
-        >
-          {filters.map((filter, index) => (
-            <TouchableOpacity
-              key={index}
-              style={[
-                styles.filterButton,
-                selectedFilter === filter && styles.filterButtonSelected,
-              ]}
-              onPress={() => setSelectedFilter(filter)}
-            >
-              <Text
-                style={[
-                  styles.filterText,
-                  selectedFilter === filter && styles.filterTextSelected,
-                ]}
-              >
-                {filter}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+        
+        <TouchableOpacity style={styles.infoButton} onPress={toggleInfoModal}>
+          <Icon name="information-circle-outline" size={24} color="#fff" />
+        </TouchableOpacity>
       </View>
 
       {/* List of reviews or "no reviews" message */}
       <ScrollView contentContainerStyle={styles.reviewList}>
-        {reviews.length > 0 ? (
+        {reviews && reviews.length > 0 ? (
           reviews.map((review, index) => (
             <ReviewCard key={index} review={review} />
           ))
@@ -90,11 +62,31 @@ const ReviewScreen = () => {
           </View>
         )}
       </ScrollView>
+
+      {/* Info Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={infoModalVisible}
+        onRequestClose={toggleInfoModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>About Reviews</Text>
+            <Text style={styles.modalText}>
+              This screen displays all reviews for the selected place. Reviews are sorted by relevance and include ratings and comments from users who have visited this location.
+            </Text>
+            <TouchableOpacity style={styles.closeButton} onPress={toggleInfoModal}>
+              <Text style={styles.closeButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
 
-// Styles
+// Enhanced Styles
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -102,73 +94,42 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingVertical: 15,
-    paddingHorizontal: 15,
-    backgroundColor: '#333',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
-    flexDirection: 'row',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-  },
-  goBackButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#000',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  filterWrapper: {
-    height: 40,
-    marginVertical: 20,
-  },
-  filterContainer: {
-    backgroundColor: '#fff',
-    paddingVertical: 0,
-    height: 40,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
-  },
-  filterContentContainer: {
+    paddingHorizontal: 20,
+    backgroundColor: '#FFC107', // Changed to match card style
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 15,
-  },
-  filterButton: {
-    marginRight: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-    borderRadius: 20,
-    backgroundColor: '#E0E0E0',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  filterButtonSelected: {
-    backgroundColor: '#FFC107',
+    justifyContent: 'space-between',
+    borderBottomLeftRadius: 15,
+    borderBottomRightRadius: 15,
+    elevation: 5,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 3,
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
-  filterText: {
-    fontSize: 14,
-    color: '#757575',
+  goBackButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  filterTextSelected: {
-    color: '#fff',
+  headerTitle: {
+    fontSize: 22,
     fontWeight: 'bold',
+    color: '#fff',
+    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+  },
+  infoButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   reviewList: {
     padding: 15,
@@ -180,11 +141,47 @@ const styles = StyleSheet.create({
     marginTop: 50,
   },
   noReviewsText: {
-    fontSize: 16,
-    color: '#B0B0B0',
-    marginTop: 10,
+    fontSize: 18,
+    color: '#7A7A7A',
+    marginTop: 15,
     textAlign: 'center',
+    fontWeight: '500',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 20,
+    width: '80%',
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  modalText: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  closeButton: {
+    backgroundColor: '#FFC107',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+  },
+  closeButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 
 export default ReviewScreen;
+

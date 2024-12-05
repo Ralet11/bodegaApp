@@ -39,12 +39,13 @@ import { setUser } from '../redux/slices/user.slice';
 import Toast from 'react-native-toast-message';
 import SelectAddressModal from '../components/modals/SelectYourAddressModal';
 import CheckoutConfirmationModal from '../components/modals/CheckoutConfirmationModal';
+import { useIsFocused } from '@react-navigation/native';
 
 const CartItem = ({ item }) => {
   const dispatch = useDispatch();
   const navigation = useNavigation();
   const colorScheme = useColorScheme();
-
+ 
   const selectedExtrasArray = Object.values(item.selectedExtras || {}).flat();
 
   const itemPrice =
@@ -164,6 +165,7 @@ const CartScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [confirmationModalVisible, setConfirmationModalVisible] =
     useState(false);
+    const isFocused = useIsFocused();
   const [checkoutModalVisible, setCheckoutModalVisible] = useState(false);
   const [newOrderType, setNewOrderType] = useState(
     route.params?.orderType || 'Pick-up'
@@ -533,18 +535,20 @@ const CartScreen = () => {
   };
 
   const handleOrder = async (pi) => {
+    console.log('Starting handleOrder...');
+    
     const realTotalPrice = parseFloat(calculateRealTotal());
     const totalPriceAfterBalance = parseFloat(
       calculateTotalAfterBalance(realTotalPrice)
     );
-
+  
     const deliveryAddress = {
       address: orderType === 'Delivery' ? address : '',
       instructions: deliveryInstructions,
     };
-
+  
     const hasPromotion = cart.some((item) => item.promotion);
-
+  
     const data = {
       delivery_fee: deliveryFee,
       total_price: realTotalPrice,
@@ -562,81 +566,83 @@ const CartScreen = () => {
       tip: calculateTipAmount(parseFloat(calculateSubtotal())),
       promotion: hasPromotion ? true : false,
     };
-
+  
+    console.log('Order data to send:', data);
+  
     try {
       const headers = {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       };
-
+  
+      console.log('Sending order to API...');
       const response = await Axios.post(`${API_URL}/api/orders/add`, data, {
         headers,
       });
-
+  
+      console.log('Order successfully created:', response.data.newOrder);
+  
       dispatch(setOrderIn(response.data.newOrder));
-
+  
       const info = {
         data: {
           client: response.data.userUpdate,
           token,
         },
       };
-
+  
       dispatch(setUser(info));
       dispatch(clearCart());
-
+  
       if (useBalance) {
         const newBalance = Math.max(user.balance - realTotalPrice, 0);
-
-        const data = { newBalance };
-
+  
+        const balanceData = { newBalance };
+  
+        console.log('Updating user balance:', balanceData);
+  
         await Axios.put(
           `${API_URL}/api/users/removeUserBalance`,
-          data,
+          balanceData,
           { headers }
         );
-
+  
         const updatedUser = {
           ...user,
           balance: newBalance,
         };
-
+  
         dispatch(setUser({ data: { client: updatedUser, token } }));
         setBalance(newBalance);
       }
-
+  
       dispatch(setCurrentOrder(response.data.newOrder));
+  
+      console.log('Navigating to appropriate screen...');
       if (response.data.newOrder.type === 'Delivery') {
         navigation.navigate('AcceptedOrder');
       } else {
         navigation.navigate('PickUpOrderFinish');
       }
-
-      for (const item of cart) {
-        if (item.discount) {
-          try {
-            const id = { id: item.discountId };
-            await Axios.post(`${API_URL}/api/discounts/useDiscount`, id, {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            });
-          } catch (error) {
-            console.log('Error applying discount', error);
-          }
-        }
-      }
+  
+      console.log('Navigated successfully.');
     } catch (error) {
-      console.error(error.message);
+      console.error('Error during order creation:', error.message);
       console.error(error);
+      Alert.alert(
+        'Error',
+        'There was an issue processing your order. Please try again later.'
+      );
     }
   };
+  
+  
 
   useEffect(() => {
-    if (cart.length === 0) {
+    if (isFocused && cart.length === 0) {
       navigation.goBack();
     }
-  }, [cart, navigation]);
+  }, [isFocused, cart.length, navigation]);
 
   const selectAddress = (address) => {
     dispatch(setAddress(address.formatted_address));

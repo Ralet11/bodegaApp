@@ -22,6 +22,12 @@ const userSlice = createSlice({
       state.addresses = []
 
     },
+    logout: (state) => {
+      state.userInfo = null;
+      state.isAuthenticated = false;
+      state.address = null;
+      state.addresses = [];
+    },
     setAddress: (state, action) => {
       state.address = action.payload;
     },
@@ -38,5 +44,5 @@ const userSlice = createSlice({
   },
 });
 
-export const { setUser, clearUser, setAddress, setAddresses, addAddress, removeAddress } = userSlice.actions;
+export const { setUser, clearUser, setAddress, setAddresses, addAddress, removeAddress, logout } = userSlice.actions;
 export default userSlice.reducer;

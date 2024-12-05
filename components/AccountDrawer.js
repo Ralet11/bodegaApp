@@ -1,40 +1,51 @@
+// AccountDrawer.js
 import React, { useRef, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Modal, StyleSheet, Animated, Dimensions, Image, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Modal,
+  StyleSheet,
+  Animated,
+  Dimensions,
+  Image,
+  Platform,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import { useDispatch } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
-import { clearUser } from '../redux/slices/user.slice'; // Ajusta la ruta según la ubicación de tu archivo userSlice
-import { clearOrders } from '../redux/slices/orders.slice';
-import { clearCart } from '../redux/slices/cart.slice';
+import { logout } from '../redux/slices/user.slice'; // Importa la acción logout
 import { CommonActions } from '@react-navigation/native';
-import { clearSetUp } from '../redux/slices/setUp.slice';
+import { persistor } from '../redux/store'; // Importa el persistor
 
 const AccountDrawer = ({ user, visible, onClose, onNavigate }) => {
   const dispatch = useDispatch();
   const navigation = useNavigation();
-  const slideAnim = useRef(new Animated.Value(-Dimensions.get('window').width)).current;
+  const slideAnim = useRef(
+    new Animated.Value(-Dimensions.get('window').width)
+  ).current;
+
   const handleLogout = async () => {
     try {
-         dispatch(clearUser());
-         dispatch(clearOrders());
-         dispatch(clearCart());
-         dispatch(clearSetUp())
+      dispatch(logout()); // Despacha la acción logout
+      await persistor.purge(); // Limpia el almacenamiento persistente
 
-        onClose(); // Cierra el modal
+      onClose(); // Cierra el modal
 
-        setTimeout(() => {
-            navigation.dispatch(
-                CommonActions.reset({
-                    index: 0,
-                    routes: [{ name: 'Login' }],
-                })
-            );
-        }, 300);
+      setTimeout(() => {
+        navigation.dispatch(
+          CommonActions.reset({
+            index: 0,
+            routes: [{ name: 'Login' }],
+          })
+        );
+      }, 300);
     } catch (error) {
-        console.error('Error al cerrar sesión:', error);
+      console.error('Error al cerrar sesión:', error);
     }
-};
+  };
+
   useEffect(() => {
     if (visible) {
       Animated.timing(slideAnim, {
@@ -61,10 +72,16 @@ const AccountDrawer = ({ user, visible, onClose, onNavigate }) => {
       transparent={true}
       visible={visible}
       onRequestClose={onClose}
-      statusBarTranslucent={true}  // Asegura que la barra de estado sea translúcida
+      statusBarTranslucent={true} // Asegura que la barra de estado sea translúcida
     >
       <View style={styles.modalOverlay}>
-        <Animated.View style={[styles.drawer, styles.lightDrawer, { transform: [{ translateX: slideAnim }] }]}>
+        <Animated.View
+          style={[
+            styles.drawer,
+            styles.lightDrawer,
+            { transform: [{ translateX: slideAnim }] },
+          ]}
+        >
           <SafeAreaView style={styles.safeArea}>
             <View style={styles.header}>
               <View style={styles.userDetails}>
@@ -85,7 +102,10 @@ const AccountDrawer = ({ user, visible, onClose, onNavigate }) => {
                 <Text style={[styles.drawerTitle, styles.lightTitle]}>
                   You are logged in as guest
                 </Text>
-                <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+                <TouchableOpacity
+                  onPress={handleLogout}
+                  style={styles.logoutButton}
+                >
                   <FontAwesome name="arrow-left" size={20} color="#333" />
                   <Text style={[styles.drawerButtonText, styles.lightButtonText]}>
                     Go back to login
@@ -95,39 +115,67 @@ const AccountDrawer = ({ user, visible, onClose, onNavigate }) => {
             ) : (
               <>
                 <View style={styles.drawerSection}>
-                  <TouchableOpacity onPress={() => onNavigate('AccountSettings')} style={styles.drawerButton}>
+                  <TouchableOpacity
+                    onPress={() => onNavigate('AccountSettings')}
+                    style={styles.drawerButton}
+                  >
                     <FontAwesome name="cog" size={20} color="#333" />
-                    <Text style={[styles.drawerButtonText, styles.lightButtonText]}>
+                    <Text
+                      style={[styles.drawerButtonText, styles.lightButtonText]}
+                    >
                       Account Settings
                     </Text>
                   </TouchableOpacity>
-                 {/*  <TouchableOpacity onPress={() => onNavigate('MyCoupons')} style={styles.drawerButton}>
+                  {/* 
+                  <TouchableOpacity
+                    onPress={() => onNavigate('MyCoupons')}
+                    style={styles.drawerButton}
+                  >
                     <FontAwesome name="ticket" size={20} color="#333" />
-                    <Text style={[styles.drawerButtonText, styles.lightButtonText]}>
+                    <Text
+                      style={[styles.drawerButtonText, styles.lightButtonText]}
+                    >
                       My Coupons
                     </Text>
-                  </TouchableOpacity> */}
-                  <TouchableOpacity onPress={() => onNavigate('Contact')} style={styles.drawerButton}>
+                  </TouchableOpacity> 
+                  */}
+                  <TouchableOpacity
+                    onPress={() => onNavigate('Contact')}
+                    style={styles.drawerButton}
+                  >
                     <FontAwesome name="phone" size={20} color="#333" />
-                    <Text style={[styles.drawerButtonText, styles.lightButtonText]}>
+                    <Text
+                      style={[styles.drawerButtonText, styles.lightButtonText]}
+                    >
                       Contact
                     </Text>
                   </TouchableOpacity>
-                  {/* <TouchableOpacity onPress={() => onNavigate('BodegaPro')} style={styles.drawerButton}>
+                  {/* 
+                  <TouchableOpacity
+                    onPress={() => onNavigate('BodegaPro')}
+                    style={styles.drawerButton}
+                  >
                     <FontAwesome name="star" size={20} color="#333" />
-                    <Text style={[styles.drawerButtonText, styles.lightButtonText]}>
+                    <Text
+                      style={[styles.drawerButtonText, styles.lightButtonText]}
+                    >
                       Bodega+ Pro
                     </Text>
-                  </TouchableOpacity> */}
+                  </TouchableOpacity> 
+                  */}
                   <View style={styles.bodegaBalance}>
                     <FontAwesome name="money" size={20} color="#333" />
                     <Text style={[styles.drawerText, styles.lightButtonText]}>
-                      Bodega Balance: ${parseFloat(user?.balance).toFixed(2)}
+                      Bodega Balance: $
+                      {parseFloat(user?.balance).toFixed(2)}
                     </Text>
                   </View>
                 </View>
 
-                <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+                <TouchableOpacity
+                  onPress={handleLogout}
+                  style={styles.logoutButton}
+                >
                   <FontAwesome name="sign-out" size={20} color="#333" />
                   <Text style={[styles.drawerButtonText, styles.lightButtonText]}>
                     Logout
@@ -159,7 +207,7 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 15,
     paddingVertical: 20,
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'ios' ? 40 : 20,  // Ajusta este valor según sea necesario
+    paddingTop: Platform.OS === 'ios' ? 40 : 20, // Ajusta este valor según sea necesario
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.8,
@@ -170,7 +218,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   bodegaBalance: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: 10,
     paddingTop: 20,
   },
