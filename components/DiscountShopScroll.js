@@ -7,12 +7,12 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { useSelector } from 'react-redux';
 import Axios from 'react-native-axios';
 import { useNavigation } from '@react-navigation/native';
-import colors from './themes/colors';
 
 const DiscountShopScroll = ({ title, items, handleItemPress, allTags }) => {
   const colors = getColors();
@@ -41,7 +41,8 @@ const DiscountShopScroll = ({ title, items, handleItemPress, allTags }) => {
               )}&destinations=${encodeURIComponent(item.address)}&key=${GOOGLE_MAPS_API_KEY}`
             );
             const distanceTextKm = response.data.rows[0].elements[0].distance.text;
-            const distanceValueKm = response.data.rows[0].elements[0].distance.value / 1000;
+            const distanceValueKm =
+              response.data.rows[0].elements[0].distance.value / 1000;
 
             // Solo agregar direcciones dentro del rango de 50 kilómetros
             if (distanceValueKm <= 50) {
@@ -63,7 +64,7 @@ const DiscountShopScroll = ({ title, items, handleItemPress, allTags }) => {
     }
   }, [address, items]);
 
-  // Función para obtener el mensaje de categoría con emoji
+  // Mensaje de categoría con emoji
   const getCategoryMessage = (tag) => {
     const { name, emoji } = tag;
 
@@ -131,6 +132,7 @@ const DiscountShopScroll = ({ title, items, handleItemPress, allTags }) => {
           <Text style={styles.viewMore}>See more</Text>
         </TouchableOpacity>
       </View>
+
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -142,42 +144,52 @@ const DiscountShopScroll = ({ title, items, handleItemPress, allTags }) => {
             style={styles.itemContainer}
             onPress={() => handleItemPress(item)}
           >
-            <View style={styles.card}>
-              <Image
-                source={{ uri: item.image || item.deliveryImage }}
-                style={styles.itemImage}
-              />
-              <View style={styles.itemContent}>
-                <View style={styles.row}>
-                  <View
-                    style={[
-                      styles.logoContainer,
-                      { backgroundColor: colors.cardBackgroundColor },
-                    ]}
-                  >
-                    <Image source={{ uri: item.logo }} style={styles.logoImage} />
-                  </View>
-                  <View style={styles.infoColumn}>
-                    <Text
-                      style={styles.itemName}
-                      numberOfLines={1}
-                      adjustsFontSizeToFit
-                      minimumFontScale={0.5}
+            <View style={styles.cardWrapper}>
+              <View style={styles.card}>
+                <Image
+                  source={{ uri: item.image || item.deliveryImage }}
+                  style={styles.itemImage}
+                />
+                <View style={styles.itemContent}>
+                  <View style={styles.row}>
+                    <View
+                      style={[
+                        styles.logoContainer,
+                        { backgroundColor: colors.cardBackgroundColor },
+                      ]}
                     >
-                      {item.name || item.product}
-                    </Text>
-                    <View style={styles.subInfoRow}>
-                      <View style={styles.iconRow}>
-                        <FontAwesome
-                          name="street-view"
-                          size={14}
-                          color={colors.iconColor}
-                        />
-                        <Text style={styles.distanceText}>{distances[item.address]}</Text>
-                      </View>
-                      <View style={styles.ratingContainer}>
-                        <FontAwesome name="star" size={14} color={colors.starColor} />
-                        <Text style={styles.ratingText}>{item.rating.toFixed(2)}</Text>
+                      <Image source={{ uri: item.logo }} style={styles.logoImage} />
+                    </View>
+                    <View style={styles.infoColumn}>
+                      <Text
+                        style={styles.itemName}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.5}
+                      >
+                        {item.name || item.product}
+                      </Text>
+                      <View style={styles.subInfoRow}>
+                        <View style={styles.iconRow}>
+                          <FontAwesome
+                            name="street-view"
+                            size={14}
+                            color={colors.iconColor}
+                          />
+                          <Text style={styles.distanceText}>
+                            {distances[item.address]}
+                          </Text>
+                        </View>
+                        <View style={styles.ratingContainer}>
+                          <FontAwesome
+                            name="star"
+                            size={14}
+                            color={colors.starColor}
+                          />
+                          <Text style={styles.ratingText}>
+                            {item.rating.toFixed(2)}
+                          </Text>
+                        </View>
                       </View>
                     </View>
                   </View>
@@ -191,7 +203,7 @@ const DiscountShopScroll = ({ title, items, handleItemPress, allTags }) => {
   );
 };
 
-// Función para definir colores
+// Definición de colores
 const getColors = () => ({
   textColor: '#000000',
   secondaryTextColor: '#333333',
@@ -203,7 +215,6 @@ const getColors = () => ({
   starColor: '#FFD700',
 });
 
-// Estilos comunes compartidos entre temas
 const commonStyles = {
   container: { marginVertical: 20, paddingHorizontal: 15 },
   header: {
@@ -216,12 +227,30 @@ const commonStyles = {
   scrollView: { paddingVertical: 10 },
   viewMore: { fontSize: 14, fontWeight: '600' },
   itemContainer: { marginRight: 15, padding: 0 },
+
+  // cardWrapper es una capa externa para que el 'overflow: hidden' no recorte la sombra en iOS
+  cardWrapper: {
+    borderRadius: 12,
+    marginBottom: 5,
+    // Mantener overflow visible para que la sombra se muestre en iOS
+    overflow: 'visible',
+  },
+
+  // Ajustamos la card propiamente dicha
   card: {
     width: 250,
     borderRadius: 12,
-    overflow: 'hidden',
-    marginBottom: 5,
+    backgroundColor: '#FFFFFF',
+    // Sombra para iOS
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    // Elevación para Android
+    elevation: 3,
+    // Se podría quitar 'overflow: hidden' para iOS; lo manejamos en cardWrapper
   },
+
   itemImage: {
     width: '100%',
     height: 140,
@@ -267,30 +296,22 @@ const commonStyles = {
   distanceText: { fontSize: 14, marginLeft: 4 },
 };
 
-// Estilos para el tema claro
+// Estilos del tema claro
 const lightTheme = (colors) =>
   StyleSheet.create({
     ...commonStyles,
-    container: { ...commonStyles.container, backgroundColor: '#FFFFFF' },
-    headerTitle: { ...commonStyles.headerTitle },
-    viewMore: { ...commonStyles.viewMore, color: colors.accentColor },
-    card: {
-      ...commonStyles.card,
+    container: {
+      ...commonStyles.container,
       backgroundColor: '#FFFFFF',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 3,
+    },
+    viewMore: {
+      ...commonStyles.viewMore,
+      color: colors.accentColor,
     },
     logoContainer: {
       ...commonStyles.logoContainer,
       borderColor: colors.borderColor,
     },
-    itemName: { ...commonStyles.itemName },
-    ratingText: { ...commonStyles.ratingText },
-    distanceText: { ...commonStyles.distanceText },
-    itemContent: { ...commonStyles.itemContent, backgroundColor: '#FFFFFF' },
   });
 
 export default DiscountShopScroll;

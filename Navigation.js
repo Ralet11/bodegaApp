@@ -215,7 +215,13 @@ export default function Navigation() {
       >
         <Stack.Screen name="Logo" component={LogoScreen} />
         <Stack.Screen name="Login" component={Login} />
-        <Stack.Screen name="Main" component={TabNavigator} />
+        <Stack.Screen
+    name="Main"
+    component={TabNavigator}
+    options={{
+      gestureEnabled: false, // Deshabilita el swipe back en iOS para todo el TabNavigator
+    }}
+  />
         <Stack.Screen name="Shop" component={ShopScreen} />
         <Stack.Screen name="CartScreen" component={CartScreen} />
         <Stack.Screen name="AcceptedOrder" component={AcceptedOrder} />

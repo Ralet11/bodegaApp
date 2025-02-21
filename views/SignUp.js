@@ -103,7 +103,7 @@ export default function Signup() {
       if (backendResponse.data.error === false) {
         const _clientData = backendResponse.data;
         dispatch(setUser(_clientData));
-        dispatch(fetchCategories());
+  
         navigation.navigate('Main');
       } else {
         Toast.show({
@@ -148,7 +148,7 @@ export default function Signup() {
         if (backendResponse.data.error === false) {
             const _clientData = backendResponse.data;
             dispatch(setUser(_clientData)); 
-            dispatch(fetchCategories()); 
+           
             navigation.navigate('Main'); 
         } else {
             Alert.alert(
@@ -262,7 +262,7 @@ export default function Signup() {
         if (response.data.error === false) {
           const _clientData = response.data;
           dispatch(setUser(_clientData));
-          dispatch(fetchCategories());
+   
           navigation.navigate('Main');
         } else {
           Toast.show({

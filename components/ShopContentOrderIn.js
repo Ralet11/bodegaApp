@@ -1,114 +1,120 @@
 import React, { useRef } from 'react';
 import { View, TouchableOpacity, Image, Text, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import ProductDetail from '../components/ProductDetail';
-import DiscountDetail from '../components/DiscountDetail';
 import { useDispatch, useSelector } from 'react-redux';
 import { useColorScheme } from 'react-native';
 import colors from './themes/colors';
 
+// Asegúrate de pasarle `categories` como prop, en lugar de `discounts`.
 const ShopContentOrderIn = ({
+  categories = [],
   selectedProduct,
   setSelectedProduct,
-  selectedDiscount,
-  setSelectedDiscount,
   cart,
-  discounts,
   handleAddToCart,
-  handleAddDiscountToCart,
   selectedOptions,
   setSelectedOptions,
   closeProductDetail,
-  closeDiscountDetail,
   orderType,
   categoryRefs,
   categoryPositions,
   setPositionsReady,
-  shop
+  shop,
 }) => {
-  const styles =lightStyles;
+  const styles = lightStyles; // o darkStyles según tu colorScheme
   const dispatch = useDispatch();
   const categoriesRendered = useRef(0);
 
+  console.log(cart, 'cart');
+  console.log(categories, 'categories from ShopContentOrderIn');
 
-
-  console.log(cart, "cart")
-
-  // Renderizado de la card de descuento
-  const renderDiscount = (discount) => {
+  /**
+   * Renderizar UN producto en su "card"
+   */
+  const renderProductCard = (product) => {
     // Verificar si el producto está en el carrito y obtener su cantidad
-    const cartItem = cart.find(item => item.id === discount.product.id);
+    const cartItem = cart.find(item => item.id === product.id);
     const quantity = cartItem ? cartItem.quantity : 0;
-  
+
+    // Determinar si hay descuento
+    const hasDiscount = product.discountPercentage > 0 && product.finalPrice < product.price;
+
+    const originalPrice = parseFloat(product.price);
+    const finalPrice = parseFloat(product.finalPrice);
+
     return (
-      <TouchableOpacity 
-        key={discount.id} 
-        style={styles.discountCard} 
-        onPress={() => {
-          console.log('Discount seleccionado:', discount);
-          console.log('Shop en el momento de seleccionar un descuento:', shop); // Verificar que shop sigue definido aquí
-          setSelectedDiscount(discount);
-        }}
+      <TouchableOpacity
+        key={product.id}
+        style={styles.productCard}
+        onPress={() => setSelectedProduct(product)} // ← Abre el detalle del producto
       >
-        <Image source={{ uri: discount.product.img }} style={styles.discountImage} />
-  
+        <Image source={{ uri: product.image }} style={styles.productImage} />
+
         {/* Círculo amarillo con la cantidad si el producto está en el carrito */}
         {quantity > 0 && (
           <View style={styles.cartQuantityBadge}>
             <Text style={styles.cartQuantityText}>{quantity}</Text>
           </View>
         )}
-  
-        <View style={styles.discountDetails}>
-          <Text style={styles.discountProduct}>{discount.productName}</Text>
-          <View style={styles.priceContainer}>
-            <Text style={styles.strikethroughPrice}>${discount.product.price.toFixed(2)}</Text>
-            <View style={styles.discountBadge}>
-              <MaterialCommunityIcons
-                name="brightness-percent"
-                size={16}
-                style={{ color: '#FF6F00' }}
-              />
-              <Text style={styles.discountPercentage}>-{discount.percentage}%</Text>
+
+        <View style={styles.productDetails}>
+          <Text style={styles.productName}>{product.name}</Text>
+
+          {/* Si hay descuento, tachar el precio original */}
+          {hasDiscount && (
+            <View style={styles.priceContainer}>
+              <Text style={styles.strikethroughPrice}>${originalPrice.toFixed(2)}</Text>
+              <View style={styles.discountBadge}>
+                <MaterialCommunityIcons
+                  name="brightness-percent"
+                  size={16}
+                  style={{ color: '#FF6F00' }}
+                />
+                <Text style={styles.discountPercentage}>
+                  -{product.discountPercentage}%
+                </Text>
+              </View>
             </View>
-          </View>
-          <Text style={styles.discountPrice}>
-            ${((discount.product.price * (100 - discount.percentage)) / 100).toFixed(2)}
-          </Text>
+          )}
+
+          {/* Mostrar siempre el precio “final” (si no hay descuento, finalPrice == price) */}
+          <Text style={styles.finalPrice}>${finalPrice.toFixed(2)}</Text>
         </View>
       </TouchableOpacity>
     );
   };
 
-  // Renderizado de los descuentos en fila
-  const renderDiscounts = (discounts) => {
-    if (discounts.length === 0) return null;
+  /**
+   * Renderizar todos los products de una categoría en filas de 2
+   */
+  const renderProductsByCategory = (products) => {
+    if (!products || products.length === 0) return null;
 
-    const discountRows = [];
-    for (let i = 0; i < discounts.length; i += 2) {
-      discountRows.push(discounts.slice(i, i + 2));
+    const rows = [];
+    for (let i = 0; i < products.length; i += 2) {
+      rows.push(products.slice(i, i + 2));
     }
 
     return (
-      <View style={styles.discountSectionContainer}>
-        {discountRows.map((row, rowIndex) => (
-          <View key={rowIndex} style={styles.discountRow}>
-            {row.map((discount) => renderDiscount(discount))}
+      <View style={styles.productSectionContainer}>
+        {rows.map((row, rowIndex) => (
+          <View key={rowIndex} style={styles.productRow}>
+            {row.map((product) => renderProductCard(product))}
           </View>
         ))}
       </View>
     );
   };
 
-  // Renderizado de la categoría
+  /**
+   * Renderizar una categoría y sus productos
+   */
   const renderCategory = (category, index) => (
     <View
-      key={category.category.id}
+      key={category.id}
       style={styles.categoryContainer}
       ref={(el) => {
-        if (el) {
-          categoryRefs.current[index] = el;
-        }
+        if (el) categoryRefs.current[index] = el;
       }}
       onLayout={(event) => {
         const { y } = event.nativeEvent.layout;
@@ -117,38 +123,35 @@ const ShopContentOrderIn = ({
 
         console.log(`Posición de la categoría ${index} guardada: ${y}`);
 
-        if (categoriesRendered.current === discounts.length) {
+        // Cuando terminamos de medir TODAS las categorías:
+        if (categoriesRendered.current === categories.length) {
           setPositionsReady(true);
         }
       }}
     >
-      <Text style={styles.categoryTitle}>{category.category.name}</Text>
-      {renderDiscounts(category.discounts)}
+      <Text style={styles.categoryTitle}>{category.name}</Text>
+      {renderProductsByCategory(category.products)}
     </View>
   );
 
-  // Verifica que 'shop' esté definido antes de renderizar el componente DiscountDetail
+  // Si no hay `shop` todavía
   if (!shop) {
     console.log('El objeto shop no está disponible en este momento.');
-    return null; // No renderices nada hasta que shop esté disponible.
+    return null;
   }
 
   return (
-    <>
-     
-        <View style={{ padding: 5, paddingBottom: 50 }}>
-          {discounts?.map((category, index) => renderCategory(category, index))}
-        </View>
-    
-    </>
+    <View style={{ padding: 5, paddingBottom: 50 }}>
+      {categories.map((category, index) => renderCategory(category, index))}
+    </View>
   );
 };
 
 export default ShopContentOrderIn;
 
-// Estilos personalizados
+// Estilos base
 const commonStyles = {
-  discountCard: {
+  productCard: {
     width: '45%',
     backgroundColor: '#fff',
     borderRadius: 8,
@@ -162,37 +165,31 @@ const commonStyles = {
     elevation: 3,
     position: 'relative',
   },
-  discountImage: {
+  productImage: {
     width: '100%',
     height: 120,
     borderTopLeftRadius: 8,
     borderTopRightRadius: 8,
   },
-  discountDetails: {
+  productDetails: {
     padding: 10,
     alignItems: 'flex-start',
   },
-  discountProduct: {
+  productName: {
     fontSize: 14,
     fontWeight: 'bold',
     color: '#333',
     marginBottom: 5,
     textAlign: 'left',
   },
+  // Precios
   strikethroughPrice: {
     textDecorationLine: 'line-through',
     color: '#999',
     fontSize: 12,
     textAlign: 'left',
   },
-  discountPercentage: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: colors.primary,
-    marginLeft: 5,
-    textAlign: 'left',
-  },
-  discountPrice: {
+  finalPrice: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
@@ -203,6 +200,13 @@ const commonStyles = {
     flexDirection: 'row',
     alignItems: 'center',
     marginLeft: 8,
+  },
+  discountPercentage: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: colors.primary,
+    marginLeft: 5,
+    textAlign: 'left',
   },
   priceContainer: {
     flexDirection: 'row',
@@ -221,48 +225,48 @@ const commonStyles = {
     marginBottom: 10,
     textAlign: 'left',
   },
-  discountSectionContainer: {
+  productSectionContainer: {
     marginBottom: 20,
     paddingHorizontal: 5,
   },
-  discountRow: {
+  productRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
- cartQuantityBadge: {
+  cartQuantityBadge: {
     position: 'absolute',
-    top: -4, // Desplaza hacia afuera de la card
-    right: -2, // Desplaza hacia afuera de la card
-    backgroundColor: '#FFD700', // Color amarillo
+    top: -4,
+    right: -2,
+    backgroundColor: '#FFD700',
     borderRadius: 12,
     paddingVertical: 2,
     paddingHorizontal: 6,
     zIndex: 1,
   },
   cartQuantityText: {
-    color: '#000', // Texto negro
+    color: '#000',
     fontWeight: 'bold',
     fontSize: 16,
   },
 };
 
-// Estilos para el tema claro y oscuro
+// Versión clara
 const lightStyles = StyleSheet.create({
   ...commonStyles,
-  discountCard: {
-    ...commonStyles.discountCard,
+  productCard: {
+    ...commonStyles.productCard,
     backgroundColor: '#fff',
   },
-  discountDetails: {
-    ...commonStyles.discountDetails,
+  productDetails: {
+    ...commonStyles.productDetails,
     backgroundColor: '#f9f9f9',
   },
-  discountProduct: {
-    ...commonStyles.discountProduct,
+  productName: {
+    ...commonStyles.productName,
     color: '#333',
   },
-  discountPrice: {
-    ...commonStyles.discountPrice,
+  finalPrice: {
+    ...commonStyles.finalPrice,
     color: '#333',
   },
   categoryTitle: {
@@ -271,22 +275,23 @@ const lightStyles = StyleSheet.create({
   },
 });
 
+// Versión oscura
 const darkStyles = StyleSheet.create({
   ...commonStyles,
-  discountCard: {
-    ...commonStyles.discountCard,
+  productCard: {
+    ...commonStyles.productCard,
     backgroundColor: '#444',
   },
-  discountDetails: {
-    ...commonStyles.discountDetails,
+  productDetails: {
+    ...commonStyles.productDetails,
     backgroundColor: '#555',
   },
-  discountProduct: {
-    ...commonStyles.discountProduct,
+  productName: {
+    ...commonStyles.productName,
     color: '#fff',
   },
-  discountPrice: {
-    ...commonStyles.discountPrice,
+  finalPrice: {
+    ...commonStyles.finalPrice,
     color: '#fff',
   },
   categoryTitle: {

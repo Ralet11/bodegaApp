@@ -6,21 +6,19 @@ import {
   StyleSheet,
   Modal,
   Image,
-  ActivityIndicator,
   FlatList,
   Dimensions,
   ScrollView,
   Animated,
   Easing,
   Linking,
-  Alert,
   Platform,
 } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useDispatch, useSelector } from 'react-redux';
 import * as Location from 'expo-location';
 import { useNavigation } from '@react-navigation/native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FontAwesome5 } from '@expo/vector-icons';
 import isEqual from 'lodash.isequal';
 import Axios from 'react-native-axios';
@@ -29,29 +27,35 @@ import { BlurView } from 'expo-blur';
 import LottieView from 'lottie-react-native';
 
 const { width, height } = Dimensions.get('window');
-
-const GOOGLE_API_KEY = 'AIzaSyAvritMA-llcdIPnOpudxQ4aZ1b5WsHHUc'; // Replace with your actual API key
+const GOOGLE_API_KEY = 'AIzaSyAvritMA-llcdIPnOpudxQ4aZ1b5WsHHUc'; // Reemplaza con tu API key real
 
 const MapViewComponent = () => {
   const dispatch = useDispatch();
+  const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
+
+  // Estados de Redux
   const address = useSelector((state) => state?.user?.address?.formatted_address) || '';
   const shopsByCategory = useSelector((state) => state?.setUp?.shopsDiscounts || {}, isEqual);
 
+  // Estados del componente
   const [region, setRegion] = useState(null);
   const [marker, setMarker] = useState(null);
   const [selectedLocalIndex, setSelectedLocalIndex] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedTag, setSelectedTag] = useState(null);
   const [locationPermissionDenied, setLocationPermissionDenied] = useState(false);
-  const navigation = useNavigation();
-  const flatListRef = useRef();
   const [allTags, setAllTags] = useState([]);
   const [distances, setDistances] = useState({});
 
+  const flatListRef = useRef();
+
+  // Animaciones
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(height)).current;
   const scaleAnim = useRef(new Animated.Value(0.5)).current;
 
+  // Manejo de animaciones de modal (abrir / cerrar)
   useEffect(() => {
     if (selectedLocalIndex !== null) {
       Animated.parallel([
@@ -94,6 +98,7 @@ const MapViewComponent = () => {
     }
   }, [selectedLocalIndex, fadeAnim, slideAnim, scaleAnim]);
 
+  // Obtiene ubicación actual o la del address
   useEffect(() => {
     const fetchLocation = async () => {
       try {
@@ -113,9 +118,9 @@ const MapViewComponent = () => {
           latitudeDelta: 0.015,
           longitudeDelta: 0.0121,
         });
-
         setMarker({ latitude, longitude });
 
+        // Watch en tiempo real
         Location.watchPositionAsync(
           { accuracy: Location.Accuracy.High, timeInterval: 5000, distanceInterval: 10 },
           (newLocation) => {
@@ -170,6 +175,7 @@ const MapViewComponent = () => {
     }
   }, [address]);
 
+  // Cálculo de distancias
   useEffect(() => {
     const fetchDistances = async () => {
       const newDistances = {};
@@ -183,7 +189,7 @@ const MapViewComponent = () => {
             );
             const distanceValueKm = response.data.rows[0].elements[0].distance.value / 1000;
 
-            // Convert to miles
+            // Convertir a millas
             const distanceValueMiles = distanceValueKm * 0.621371;
             const distanceTextMiles = `${distanceValueMiles.toFixed(2)} mi`;
 
@@ -201,8 +207,9 @@ const MapViewComponent = () => {
     if (address) {
       fetchDistances();
     }
-  }, [address, filteredShops]);
+  }, [address, /* Dependencia adicional */ filteredShops]);
 
+  // Obtener y setear todas las tags
   useEffect(() => {
     const shopsArray = Array.isArray(shopsByCategory)
       ? shopsByCategory.flat()
@@ -223,6 +230,7 @@ const MapViewComponent = () => {
     setAllTags(tagsArray);
   }, [shopsByCategory]);
 
+  // Manejo de marker y modal
   const handleMarkerPress = useCallback((local, index) => {
     setSelectedLocalIndex(index);
   }, []);
@@ -239,34 +247,33 @@ const MapViewComponent = () => {
     [navigation]
   );
 
+  // Manejo de tags
   const handleTagPress = useCallback(
     (tag) => {
+      // Si la tag actual está seleccionada, deseleccionamos
       const newSelectedTag = selectedTag && selectedTag.id === tag.id ? null : tag;
       setSelectedTag(newSelectedTag);
     },
     [selectedTag]
   );
 
+  // Filtro de shops
   const filterShops = useCallback(() => {
     const allShops = Array.isArray(shopsByCategory)
       ? shopsByCategory.filter((shop) => shop.orderIn)
-      : Object.values(shopsByCategory)
-          .flat()
-          .filter((shop) => shop.orderIn);
-
-    let filtered = allShops;
+      : Object.values(shopsByCategory).flat().filter((shop) => shop.orderIn);
 
     if (selectedTag) {
-      filtered = filtered.filter(
+      return allShops.filter(
         (shop) => shop.tags && shop.tags.some((t) => t.id === selectedTag.id)
       );
     }
-
-    return filtered;
+    return allShops;
   }, [selectedTag, shopsByCategory]);
 
   const filteredShops = useMemo(() => filterShops(), [filterShops]);
 
+  // Navegación entre tarjetas del modal
   const handleNext = () => {
     if (selectedLocalIndex < filteredShops.length - 1) {
       const nextIndex = selectedLocalIndex + 1;
@@ -283,17 +290,17 @@ const MapViewComponent = () => {
     }
   };
 
-  const renderRating = (rating) => {
-    return (
-      <View style={styles.ratingContainer}>
-        <Text style={styles.ratingText}>{rating.toFixed(1)}</Text>
-        <FontAwesome5 name="star" size={18} color="#FFD700" style={styles.starIcon} />
-      </View>
-    );
-  };
+  // Renderizado de rating
+  const renderRating = (rating) => (
+    <View style={styles.ratingContainer}>
+      <Text style={styles.ratingText}>{rating.toFixed(1)}</Text>
+      <FontAwesome5 name="star" size={18} color="#FFD700" style={styles.starIcon} />
+    </View>
+  );
 
-  const openAddressInMaps = (address) => {
-    const encodedAddress = encodeURIComponent(address);
+  // Abrir dirección en Google / Apple Maps
+  const openAddressInMaps = (shopAddress) => {
+    const encodedAddress = encodeURIComponent(shopAddress);
     const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
     const appleMapsUrl = `http://maps.apple.com/?q=${encodedAddress}`;
 
@@ -304,6 +311,7 @@ const MapViewComponent = () => {
     }
   };
 
+  // Emojis opcionales para tags
   const tagEmojis = {
     Pizza: '🍕',
     Burgers: '🍔',
@@ -313,11 +321,17 @@ const MapViewComponent = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <BlurView intensity={100} style={styles.headerContainer}>
-        <TouchableOpacity style={styles.goBackButton} onPress={() => navigation.goBack()}>
-          <FontAwesome5 name="arrow-left" size={24} color="#333" />
-        </TouchableOpacity>
-
+      {/* Cabecera con BlurView (ya sin flecha de go back) */}
+      <BlurView
+        intensity={100}
+        style={[
+          styles.headerContainer,
+          {
+            marginTop: insets.top, // Respeta la safe area en iOS
+          },
+        ]}
+      >
+        {/* ScrollView con las tags */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -345,10 +359,11 @@ const MapViewComponent = () => {
         </ScrollView>
       </BlurView>
 
+      {/* Contenido principal: mapa o loaders */}
       {loading ? (
         <View style={styles.loaderContainer}>
           <LottieView
-            source={{ uri: 'https://assets10.lottiefiles.com/packages/lf20_q7uarxsb.json' }}
+            source={{ uri: 'https://lottiefiles.com/free-animation/map-QXiXmV9xvj' }}
             autoPlay
             loop
             style={styles.lottieAnimation}
@@ -412,6 +427,8 @@ const MapViewComponent = () => {
           </MapView>
         )
       )}
+
+      {/* Modal para info de la tienda seleccionada */}
       <Modal
         visible={selectedLocalIndex !== null}
         transparent={true}
@@ -432,6 +449,7 @@ const MapViewComponent = () => {
               <TouchableOpacity style={styles.arrowLeft} onPress={handlePrevious}>
                 <FontAwesome5 name="chevron-left" size={24} color="#333" />
               </TouchableOpacity>
+
               <FlatList
                 ref={flatListRef}
                 data={filteredShops}
@@ -485,9 +503,11 @@ const MapViewComponent = () => {
                   index,
                 })}
               />
+
               <TouchableOpacity style={styles.arrowRight} onPress={handleNext}>
                 <FontAwesome5 name="chevron-right" size={24} color="#333" />
               </TouchableOpacity>
+
               <TouchableOpacity style={styles.closeButton} onPress={handleCloseModal}>
                 <FontAwesome5 name="times" size={24} color="#333" />
               </TouchableOpacity>
@@ -498,6 +518,8 @@ const MapViewComponent = () => {
     </SafeAreaView>
   );
 };
+
+export default MapViewComponent;
 
 const styles = StyleSheet.create({
   container: {
@@ -536,18 +558,12 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    paddingTop: 40,
+    // Sin flecha de go back, solo la sección de tags
     paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
     zIndex: 11,
     elevation: 11,
-  },
-  goBackButton: {
-    backgroundColor: 'rgba(0, 0, 0, 0.1)',
-    borderRadius: 20,
-    padding: 10,
-    marginRight: 10,
   },
   tagsScrollView: {
     flexGrow: 1,
@@ -597,7 +613,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    width: width,
+    width,
     height: height * 0.6,
     justifyContent: 'flex-end',
     alignItems: 'center',
@@ -633,6 +649,21 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     color: '#333',
     textAlign: 'center',
+  },
+  ratingDistanceContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+  },
+  distanceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  distanceText: {
+    marginLeft: 5,
+    fontSize: 14,
+    color: '#333',
   },
   ratingContainer: {
     flexDirection: 'row',
@@ -675,21 +706,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
-  ratingDistanceContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    width: '100%',
-  },
-  distanceContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  distanceText: {
-    marginLeft: 5,
-    fontSize: 14,
-    color: '#333',
-  },
   closeButton: {
     position: 'absolute',
     top: 40,
@@ -719,5 +735,3 @@ const styles = StyleSheet.create({
     borderRadius: 25,
   },
 });
-
-export default MapViewComponent;

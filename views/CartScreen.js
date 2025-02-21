@@ -326,12 +326,12 @@ const CartScreen = () => {
   const calculateSavings = () => {
     return cart
       .reduce((totalSavings, item) => {
-        if (item.discount || item.promotion) {
+   
           const savings =
-            (parseFloat(item.originalPrice) - parseFloat(item.price)) *
+            (parseFloat(item.price) - parseFloat(item.finalPrice)) *
             item.quantity;
           return totalSavings + savings;
-        }
+        
         return totalSavings;
       }, 0)
       .toFixed(2);

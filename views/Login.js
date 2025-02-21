@@ -29,7 +29,7 @@ const LoginScreen = () => {
   const formAnim = useRef(new Animated.Value(0)).current;
 
   const [clientData, setClientData] = useState({
-    email: "ramiro@gmail.com",
+    email: "ramiro.alet@gmail.com",
     password: "123456"
   });
 
@@ -89,7 +89,7 @@ const LoginScreen = () => {
       if (backendResponse.data.error === false) {
         const _clientData = backendResponse.data;
         dispatch(setUser(_clientData));
-        dispatch(fetchCategories());
+  
         navigation.navigate('Main');
       } else {
         Toast.show({
@@ -131,7 +131,10 @@ const LoginScreen = () => {
         const _clientData = backendResponse.data;
         dispatch(setUser(_clientData));
         dispatch(fetchCategories());
-        navigation.navigate('Main');
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'Main' }],
+        });
       } else {
         Toast.show({
           type: 'error',
@@ -260,7 +263,7 @@ const LoginScreen = () => {
       if (response.data.error === false) {
         const guestData = response.data;
         dispatch(setUser(guestData));
-        dispatch(fetchCategories());
+    
         navigation.navigate('Main');
       } else {
         Toast.show({

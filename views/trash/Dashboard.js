@@ -6,15 +6,15 @@ import { useDispatch, useSelector } from 'react-redux';
 import Axios from 'react-native-axios';
 import { API_URL } from '@env';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { setAuxShops, setShops } from '../redux/slices/setUp.slice';
-import HorizontalScroll from '../components/HorizontalScroll';
-import PromoSlider from '../components/PromotionSlider';
-import AccountDrawer from '../components/AccountDrawer';
-import { setAddress, setAddresses } from '../redux/slices/user.slice';
-import OrderStatus from '../components/OrderStatus';
-import SkeletonLoader from '../components/SkeletonLoader';
-import { setUserDiscounts } from '../redux/slices/setUp.slice';
-import { lightTheme, darkTheme } from '../components/themes';
+import { setAuxShops, setShops } from '../../redux/slices/setUp.slice';
+import HorizontalScroll from '../../components/HorizontalScroll';
+import PromoSlider from '../../components/PromotionSlider';
+import AccountDrawer from '../../components/AccountDrawer';
+import { setAddress, setAddresses } from '../../redux/slices/user.slice';
+import OrderStatus from '../../components/OrderStatus';
+import SkeletonLoader from '../../components/SkeletonLoader';
+import { setUserDiscounts } from '../../redux/slices/setUp.slice';
+import { lightTheme, darkTheme } from '../../components/themes';
 import socketIOClient from "socket.io-client";
 
 
@@ -51,8 +51,8 @@ const Dashboard = () => {
   console.log(auxShops, "auxShops")
 
   useEffect(() => {
-    const socket = socketIOClient(`${API_URL}`);
-
+    
+const socket = socketIOClient(`${API_URL}`);
     const syncShops = () => {
       console.log("probando sync")
       dispatch(setAuxShops());
