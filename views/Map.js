@@ -10,7 +10,6 @@ import {
   Dimensions,
   ScrollView,
   Animated,
-  Easing,
   Linking,
   Platform,
 } from 'react-native';
@@ -55,26 +54,29 @@ const MapViewComponent = () => {
   const slideAnim = useRef(new Animated.Value(height)).current;
   const scaleAnim = useRef(new Animated.Value(0.5)).current;
 
-  // Manejo de animaciones de modal (abrir / cerrar)
+  /**
+   * Manejo de animaciones de modal (abrir / cerrar):
+   * Se cambia useNativeDriver a false para evitar conflictos en iOS.
+   */
   useEffect(() => {
     if (selectedLocalIndex !== null) {
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 1,
           duration: 300,
-          useNativeDriver: true,
+          useNativeDriver: false, // <-- Cambiado a false
         }),
         Animated.spring(slideAnim, {
           toValue: 0,
           speed: 12,
           bounciness: 8,
-          useNativeDriver: true,
+          useNativeDriver: false, // <-- Cambiado a false
         }),
         Animated.spring(scaleAnim, {
           toValue: 1,
           friction: 3,
           tension: 40,
-          useNativeDriver: true,
+          useNativeDriver: false, // <-- Cambiado a false
         }),
       ]).start();
     } else {
@@ -82,23 +84,25 @@ const MapViewComponent = () => {
         Animated.timing(fadeAnim, {
           toValue: 0,
           duration: 300,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.timing(slideAnim, {
           toValue: height,
           duration: 300,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.timing(scaleAnim, {
           toValue: 0.5,
           duration: 300,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
       ]).start();
     }
   }, [selectedLocalIndex, fadeAnim, slideAnim, scaleAnim]);
 
-  // Obtiene ubicación actual o la del address
+  /**
+   * Obtiene ubicación actual o la del address
+   */
   useEffect(() => {
     const fetchLocation = async () => {
       try {
@@ -175,9 +179,31 @@ const MapViewComponent = () => {
     }
   }, [address]);
 
-  // Cálculo de distancias
+  /**
+   * Filtro de tiendas
+   */
+  const filterShops = useCallback(() => {
+    const allShops = Array.isArray(shopsByCategory)
+      ? shopsByCategory.filter((shop) => shop.orderIn)
+      : Object.values(shopsByCategory).flat().filter((shop) => shop.orderIn);
+
+    if (selectedTag) {
+      return allShops.filter(
+        (shop) => shop.tags && shop.tags.some((t) => t.id === selectedTag.id)
+      );
+    }
+    return allShops;
+  }, [selectedTag, shopsByCategory]);
+
+  const filteredShops = useMemo(() => filterShops(), [filterShops]);
+
+  /**
+   * Cálculo de distancias con Distance Matrix API
+   */
   useEffect(() => {
     const fetchDistances = async () => {
+      if (!address) return;
+
       const newDistances = {};
       for (const shop of filteredShops) {
         if (shop.address) {
@@ -193,6 +219,7 @@ const MapViewComponent = () => {
             const distanceValueMiles = distanceValueKm * 0.621371;
             const distanceTextMiles = `${distanceValueMiles.toFixed(2)} mi`;
 
+            // Ejemplo de filtro: solo guardamos si está dentro de 20 millas
             if (distanceValueMiles <= 20) {
               newDistances[shop.id] = distanceTextMiles;
             }
@@ -204,12 +231,12 @@ const MapViewComponent = () => {
       setDistances(newDistances);
     };
 
-    if (address) {
-      fetchDistances();
-    }
-  }, [address, /* Dependencia adicional */ filteredShops]);
+    fetchDistances();
+  }, [address, filteredShops]);
 
-  // Obtener y setear todas las tags
+  /**
+   * Obtener y setear todas las tags
+   */
   useEffect(() => {
     const shopsArray = Array.isArray(shopsByCategory)
       ? shopsByCategory.flat()
@@ -230,7 +257,9 @@ const MapViewComponent = () => {
     setAllTags(tagsArray);
   }, [shopsByCategory]);
 
-  // Manejo de marker y modal
+  /**
+   * Manejo de markers y modal
+   */
   const handleMarkerPress = useCallback((local, index) => {
     setSelectedLocalIndex(index);
   }, []);
@@ -247,7 +276,9 @@ const MapViewComponent = () => {
     [navigation]
   );
 
-  // Manejo de tags
+  /**
+   * Manejo de tags
+   */
   const handleTagPress = useCallback(
     (tag) => {
       // Si la tag actual está seleccionada, deseleccionamos
@@ -257,28 +288,14 @@ const MapViewComponent = () => {
     [selectedTag]
   );
 
-  // Filtro de shops
-  const filterShops = useCallback(() => {
-    const allShops = Array.isArray(shopsByCategory)
-      ? shopsByCategory.filter((shop) => shop.orderIn)
-      : Object.values(shopsByCategory).flat().filter((shop) => shop.orderIn);
-
-    if (selectedTag) {
-      return allShops.filter(
-        (shop) => shop.tags && shop.tags.some((t) => t.id === selectedTag.id)
-      );
-    }
-    return allShops;
-  }, [selectedTag, shopsByCategory]);
-
-  const filteredShops = useMemo(() => filterShops(), [filterShops]);
-
-  // Navegación entre tarjetas del modal
+  /**
+   * Navegación entre tarjetas del modal
+   */
   const handleNext = () => {
     if (selectedLocalIndex < filteredShops.length - 1) {
       const nextIndex = selectedLocalIndex + 1;
       setSelectedLocalIndex(nextIndex);
-      flatListRef.current.scrollToIndex({ index: nextIndex, animated: true });
+      flatListRef.current?.scrollToIndex({ index: nextIndex, animated: true });
     }
   };
 
@@ -286,11 +303,13 @@ const MapViewComponent = () => {
     if (selectedLocalIndex > 0) {
       const prevIndex = selectedLocalIndex - 1;
       setSelectedLocalIndex(prevIndex);
-      flatListRef.current.scrollToIndex({ index: prevIndex, animated: true });
+      flatListRef.current?.scrollToIndex({ index: prevIndex, animated: true });
     }
   };
 
-  // Renderizado de rating
+  /**
+   * Renderizado de rating
+   */
   const renderRating = (rating) => (
     <View style={styles.ratingContainer}>
       <Text style={styles.ratingText}>{rating.toFixed(1)}</Text>
@@ -298,7 +317,9 @@ const MapViewComponent = () => {
     </View>
   );
 
-  // Abrir dirección en Google / Apple Maps
+  /**
+   * Abrir dirección en Google / Apple Maps
+   */
   const openAddressInMaps = (shopAddress) => {
     const encodedAddress = encodeURIComponent(shopAddress);
     const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
@@ -311,7 +332,9 @@ const MapViewComponent = () => {
     }
   };
 
-  // Emojis opcionales para tags
+  /**
+   * Emojis opcionales para tags
+   */
   const tagEmojis = {
     Pizza: '🍕',
     Burgers: '🍔',
@@ -321,17 +344,16 @@ const MapViewComponent = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Cabecera con BlurView (ya sin flecha de go back) */}
+      {/* Cabecera con BlurView (sin flecha de go back) */}
       <BlurView
         intensity={100}
         style={[
           styles.headerContainer,
           {
-            marginTop: insets.top, // Respeta la safe area en iOS
+            marginTop: insets.top,
           },
         ]}
       >
-        {/* ScrollView con las tags */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -386,8 +408,10 @@ const MapViewComponent = () => {
           <MapView
             style={styles.map}
             region={region}
+            // Para Android forzar Google
             {...(Platform.OS === 'android' ? { provider: PROVIDER_GOOGLE } : {})}
           >
+            {/* Marker del usuario */}
             {marker && (
               <Marker coordinate={marker}>
                 <View style={styles.userMarker}>
@@ -396,6 +420,7 @@ const MapViewComponent = () => {
               </Marker>
             )}
 
+            {/* Markers de las tiendas */}
             {filteredShops.map((shop, index) => (
               <Marker
                 key={shop.id}
@@ -502,6 +527,17 @@ const MapViewComponent = () => {
                   offset: width * index,
                   index,
                 })}
+                /**
+                 * Evita crash en iOS cuando no puede hacer scroll al index inicial
+                 */
+                onScrollToIndexFailed={(info) => {
+                  setTimeout(() => {
+                    flatListRef.current?.scrollToIndex({
+                      index: info.index,
+                      animated: true,
+                    });
+                  }, 500);
+                }}
               />
 
               <TouchableOpacity style={styles.arrowRight} onPress={handleNext}>
@@ -558,7 +594,6 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    // Sin flecha de go back, solo la sección de tags
     paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
@@ -611,6 +646,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
     justifyContent: 'flex-end',
+    zIndex: 2000, // Asegura que esté por encima en iOS
   },
   modalContent: {
     width,
@@ -620,6 +656,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
+    marginTop: '35%',
   },
   modalImage: {
     width: '100%',

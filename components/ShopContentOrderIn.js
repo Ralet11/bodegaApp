@@ -2,26 +2,20 @@ import React, { useRef } from 'react';
 import { View, TouchableOpacity, Image, Text, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useDispatch, useSelector } from 'react-redux';
-import { useColorScheme } from 'react-native';
 import colors from './themes/colors';
 
-// Asegúrate de pasarle `categories` como prop, en lugar de `discounts`.
 const ShopContentOrderIn = ({
   categories = [],
   selectedProduct,
   setSelectedProduct,
   cart,
   handleAddToCart,
-  selectedOptions,
-  setSelectedOptions,
-  closeProductDetail,
-  orderType,
   categoryRefs,
   categoryPositions,
   setPositionsReady,
   shop,
 }) => {
-  const styles = lightStyles; // o darkStyles según tu colorScheme
+  const styles = lightStyles; // Podrías cambiar dinámicamente a darkStyles si lo necesitas
   const dispatch = useDispatch();
   const categoriesRendered = useRef(0);
 
@@ -29,7 +23,7 @@ const ShopContentOrderIn = ({
   console.log(categories, 'categories from ShopContentOrderIn');
 
   /**
-   * Renderizar UN producto en su "card"
+   * Renderizar una tarjeta individual de producto
    */
   const renderProductCard = (product) => {
     // Verificar si el producto está en el carrito y obtener su cantidad
@@ -46,11 +40,11 @@ const ShopContentOrderIn = ({
       <TouchableOpacity
         key={product.id}
         style={styles.productCard}
-        onPress={() => setSelectedProduct(product)} // ← Abre el detalle del producto
+        onPress={() => setSelectedProduct(product)} // Abre el detalle del producto (sin extras)
       >
         <Image source={{ uri: product.image }} style={styles.productImage} />
 
-        {/* Círculo amarillo con la cantidad si el producto está en el carrito */}
+        {/* Si el producto ya está en el carrito, muestra la cantidad */}
         {quantity > 0 && (
           <View style={styles.cartQuantityBadge}>
             <Text style={styles.cartQuantityText}>{quantity}</Text>
@@ -77,7 +71,7 @@ const ShopContentOrderIn = ({
             </View>
           )}
 
-          {/* Mostrar siempre el precio “final” (si no hay descuento, finalPrice == price) */}
+          {/* Mostrar siempre el precio final */}
           <Text style={styles.finalPrice}>${finalPrice.toFixed(2)}</Text>
         </View>
       </TouchableOpacity>
@@ -85,7 +79,7 @@ const ShopContentOrderIn = ({
   };
 
   /**
-   * Renderizar todos los products de una categoría en filas de 2
+   * Renderizar los productos de una categoría en filas de 2
    */
   const renderProductsByCategory = (products) => {
     if (!products || products.length === 0) return null;
@@ -123,7 +117,7 @@ const ShopContentOrderIn = ({
 
         console.log(`Posición de la categoría ${index} guardada: ${y}`);
 
-        // Cuando terminamos de medir TODAS las categorías:
+        // Cuando terminamos de medir TODAS las categorías
         if (categoriesRendered.current === categories.length) {
           setPositionsReady(true);
         }
@@ -250,7 +244,6 @@ const commonStyles = {
   },
 };
 
-// Versión clara
 const lightStyles = StyleSheet.create({
   ...commonStyles,
   productCard: {
@@ -275,7 +268,6 @@ const lightStyles = StyleSheet.create({
   },
 });
 
-// Versión oscura
 const darkStyles = StyleSheet.create({
   ...commonStyles,
   productCard: {
