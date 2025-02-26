@@ -37,6 +37,8 @@ import OrderSummary from './views/PickUpOrderFinish';
 import ReviewScreen from './views/ReviewsScreen';
 import PromoMealScreen from './views/PromoMealScreen';
 import colors from './components/themes/colors';
+import AddressesView from './views/Addresses';
+import SelectNewAddress from './views/SelecetNewAddress';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -236,6 +238,8 @@ export default function Navigation() {
         <Stack.Screen name="PickUpOrderFinish" component={OrderSummary} />
         <Stack.Screen name="ReviewSceen" component={ReviewScreen} />
         <Stack.Screen name="PromoMealScreen" component={PromoMealScreen} />
+        <Stack.Screen name="Addresses" component={AddressesView} />
+        <Stack.Screen name="SelectNewAddress" component={SelectNewAddress} />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -1,9 +1,14 @@
 import React, { useRef } from 'react';
 import { View, TouchableOpacity, Image, Text, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import colors from './themes/colors';
 
+/**
+ * Muestra las categorías y productos (ya filtrados).
+ * Aquí NO hacemos el filtrado por `availableFor`; 
+ * solo renderizamos el array de `categories` que le llega por props.
+ */
 const ShopContentOrderIn = ({
   categories = [],
   selectedProduct,
@@ -15,24 +20,20 @@ const ShopContentOrderIn = ({
   setPositionsReady,
   shop,
 }) => {
-  const styles = lightStyles; // Podrías cambiar dinámicamente a darkStyles si lo necesitas
+  const styles = lightStyles;
   const dispatch = useDispatch();
   const categoriesRendered = useRef(0);
-
-  console.log(cart, 'cart');
-  console.log(categories, 'categories from ShopContentOrderIn');
 
   /**
    * Renderizar una tarjeta individual de producto
    */
   const renderProductCard = (product) => {
     // Verificar si el producto está en el carrito y obtener su cantidad
-    const cartItem = cart.find(item => item.id === product.id);
+    const cartItem = cart?.find(item => item.id === product.id);
     const quantity = cartItem ? cartItem.quantity : 0;
 
     // Determinar si hay descuento
     const hasDiscount = product.discountPercentage > 0 && product.finalPrice < product.price;
-
     const originalPrice = parseFloat(product.price);
     const finalPrice = parseFloat(product.finalPrice);
 
@@ -40,7 +41,7 @@ const ShopContentOrderIn = ({
       <TouchableOpacity
         key={product.id}
         style={styles.productCard}
-        onPress={() => setSelectedProduct(product)} // Abre el detalle del producto (sin extras)
+        onPress={() => setSelectedProduct(product)}
       >
         <Image source={{ uri: product.image }} style={styles.productImage} />
 
@@ -57,7 +58,9 @@ const ShopContentOrderIn = ({
           {/* Si hay descuento, tachar el precio original */}
           {hasDiscount && (
             <View style={styles.priceContainer}>
-              <Text style={styles.strikethroughPrice}>${originalPrice.toFixed(2)}</Text>
+              <Text style={styles.strikethroughPrice}>
+                ${originalPrice.toFixed(2)}
+              </Text>
               <View style={styles.discountBadge}>
                 <MaterialCommunityIcons
                   name="brightness-percent"
@@ -71,7 +74,7 @@ const ShopContentOrderIn = ({
             </View>
           )}
 
-          {/* Mostrar siempre el precio final */}
+          {/* Mostrar el precio final */}
           <Text style={styles.finalPrice}>${finalPrice.toFixed(2)}</Text>
         </View>
       </TouchableOpacity>
@@ -115,9 +118,7 @@ const ShopContentOrderIn = ({
         categoryPositions.current[index] = y;
         categoriesRendered.current += 1;
 
-        console.log(`Posición de la categoría ${index} guardada: ${y}`);
-
-        // Cuando terminamos de medir TODAS las categorías
+        // Cuando terminamos de medir TODAS las categorías:
         if (categoriesRendered.current === categories.length) {
           setPositionsReady(true);
         }
@@ -128,7 +129,7 @@ const ShopContentOrderIn = ({
     </View>
   );
 
-  // Si no hay `shop` todavía
+  // Si no hay `shop`, no renderiza
   if (!shop) {
     console.log('El objeto shop no está disponible en este momento.');
     return null;
@@ -168,6 +169,7 @@ const commonStyles = {
   productDetails: {
     padding: 10,
     alignItems: 'flex-start',
+    backgroundColor: '#f9f9f9',
   },
   productName: {
     fontSize: 14,
@@ -246,48 +248,4 @@ const commonStyles = {
 
 const lightStyles = StyleSheet.create({
   ...commonStyles,
-  productCard: {
-    ...commonStyles.productCard,
-    backgroundColor: '#fff',
-  },
-  productDetails: {
-    ...commonStyles.productDetails,
-    backgroundColor: '#f9f9f9',
-  },
-  productName: {
-    ...commonStyles.productName,
-    color: '#333',
-  },
-  finalPrice: {
-    ...commonStyles.finalPrice,
-    color: '#333',
-  },
-  categoryTitle: {
-    ...commonStyles.categoryTitle,
-    color: '#333',
-  },
-});
-
-const darkStyles = StyleSheet.create({
-  ...commonStyles,
-  productCard: {
-    ...commonStyles.productCard,
-    backgroundColor: '#444',
-  },
-  productDetails: {
-    ...commonStyles.productDetails,
-    backgroundColor: '#555',
-  },
-  productName: {
-    ...commonStyles.productName,
-    color: '#fff',
-  },
-  finalPrice: {
-    ...commonStyles.finalPrice,
-    color: '#fff',
-  },
-  categoryTitle: {
-    ...commonStyles.categoryTitle,
-    color: '#fff',
-  },
 });

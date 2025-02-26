@@ -20,15 +20,19 @@ const ProductDetail = ({ product, onAddToCart, onBack, shop }) => {
   const styles = lightStyles;
   const cart = useSelector(state => state.cart.items);
 
+  console.log(product, "prod");
+
   const [modalVisible, setModalVisible] = useState(false);
-  const productPrice = parseFloat(product?.price) || 0;
+  // Definimos precio original y precio final (después del descuento)
+  const originalPrice = parseFloat(product?.price) || 0;
+  const finalPrice = parseFloat(product?.finalPrice) || originalPrice;
   const [quantity, setQuantity] = useState(1);
-  const [isLoading, setIsLoading] = useState(false); // Estado para el loader
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleAddToCart = () => {
     setIsLoading(true);
 
-    // Simulamos un retraso para mostrar el loader
+    // Simulación de retraso para mostrar el loader
     setTimeout(() => {
       const existingProduct = cart.find(item => item.id === product.id);
 
@@ -41,7 +45,8 @@ const ProductDetail = ({ product, onAddToCart, onBack, shop }) => {
           addToCart({
             ...product,
             quantity,
-            price: productPrice.toFixed(2),
+            originalPrice: originalPrice.toFixed(2),
+            finalPrice: finalPrice.toFixed(2),
           })
         );
       }
@@ -49,6 +54,38 @@ const ProductDetail = ({ product, onAddToCart, onBack, shop }) => {
       setIsLoading(false);
       onBack();
     }, 1500); // Simulación de 1.5 segundos
+  };
+
+  // Según product.availableFor (0,1,2), mostramos Dine-in, Pick-up o ambas
+  const renderAvailableFor = () => {
+    switch (product.availableFor) {
+      case 0:
+        return (
+          <View style={styles.option}>
+            <MaterialCommunityIcons name="silverware-fork-knife" size={20} color={styles.iconColor.color} />
+            <Text style={styles.optionText}>Dine-in</Text>
+          </View>
+        );
+      case 1:
+        return (
+          <View style={styles.option}>
+            <MaterialCommunityIcons name="walk" size={20} color={styles.iconColor.color} />
+            <Text style={styles.optionText}>Pick-up</Text>
+          </View>
+        );
+      case 2:
+        return (
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <MaterialCommunityIcons name="silverware-fork-knife" size={20} color={styles.iconColor.color} />
+            <Text style={styles.optionText}>Dine-in</Text>
+            <View style={{ width: 10 }} />
+            <MaterialCommunityIcons name="walk" size={20} color={styles.iconColor.color} />
+            <Text style={styles.optionText}>Pick-up</Text>
+          </View>
+        );
+      default:
+        return null;
+    }
   };
 
   return (
@@ -63,17 +100,20 @@ const ProductDetail = ({ product, onAddToCart, onBack, shop }) => {
         <View style={styles.detailsContainer}>
           <Text style={styles.productName}>{product.name}</Text>
           <Text style={styles.productDescription}>{product.description}</Text>
-          <Text style={styles.productPrice}>${productPrice.toFixed(2)}</Text>
+
+          {product.discountPercentage > 0 && (
+            <View style={styles.priceContainer}>
+              <Text style={styles.originalPrice}>${originalPrice.toFixed(2)}</Text>
+              <Text style={styles.discountBadge}>-{product.discountPercentage}%</Text>
+            </View>
+          )}
+          <Text style={styles.finalPrice}>${finalPrice.toFixed(2)}</Text>
         </View>
 
         <View style={styles.additionalInfoContainer}>
-          <Text style={styles.subTitle}>Available only for:</Text>
-          <View style={styles.optionsRow}>
-            <View style={styles.option}>
-              <MaterialCommunityIcons name="walk" size={20} color={styles.iconColor.color} />
-              <Text style={styles.optionText}>PickUp</Text>
-            </View>
-          </View>
+          <Text style={styles.subTitle}>Available for:</Text>
+          <View style={styles.optionsRow}>{renderAvailableFor()}</View>
+
           <Text style={styles.subTitle}>Payment Methods:</Text>
           <View style={styles.paymentOptions}>
             <View style={styles.paymentOption}>
@@ -126,7 +166,7 @@ const ProductDetail = ({ product, onAddToCart, onBack, shop }) => {
             <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
             <Text style={styles.addButtonText}>
-              Add to Cart ${ (productPrice * quantity).toFixed(2)}
+              Add to Cart ${ (finalPrice * quantity).toFixed(2)}
             </Text>
           )}
         </TouchableOpacity>
@@ -145,7 +185,7 @@ const ProductDetail = ({ product, onAddToCart, onBack, shop }) => {
               1. Explore the available discounts based on dates and times.
             </Text>
             <Text style={styles.modalText}>
-              2. Complete your purchase using Stripe, Google pay or Apple pay.
+              2. Complete your purchase using Stripe, Google Pay or Apple Pay.
             </Text>
             <Text style={styles.modalText}>
               3. Present your code at the restaurant to redeem your meal at the best price!
@@ -171,6 +211,7 @@ const lightStyles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 100,
+    paddingHorizontal: 16,
   },
   image: {
     width: '100%',
@@ -183,24 +224,49 @@ const lightStyles = StyleSheet.create({
     padding: 16,
     marginBottom: 16,
     backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,
   },
   productName: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#000000',
-    marginBottom: 4,
+    color: '#333333',
+    marginBottom: 8,
   },
   productDescription: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#666666',
-    marginBottom: 8,
-    lineHeight: 18,
+    marginBottom: 12,
+    lineHeight: 22,
   },
-  productPrice: {
+  priceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  originalPrice: {
+    fontSize: 18,
+    color: '#999999',
+    textDecorationLine: 'line-through',
+    marginRight: 8,
+  },
+  discountBadge: {
+    backgroundColor: '#FF6F00',
+    color: '#FFFFFF',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  finalPrice: {
     fontSize: 28,
     fontWeight: 'bold',
     color: '#000000',
-    marginTop: 8,
+    marginTop: 4,
   },
   additionalInfoContainer: {
     padding: 16,
@@ -209,41 +275,42 @@ const lightStyles = StyleSheet.create({
     marginBottom: 16,
   },
   subTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
-    color: '#000000',
-    marginVertical: 8,
+    color: '#333333',
+    marginVertical: 10,
   },
   optionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 10,
   },
   option: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 10,
+    marginRight: 16,
   },
   optionText: {
     marginLeft: 5,
-    fontSize: 14,
-    color: '#000000',
+    fontSize: 16,
+    color: '#333333',
   },
   paymentOptions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginVertical: 8,
+    marginVertical: 12,
   },
   paymentOption: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   paymentText: {
-    fontSize: 14,
-    color: '#000000',
+    fontSize: 16,
+    color: '#333333',
     marginLeft: 5,
   },
   helpLink: {
-    fontSize: 14,
+    fontSize: 16,
     textDecorationLine: 'underline',
     color: '#FF6F00',
     textAlign: 'center',
@@ -266,28 +333,28 @@ const lightStyles = StyleSheet.create({
     alignItems: 'center',
   },
   quantityButton: {
-    backgroundColor: '#000000',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+    backgroundColor: '#333333',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
     borderRadius: 4,
     marginHorizontal: 4,
   },
   quantityButtonText: {
     color: '#FFFFFF',
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
   },
   quantityText: {
-    fontSize: 18,
-    color: '#000000',
-    minWidth: 30,
+    fontSize: 20,
+    color: '#333333',
+    minWidth: 40,
     textAlign: 'center',
   },
   addButton: {
     borderRadius: 5,
     paddingVertical: 12,
     paddingHorizontal: 20,
-    backgroundColor: '#000000',
+    backgroundColor: '#333333',
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
@@ -300,7 +367,7 @@ const lightStyles = StyleSheet.create({
   },
   backButton: {
     position: 'absolute',
-    top: 16,
+    top: 50,
     left: 16,
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
     borderRadius: 30,
@@ -311,7 +378,7 @@ const lightStyles = StyleSheet.create({
     zIndex: 10,
   },
   iconColor: {
-    color: '#000000',
+    color: '#333333',
   },
   backIcon: {
     color: '#FFFFFF',
@@ -330,18 +397,20 @@ const lightStyles = StyleSheet.create({
     alignItems: 'center',
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
-    marginBottom: 10,
+    marginBottom: 12,
     textAlign: 'center',
+    color: '#333333',
   },
   modalText: {
-    fontSize: 16,
+    fontSize: 18,
     textAlign: 'center',
     marginBottom: 10,
+    color: '#666666',
   },
   modalButton: {
-    backgroundColor: '#000',
+    backgroundColor: '#333333',
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 5,
@@ -349,7 +418,7 @@ const lightStyles = StyleSheet.create({
   },
   modalButtonText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 18,
   },
 });
 

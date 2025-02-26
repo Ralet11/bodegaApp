@@ -23,10 +23,8 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { setAuxShops, setShopsDiscounts, setUserDiscounts } from '../redux/slices/setUp.slice';
 import PromoSlider from '../components/PromotionSlider';
 import AccountDrawer from '../components/AccountDrawer';
-import { setAddress } from '../redux/slices/user.slice';
+import { setAddress, setLocation } from '../redux/slices/user.slice';
 import SkeletonLoader from '../components/SkeletonLoader';
-import { lightTheme } from '../components/themes';
-import socketIOClient from 'socket.io-client';
 import DiscountShopScroll from '../components/DiscountShopScroll';
 import { clearCart } from '../redux/slices/cart.slice';
 import * as Location from 'expo-location';
@@ -41,8 +39,8 @@ const DashboardDiscount = () => {
   const [addressModalVisible, setAddressModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [deliveryMode, setDeliveryMode] = useState('Dine-in');
-  const categories = useSelector((state) => state?.setUp?.categories) || [];
   const address = useSelector((state) => state?.user?.address?.formatted_address);
+  const location = useSelector((state) => state?.user?.location);
   const addresses = useSelector((state) => state?.user?.addresses);
   const navigation = useNavigation();
   const dispatch = useDispatch();
@@ -52,31 +50,26 @@ const DashboardDiscount = () => {
   const [allTags, setAllTags] = useState([]);
   const cart = useSelector((state) => state.cart.items);
   const auxCart = useSelector((state) => state?.setUp?.auxCart);
-  // Mapea el modo de entrega a un número para otras pantallas
+
+  // Mapear deliveryMode a un número
   const orderTypeParam = deliveryMode === 'Dine-in' ? 0 : deliveryMode === 'Pickup' ? 1 : null;
 
   useEffect(() => {
-    // Limpia el carrito al montar/actualizar si así lo requieres
     dispatch(clearCart());
-  }, [auxCart]);
+  }, [auxCart, dispatch]);
 
-  // BLOCK SWIPE BACK: Al enfocar la pantalla, evitamos cualquier "back" en iOS
   useFocusEffect(
     useCallback(() => {
-      // Bloqueamos el botón "back" de Android.
       const onBackPress = () => true;
       BackHandler.addEventListener('hardwareBackPress', onBackPress);
 
-      // Bloqueamos el "swipe back" en iOS.
       let removeBeforeRemove;
       if (Platform.OS === 'ios') {
         removeBeforeRemove = navigation.addListener('beforeRemove', (e) => {
-          // Evitar la navegación hacia atrás (gesto o botón)
           e.preventDefault();
         });
       }
 
-      // Al salir de la pantalla, quitamos los listeners
       return () => {
         BackHandler.removeEventListener('hardwareBackPress', onBackPress);
         if (removeBeforeRemove) removeBeforeRemove();
@@ -86,52 +79,29 @@ const DashboardDiscount = () => {
 
   useFocusEffect(
     useCallback(() => {
-      // Limpia el query de búsqueda cuando entras a esta pantalla
       setSearchQuery('');
     }, [])
   );
 
-  // Función para extraer todas las tags únicas de los comercios
   const extractTags = (shops) => {
     const tags = new Set();
-    Object.keys(shops).forEach((categoryId) => {
-      shops[categoryId].forEach((shop) => {
+    Object.keys(shops).forEach((catId) => {
+      shops[catId].forEach((shop) => {
         if (shop.tags && Array.isArray(shop.tags)) {
           shop.tags.forEach((tag) => tags.add(JSON.stringify(tag)));
         }
       });
     });
-    const uniqueTagsArray = Array.from(tags).map((tag) => JSON.parse(tag));
+    const uniqueTagsArray = Array.from(tags).map((t) => JSON.parse(t));
     setAllTags(uniqueTagsArray);
   };
 
-  useEffect(() => {
-    // Configura socket para sincronizar tiendas
-    const socket = socketIOClient(`${API_URL}`);
-    const syncShops = () => {
-      dispatch(setAuxShops());
-    };
-    socket.on('syncShops', syncShops);
-
-    return () => {
-      socket.off('syncShops');
-      socket.disconnect();
-    };
-  }, [dispatch]);
-
   const fetchShops = async () => {
-    if (!token) {
-      console.warn('Token not available');
-      return;
-    }
+    if (!token) return;
     try {
       const response = await Axios.get(`${API_URL}/api/local/app/getShopsOrderByCatDiscount`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
-
-      console.log(response.data);
       setShopsByCategory(response.data);
       extractTags(response.data);
       filterShopsByTags(response.data, deliveryMode);
@@ -147,16 +117,13 @@ const DashboardDiscount = () => {
     try {
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission Required', 'Location permission is needed to set your address.', [{ text: 'OK' }]);
+        Alert.alert('Permission Required', 'Location permission is needed.', [{ text: 'OK' }]);
         return;
       }
       const locationEnabled = await Location.hasServicesEnabledAsync();
       if (!locationEnabled) {
-        Alert.alert('Location Services Disabled', 'Please enable location services to continue.', [
-          {
-            text: 'Cancel',
-            style: 'cancel',
-          },
+        Alert.alert('Location Services Disabled', 'Please enable location services.', [
+          { text: 'Cancel', style: 'cancel' },
           {
             text: 'Open Settings',
             onPress: () => {
@@ -166,41 +133,40 @@ const DashboardDiscount = () => {
         ]);
         return;
       }
-      let location = await Location.getCurrentPositionAsync({});
-      let { latitude, longitude } = location.coords;
+      let loc = await Location.getCurrentPositionAsync({});
+      let { latitude, longitude } = loc.coords;
       let geocode = await Location.reverseGeocodeAsync({ latitude, longitude });
       if (geocode && geocode.length > 0) {
-        const formatted_address = `${geocode[0].street || ''} ${
-          geocode[0].name || ''
-        }, ${geocode[0].city || ''}, ${geocode[0].region || ''}, ${
-          geocode[0].postalCode || ''
-        }, ${geocode[0].country || ''}`;
+        const formatted_address = `${geocode[0].street || ''} ${geocode[0].name || ''}, ${
+          geocode[0].city || ''
+        }, ${geocode[0].region || ''}, ${geocode[0].postalCode || ''}, ${
+          geocode[0].country || ''
+        }`;
         const currentAddress = {
           id: 'current_location',
           name: 'Current Location',
-          formatted_address: formatted_address,
+          formatted_address,
           latitude,
           longitude,
         };
         dispatch(setAddress(currentAddress));
+        dispatch(setLocation(currentAddress))
       }
     } catch (error) {
-      console.error('Error getting current location:', error);
-      Alert.alert('Error', 'Unable to get current location. Please try again.', [{ text: 'OK' }]);
+      console.error('Error getting location:', error);
+      Alert.alert('Error', 'Unable to get current location.', [{ text: 'OK' }]);
     }
   };
 
-  // Trae los descuentos del usuario
+  // Descuentos de usuario
   useEffect(() => {
     if (user?.id && token) {
       const fetchUserDiscounts = async () => {
         try {
-          const response = await Axios.get(`${API_URL}/api/discounts/userDiscount/${user.id}`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
+          const resp = await Axios.get(`${API_URL}/api/discounts/userDiscount/${user.id}`, {
+            headers: { Authorization: `Bearer ${token}` },
           });
-          dispatch(setUserDiscounts(response.data));
+          dispatch(setUserDiscounts(resp.data));
         } catch (error) {
           console.error('Error fetching user discounts:', error);
         }
@@ -216,10 +182,8 @@ const DashboardDiscount = () => {
         getCurrentLocation();
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auxShops, token]);
 
-  // Abrir/cerrar el modal de direcciones
   const changeAddress = () => {
     setAddressModalVisible(true);
   };
@@ -229,37 +193,30 @@ const DashboardDiscount = () => {
     setAddressModalVisible(false);
   };
 
-  // Navegar a la pantalla de la tienda
   const handleShopPress = (shop) => {
     navigation.navigate('Shop', { shop, orderTypeParam });
   };
 
-  // Navegar a la pantalla de tiendas por categoría (tag)
   const handleCategoryPress = (selectedTag) => {
     navigation.navigate('CategoryShops', { selectedTag, allTags });
   };
 
-  // Abrir/cerrar el drawer
   const toggleDrawer = () => {
     setDrawerVisible(!drawerVisible);
   };
-
   const handleNavigate = (screen) => {
     setDrawerVisible(false);
     navigation.navigate(screen);
   };
 
-  // Buscador
   const handleSearchSubmit = () => {
     if (searchQuery.trim()) {
       const filteredShops = [];
       Object.keys(filteredShopsByTags).forEach((tagName) => {
-        const shops = filteredShopsByTags[tagName].filter((shop) =>
+        const shopsFound = filteredShopsByTags[tagName].filter((shop) =>
           shop.name.toLowerCase().includes(searchQuery.toLowerCase())
         );
-        if (shops.length > 0) {
-          filteredShops.push(...shops);
-        }
+        if (shopsFound.length) filteredShops.push(...shopsFound);
       });
       navigation.navigate('CategoryShops', {
         filteredShops,
@@ -270,23 +227,16 @@ const DashboardDiscount = () => {
     }
   };
 
-  // Cambio del modo de entrega (Dine-in / Pickup)
-  const handleToggle = (mode) => {
-    setDeliveryMode(mode);
-    filterShopsByTags(shopsByCategory, mode);
-  };
-
-  // Filtrar las tiendas según el modo, día y horario
   const filterShopsByTags = (shops, mode) => {
     const currentDateTime = new Date();
-    const currentDay = currentDateTime.toLocaleString('en-US', {
-      weekday: 'short',
-    }).toLowerCase();
+    const currentDay = currentDateTime
+      .toLocaleString('en-US', { weekday: 'short' })
+      .toLowerCase();
     const currentTime = currentDateTime.toTimeString().slice(0, 8);
 
     const filtered = {};
-    Object.keys(shops).forEach((categoryId) => {
-      shops[categoryId].forEach((shop) => {
+    Object.keys(shops).forEach((catId) => {
+      shops[catId].forEach((shop) => {
         let isModeMatch = false;
         if (mode === 'Dine-in') {
           isModeMatch = shop.orderIn;
@@ -322,32 +272,29 @@ const DashboardDiscount = () => {
   }
 
   return (
-    <SafeAreaView style={lightTheme.safeArea}>
-      <View style={lightTheme.header}>
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.header}>
         <View style={styles.addressToggleContainer}>
-          <View
-            onPress={changeAddress}
+          <TouchableOpacity
+            onPress={() => navigation.navigate("Addresses")}
             style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
           >
             <FontAwesome
               name="map-marker"
               size={18}
-              color={'#333'}
+              color="#333"
               style={{ marginRight: 5 }}
             />
-            <Text style={lightTheme.addressText} numberOfLines={1} ellipsizeMode="tail">
+            <Text style={styles.addressText} numberOfLines={1} ellipsizeMode="tail">
               {address}
             </Text>
-          </View>
-          <DeliveryModeToggle deliveryMode={deliveryMode} onToggle={handleToggle} />
+          </TouchableOpacity>
+          <DeliveryModeToggle deliveryMode={deliveryMode} onToggle={setDeliveryMode} />
         </View>
 
         <View style={styles.searchContainer}>
-          <TouchableOpacity
-            onPress={toggleDrawer}
-            style={[lightTheme.iconButton, styles.iconButtonFix]}
-          >
-            <FontAwesome name="bars" size={20} color={'#333'} />
+          <TouchableOpacity onPress={toggleDrawer} style={[styles.iconButton, styles.iconButtonFix]}>
+            <FontAwesome name="bars" size={20} color="#333" />
           </TouchableOpacity>
           <TextInput
             style={styles.searchInput}
@@ -360,20 +307,20 @@ const DashboardDiscount = () => {
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={lightTheme.contentContainer}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 50 }}>
         <PromoSlider />
+
         <View style={{ paddingHorizontal: 15, paddingVertical: 10 }}>
           <Text style={{ fontSize: 14, fontWeight: '900', color: '#333' }}>
             What are you looking for today?
           </Text>
         </View>
 
-        {/* Listado de tags disponibles */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           {allTags.map((tag) => (
             <TouchableOpacity
               key={tag.id}
-              style={lightTheme.category}
+              style={styles.category}
               onPress={() => handleCategoryPress(tag)}
             >
               <Image
@@ -382,127 +329,38 @@ const DashboardDiscount = () => {
                     tag?.img ||
                     'https://res.cloudinary.com/doqyrz0sg/image/upload/v1628580001/placeholder.png',
                 }}
-                style={lightTheme.categoryImage}
+                style={styles.categoryImage}
               />
-              <Text style={lightTheme.categoryText}>{tag.name}</Text>
+              <Text style={styles.categoryText}>{tag.name}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
 
-        {/* Si no hay tiendas abiertas, se muestra un mensaje */}
         {noShopsAvailable ? (
-          <View
-            style={{
-              flex: 1,
-              justifyContent: 'center',
-              alignItems: 'center',
-              backgroundColor: '#FFF',
-              paddingHorizontal: 20,
-              paddingVertical: 40,
-            }}
-          >
-            <View
-              style={{
-                backgroundColor: '#FFFFFF',
-                borderRadius: 12,
-                paddingVertical: 20,
-                paddingHorizontal: 15,
-                alignItems: 'center',
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.1,
-                shadowRadius: 6,
-                elevation: 2,
-                width: '90%',
-                maxWidth: 300,
-              }}
-            >
-              <View
-                style={{
-                  backgroundColor: '#FFF0F0',
-                  borderRadius: 50,
-                  padding: 10,
-                  marginBottom: 15,
-                }}
-              >
+          <View style={styles.noShopsContainer}>
+            <View style={styles.noShopsCard}>
+              <View style={styles.mapMarkerIcon}>
                 <FontAwesome name="map-marker" size={24} color="#333" />
               </View>
-              <Text
-                style={{
-                  fontSize: 18,
-                  fontWeight: '700',
-                  color: '#333',
-                  marginBottom: 8,
-                  textAlign: 'center',
-                }}
-              >
-                Oops! No shops nearby
-              </Text>
-              <Text
-                style={{
-                  fontSize: 14,
-                  color: '#666',
-                  marginBottom: 8,
-                  textAlign: 'center',
-                }}
-              >
+              <Text style={styles.noShopsTitle}>Oops! No shops nearby</Text>
+              <Text style={styles.noShopsDesc}>
                 We couldn't find any shops in your area
               </Text>
-              <View
-                style={{
-                  width: 50,
-                  height: 3,
-                  backgroundColor: '#FF6B6B',
-                  borderRadius: 2,
-                  marginBottom: 8,
-                }}
-              />
-              <Text
-                style={{
-                  fontSize: 12,
-                  color: '#888',
-                  textAlign: 'center',
-                  lineHeight: 16,
-                  marginBottom: 12,
-                }}
-              >
-                We're constantly expanding our network. Check back soon for
-                exciting updates!
+              <View style={styles.separatorLine} />
+              <Text style={styles.noShopsHint}>
+                We're constantly expanding our network. Check back soon!
               </Text>
-              <View
-                style={{
-                  width: '100%',
-                  height: 100,
-                  overflow: 'hidden',
-                  borderRadius: 20,
-                }}
-              >
-                <View
-                  style={{
-                    width: '100%',
-                    height: 100,
-                    overflow: 'hidden',
-                    borderRadius: 20,
+              <View style={styles.noShopsImageContainer}>
+                <Image
+                  source={{
+                    uri: 'https://res.cloudinary.com/doqyrz0sg/image/upload/v1720400961/c0e3cfe8-b839-496f-b6af-9e9f76d7360c_dev8hm.webp',
                   }}
-                >
-                  <Image
-                    source={{
-                      uri: 'https://res.cloudinary.com/doqyrz0sg/image/upload/v1720400961/c0e3cfe8-b839-496f-b6af-9e9f76d7360c_dev8hm.webp',
-                    }}
-                    style={{
-                      width: '50%',
-                      height: '100%',
-                      resizeMode: 'cover',
-                      borderRadius: 20,
-                      margin: 'auto',
-                    }}
-                  />
-                </View>
+                  style={styles.noShopsImage}
+                />
               </View>
             </View>
           </View>
         ) : (
-          // Si hay tiendas, renderizamos cada categoría
           Object.keys(filteredShopsByTags).map(
             (name) =>
               filteredShopsByTags[name].length > 0 && (
@@ -519,7 +377,6 @@ const DashboardDiscount = () => {
         )}
       </ScrollView>
 
-      {/* Drawer con menú de usuario */}
       <AccountDrawer
         visible={drawerVisible}
         onClose={toggleDrawer}
@@ -528,49 +385,43 @@ const DashboardDiscount = () => {
         user={user}
       />
 
-      {/* Modal de selección de dirección */}
       <Modal
         animationType="slide"
-        transparent={true}
+        transparent
         visible={addressModalVisible}
-        onRequestClose={() => {
-          setAddressModalVisible(!addressModalVisible);
-        }}
+        onRequestClose={() => setAddressModalVisible(false)}
       >
-        <View style={lightTheme.modalBackground}>
-          <View style={lightTheme.modalContainer}>
+        <View style={styles.modalBackground}>
+          <View style={styles.modalContainer}>
             <TouchableOpacity
               onPress={() => setAddressModalVisible(false)}
-              style={lightTheme.closeButton}
+              style={styles.closeButton}
             >
-              <FontAwesome name="close" size={24} color={'#000'} />
+              <FontAwesome name="close" size={24} color="#000" />
             </TouchableOpacity>
-            <Text style={lightTheme.modalTitle}>Select Your Address</Text>
+            <Text style={styles.modalTitle}>Select Your Address</Text>
             <FlatList
               data={addresses}
               keyExtractor={(item) => item.id}
               renderItem={({ item }) => (
                 <TouchableOpacity
                   onPress={() => handleAddressSelect(item)}
-                  style={lightTheme.addressItem}
+                  style={styles.addressItem}
                 >
-                  <Text style={lightTheme.addressName}>{item.name}</Text>
-                  <Text style={lightTheme.addressTextModal}>
-                    {item.formatted_address}
-                  </Text>
+                  <Text style={styles.addressName}>{item.name}</Text>
+                  <Text style={styles.addressTextModal}>{item.formatted_address}</Text>
                 </TouchableOpacity>
               )}
-              ItemSeparatorComponent={() => <View style={lightTheme.separator} />}
-              contentContainerStyle={lightTheme.flatListContent}
+              ItemSeparatorComponent={() => <View style={styles.separator} />}
             />
             <TouchableOpacity
-              style={lightTheme.addButton}
+              style={styles.addButton}
               onPress={() => {
                 setAddressModalVisible(false);
                 navigation.navigate('SetAddressScreen');
               }}
             >
-              <Text style={lightTheme.addButtonText}>+ Add Address</Text>
+              <Text style={styles.addButtonText}>+ Add Address</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -580,12 +431,21 @@ const DashboardDiscount = () => {
 };
 
 const styles = StyleSheet.create({
+  safeArea: { flex: 1 },
+  header: {
+    paddingVertical: 5,
+    backgroundColor: '#fff',
+  },
   addressToggleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 10,
     paddingVertical: 5,
+  },
+  addressText: {
+    fontSize: 14,
+    color: '#333',
   },
   searchContainer: {
     flexDirection: 'row',
@@ -594,6 +454,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     marginTop: 5,
     gap: 5,
+  },
+  iconButton: {
+    padding: 6,
+  },
+  iconButtonFix: {
+    height: 40,
+    width: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 5,
+    backgroundColor: '#f0f0f0',
   },
   searchInput: {
     flex: 1,
@@ -604,13 +475,145 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#333',
   },
-  iconButtonFix: {
-    height: 40, // Igual que el searchInput
-    width: 40,  // Para que sea un cuadrado
-    justifyContent: 'center',
+  category: {
     alignItems: 'center',
-    borderRadius: 5, // Opcional, esquinas redondeadas
-    backgroundColor: '#f0f0f0', // Opcional, para que concuerde con el input
+    marginHorizontal: 10,
+    marginBottom: 10,
+  },
+  categoryImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    marginBottom: 6,
+  },
+  categoryText: {
+    fontSize: 12,
+    color: '#333',
+    fontWeight: 'bold',
+  },
+  noShopsContainer: {
+    flex: 1,
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    paddingHorizontal: 20,
+    paddingVertical: 40,
+  },
+  noShopsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingVertical: 20,
+    paddingHorizontal: 15,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 2,
+    width: '90%',
+    maxWidth: 300,
+  },
+  mapMarkerIcon: {
+    backgroundColor: '#FFF0F0',
+    borderRadius: 50,
+    padding: 10,
+    marginBottom: 15,
+  },
+  noShopsTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  noShopsDesc: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  separatorLine: {
+    width: 50,
+    height: 3,
+    backgroundColor: '#FF6B6B',
+    borderRadius: 2,
+    marginBottom: 8,
+  },
+  noShopsHint: {
+    fontSize: 12,
+    color: '#888',
+    textAlign: 'center',
+    lineHeight: 16,
+    marginBottom: 12,
+  },
+  noShopsImageContainer: {
+    width: '100%',
+    height: 100,
+    overflow: 'hidden',
+    borderRadius: 20,
+  },
+  noShopsImage: {
+    width: '50%',
+    height: '100%',
+    resizeMode: 'cover',
+    borderRadius: 20,
+  },
+  modalBackground: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+  },
+  modalContainer: {
+    marginHorizontal: 20,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    paddingVertical: 15,
+    elevation: 5,
+  },
+  closeButton: {
+    alignSelf: 'flex-end',
+    marginBottom: 10,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  addressItem: {
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 5,
+    marginBottom: 10,
+  },
+  addressName: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  addressTextModal: {
+    fontSize: 12,
+    color: '#666',
+  },
+  separator: {
+    height: 1,
+    backgroundColor: '#ddd',
+    width: '100%',
+    marginVertical: 10,
+  },
+  addButton: {
+    backgroundColor: '#ff9900',
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    borderRadius: 20,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  addButtonText: {
+    color: '#000',
+    fontWeight: '600',
+    fontSize: 14,
   },
 });
 

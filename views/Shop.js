@@ -1,4 +1,3 @@
-// ShopScreen.js
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -13,6 +12,7 @@ import {
   Linking,
   Alert,
   Easing,
+  StyleSheet
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -27,28 +27,45 @@ import ShopContentOrderIn from '../components/ShopContentOrderIn';
 import { stylesDark, stylesLight } from '../components/themeShop';
 import PromoCard from '../components/PromoMealCard';
 import ProductDetail from '../components/ProductDetail';
+import Toast from 'react-native-toast-message';
 
 const ShopScreen = () => {
   const route = useRoute();
   const navigation = useNavigation();
   const dispatch = useDispatch();
 
-  // Redux
+  // ====================
+  // Global States (Redux)
+  // ====================
   const cart = useSelector(state => state.cart.items);
-  const colorScheme = useColorScheme();
   const user = useSelector(state => state?.user?.userInfo?.data?.client);
   const token = useSelector(state => state?.user?.userInfo.data.token);
 
-  // Estados locales
-  const [categories, setCategories] = useState([]);
+  // ====================
+  // Local States
+  // ====================
+  const [categories, setCategories] = useState([]);            // Todas las categorías
+  const [filteredCategories, setFilteredCategories] = useState([]); // En este caso, serán las mismas
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [selectedOptions, setSelectedOptions] = useState({});
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);                // Para mostrar el skeleton mientras carga
   const [orderType, setOrderType] = useState('Pick-up');
   const [promotion, setPromotion] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [reviews, setReviews] = useState([]);
 
-  // Para la barra sticky de categorías
+  const colorScheme = useColorScheme();
+
+  // Navigation parameters
+  const params = route.params || {};
+  const shop = params.shop || null;
+  const orderTypeParam = params.orderTypeParam;
+  const orderDetails = params.orderDetails || null;
+
+  // Control para evitar doble retroceso
+  const isNavigatingBack = useRef(false);
+
+  // Para el sticky category bar
   const [showStickyCategoryScroll, setShowStickyCategoryScroll] = useState(false);
   const [categoryListY, setCategoryListY] = useState(0);
   const categoryRefs = useRef([]);
@@ -56,35 +73,22 @@ const ShopScreen = () => {
   const [positionsReady, setPositionsReady] = useState(false);
   const [isComponentReady, setIsComponentReady] = useState(false);
 
-  // Animación para la barra sticky
+  // Animación para el sticky bar
   const stickyAnimValue = useRef(new Animated.Value(0)).current;
 
-  // Reseñas
-  const [reviews, setReviews] = useState([]);
-
-  // Parámetros de navegación
-  const params = route.params || {};
-  const shop = params.shop || null;
-  const orderTypeParam = params.orderTypeParam;
-  const orderDetails = params.orderDetails || null;
-
-  // Estilos (por ahora forzados a light)
-  // const styles = colorScheme === 'dark' ? stylesDark : stylesLight;
+  // Styles: se usa stylesLight (o stylesDark si se desea forzar el modo oscuro)
   const styles = stylesLight;
 
-  // Control para evitar doble back
-  const isNavigatingBack = useRef(false);
+  // ====================
+  // Effects
+  // ====================
 
-  //----------------------------------------------------------------
-  // Efectos
-  //----------------------------------------------------------------
-
-  // Montaje inicial
+  // Marcar componente como listo al montar
   useEffect(() => {
     setIsComponentReady(true);
   }, []);
 
-  // Si `orderDetails` trae productos, se agregan al carrito.
+  // Cargar productos de pedidos anteriores (si se pasan en orderDetails)
   useEffect(() => {
     if (orderDetails && Array.isArray(orderDetails) && orderDetails.length > 0) {
       orderDetails.forEach(product => {
@@ -100,7 +104,7 @@ const ShopScreen = () => {
     }
   }, [orderDetails, dispatch]);
 
-  // Obtener reseñas
+  // Cargar reviews
   useEffect(() => {
     const fetchReviews = async () => {
       try {
@@ -110,7 +114,7 @@ const ShopScreen = () => {
               Authorization: `Bearer ${token}`,
             },
           });
-          setReviews(response.data);
+          setReviews(response.data || []);
         }
       } catch (error) {
         console.error(error);
@@ -119,7 +123,7 @@ const ShopScreen = () => {
     fetchReviews();
   }, [shop?.id, token]);
 
-  // Ajustar el `orderType` según `orderTypeParam`
+  // Ajustar orderType según orderTypeParam
   useEffect(() => {
     if (orderTypeParam !== undefined) {
       switch (orderTypeParam) {
@@ -136,14 +140,17 @@ const ShopScreen = () => {
     }
   }, [orderTypeParam]);
 
-  // Obtener categorías + productos
+  // <-- Se eliminó la lógica de filtrado por "availableFor":
+  // Ahora se obtienen y se muestran todas las categorías y productos.
   useEffect(() => {
     const fetchCategories = async () => {
       if (!shop?.id) return;
       try {
         setLoading(true);
         const response = await Axios.get(`${API_URL}/api/local/${shop.id}/categories`);
-        setCategories(response.data.categories || []);
+        const allCats = response.data.categories || [];
+        setCategories(allCats);
+        setFilteredCategories(allCats);
       } catch (error) {
         console.log(error);
       } finally {
@@ -153,7 +160,12 @@ const ShopScreen = () => {
     fetchCategories();
   }, [shop?.id]);
 
-  // Obtener promoción
+  // Al cambiar las categorías (o el orderType, aunque ya no afecta), se actualiza filteredCategories
+  useEffect(() => {
+    setFilteredCategories(categories);
+  }, [categories]);
+
+  // Obtener promoción para el local
   useEffect(() => {
     const getPromotionByShop = async () => {
       if (!shop?.id) return;
@@ -171,48 +183,44 @@ const ShopScreen = () => {
     getPromotionByShop();
   }, [shop?.id, token]);
 
-  // Setear la tienda actual en Redux
+  // Establecer el local actual en Redux
   useEffect(() => {
     if (shop?.id) {
       dispatch(setCurrentShop(shop.id));
     }
   }, [dispatch, shop?.id]);
 
-  // Efecto para animar el valor cuando showStickyCategoryScroll cambia
+  // Animar el sticky bar en el scroll
   useEffect(() => {
     Animated.timing(stickyAnimValue, {
       toValue: showStickyCategoryScroll ? 1 : 0,
-      duration: 200, // Prueba un valor entre 150 y 300 para ver qué tan fluido se siente
+      duration: 200,
       easing: Easing.inOut(Easing.ease),
       useNativeDriver: true,
     }).start();
   }, [showStickyCategoryScroll, stickyAnimValue]);
 
-  //----------------------------------------------------------------
-  // Manejo de la navegación "back"
-  //----------------------------------------------------------------
+  // ====================
+  // Back Button Handling
+  // ====================
   useFocusEffect(
     React.useCallback(() => {
       const onBackPress = () => {
         if (isNavigatingBack.current) return true;
         isNavigatingBack.current = true;
 
-        // Si no hay producto seleccionado
         if (!selectedProduct) {
-          // Carrito con ítems => lo vaciamos y navegamos a Main
           if (cart.length > 0) {
             dispatch(clearCart());
             dispatch(setAuxCart());
             navigation.navigate('Main');
             return true;
           } else {
-            // Carrito vacío => directo a Main
             dispatch(setAuxCart());
             navigation.navigate('Main');
             return true;
           }
         } else {
-          // Había un producto abierto => cerramos detalle
           setSelectedProduct(null);
           isNavigatingBack.current = false;
           return true;
@@ -228,33 +236,22 @@ const ShopScreen = () => {
     }, [cart, selectedProduct, navigation, dispatch])
   );
 
-  // Manejo "antes de salir" (swipe iOS/back)
+  // Manejo de "before leaving" (iOS swipe/back)
   useEffect(() => {
     const beforeRemoveListener = navigation.addListener('beforeRemove', e => {
-      const isSwipeBack = e.data.action.type === 'POP';
       if (cart.length > 0) {
         e.preventDefault();
-        Alert.alert('Empty Cart', 'If you go back, your cart will be emptied. Do you want to continue?', [
-          ...(isSwipeBack
-            ? []
-            : [
-                {
-                  text: 'Cancel',
-                  onPress: () => {
-                    isNavigatingBack.current = false;
-                  },
-                  style: 'cancel',
-                },
-              ]),
-          {
-            text: 'Accept',
-            onPress: () => {
-              dispatch(clearCart());
-              dispatch(setAuxCart());
-              navigation.dispatch(e.data.action);
-            },
-          },
-        ]);
+        dispatch(clearCart());
+        dispatch(setAuxCart());
+        Toast.show({
+          type: 'info',
+          text1: 'Cart Emptied',
+          text2: 'Your cart has been successfully emptied.',
+          position: 'bottom',
+          visibilityTime: 2000,
+          autoHide: true,
+        });
+        navigation.dispatch(e.data.action);
       } else {
         dispatch(setAuxCart());
         navigation.dispatch(e.data.action);
@@ -266,11 +263,70 @@ const ShopScreen = () => {
     };
   }, [navigation, cart, dispatch]);
 
-  //----------------------------------------------------------------
+  // ====================
   // Funciones
-  //----------------------------------------------------------------
+  // ====================
 
-  // Abrir dirección en Google Maps
+  const scrollViewRef = useRef(null);
+
+  const handleScroll = event => {
+    const scrollY = event.nativeEvent.contentOffset.y;
+    if (scrollY >= categoryListY) {
+      setShowStickyCategoryScroll(true);
+    } else {
+      setShowStickyCategoryScroll(false);
+    }
+
+    categoryPositions.current.forEach((position, index) => {
+      if (
+        position <= scrollY + categoryListY + 10 &&
+        (categoryPositions.current[index + 1] === undefined ||
+          categoryPositions.current[index + 1] > scrollY + categoryListY + 10)
+      ) {
+        setSelectedCategory(index);
+      }
+    });
+  };
+
+  const scrollToCategory = index => {
+    if (!positionsReady || !isComponentReady) {
+      console.log('Component not ready to scroll yet');
+      return;
+    }
+    if (scrollViewRef.current && categoryPositions.current[index] !== undefined) {
+      setSelectedCategory(index);
+      const positionY = categoryPositions.current[index];
+      scrollViewRef.current.scrollTo({ y: positionY - categoryListY, animated: true });
+    } else {
+      console.log('Could not scroll (refs not available yet).');
+    }
+  };
+
+  const handleOrderTypeChange = type => {
+    setOrderType(type);
+    // Aunque se cambia el orderType, ya no se filtra la lista de productos.
+  };
+
+  const handleAddToCart = (product, quantity) => {
+    dispatch(
+      addToCart({
+        ...product,
+        quantity,
+        price: product.finalPrice ?? product.price,
+      })
+    );
+    closeProductDetail();
+  };
+
+  const closeProductDetail = () => {
+    setSelectedProduct(null);
+    setSelectedOptions({});
+  };
+
+  const goReviewScreen = () => {
+    navigation.navigate('ReviewSceen', { shop, reviews });
+  };
+
   const openAddressInGoogleMaps = address => {
     const encodedAddress = encodeURIComponent(address);
     const url = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
@@ -285,89 +341,32 @@ const ShopScreen = () => {
       .catch(err => console.error('Error trying to open the URL:', err));
   };
 
-  // Manejo de scroll
-  const scrollViewRef = useRef(null);
-  const handleScroll = event => {
-    const scrollY = event.nativeEvent.contentOffset.y;
-    if (scrollY >= categoryListY) {
-      setShowStickyCategoryScroll(true);
-    } else {
-      setShowStickyCategoryScroll(false);
-    }
-
-    // Detectar a qué categoría pertenece la posición de scroll
-    categoryPositions.current.forEach((position, index) => {
-      if (
-        position <= scrollY + categoryListY + 10 &&
-        (categoryPositions.current[index + 1] === undefined ||
-          categoryPositions.current[index + 1] > scrollY + categoryListY + 10)
-      ) {
-        setSelectedCategory(index);
-      }
-    });
-  };
-
-  // Scroll a categoría según índice
-  const scrollToCategory = index => {
-    if (!positionsReady || !isComponentReady) {
-      console.log('Componente no listo para scrollear todavía');
-      return;
-    }
-    if (scrollViewRef.current && categoryPositions.current[index] !== undefined) {
-      setSelectedCategory(index);
-      const positionY = categoryPositions.current[index];
-      // Ajuste según la altura donde inicia la lista
-      scrollViewRef.current.scrollTo({ y: positionY - categoryListY, animated: true });
-    } else {
-      console.log('No se pudo hacer scroll (refs no disponibles aún).');
-    }
-  };
-
-  // Manejo de cambio en orderType
-  const handleOrderTypeChange = type => {
-    setOrderType(type);
-  };
-
-  // Agregar producto al carrito
-  const handleAddToCart = (product, quantity) => {
-    dispatch(
-      addToCart({
-        ...product,
-        quantity,
-        // finalPrice si existe, de lo contrario price
-        price: product.finalPrice ?? product.price,
-      })
-    );
-    closeProductDetail();
-  };
-
-  // Cerrar el detalle de producto
-  const closeProductDetail = () => {
-    setSelectedProduct(null);
-    setSelectedOptions({});
-  };
-
-  // Ir a la pantalla de reseñas
-  const goReviewScreen = () => {
-    navigation.navigate('ReviewSceen', { shop, reviews });
-  };
-
-  // Botones de Order Type
+  // Botones de orderType (se mantienen en la UI, aunque ya no filtran productos)
   const renderOrderTypeButtons = () => {
     return (
       <>
         {shop?.orderIn && (
           <TouchableOpacity
-            style={[styles.orderTypeButton, orderType === 'Order-in' && styles.selectedOrderTypeButton]}
+            style={[
+              styles.orderTypeButton,
+              orderType === 'Order-in' && styles.selectedOrderTypeButton
+            ]}
             onPress={() => handleOrderTypeChange('Order-in')}
           >
-            <FontAwesome name="cutlery" size={15} color={orderType === 'Order-in' ? '#8C6D00' : '#333'} />
+            <FontAwesome
+              name="cutlery"
+              size={15}
+              color={orderType === 'Order-in' ? '#8C6D00' : '#333'}
+            />
             <Text style={styles.orderTypeText}>Dine-in</Text>
           </TouchableOpacity>
         )}
         {shop?.pickUp && (
           <TouchableOpacity
-            style={[styles.orderTypeButton, orderType === 'Pick-up' && styles.selectedOrderTypeButton]}
+            style={[
+              styles.orderTypeButton,
+              orderType === 'Pick-up' && styles.selectedOrderTypeButton
+            ]}
             onPress={() => handleOrderTypeChange('Pick-up')}
           >
             <FontAwesome
@@ -382,19 +381,24 @@ const ShopScreen = () => {
     );
   };
 
-  // Calcular totales para la barra del carrito
+  // Totales del carrito
   const totalItems = cart.reduce((total, item) => total + item.quantity, 0);
-  const totalAmount = cart.reduce((sum, item) => sum + (item.price ?? 0) * item.quantity, 0).toFixed(2);
+  const totalAmount = cart
+    .reduce((sum, item) => sum + (item.finalPrice ?? 0) * item.quantity, 0)
+    .toFixed(2);
 
-  //----------------------------------------------------------------
-  // Render principal
-  //----------------------------------------------------------------
+  // ====================
+  // Render Principal
+  // ====================
 
   return (
     <SafeAreaView style={styles.safeArea}>
       {selectedProduct ? (
-        // Si hay un producto seleccionado, renderizamos solo el detalle:
-        <ProductDetail product={selectedProduct} onAddToCart={handleAddToCart} onBack={closeProductDetail} />
+        <ProductDetail
+          product={selectedProduct}
+          onAddToCart={handleAddToCart}
+          onBack={closeProductDetail}
+        />
       ) : (
         <>
           <ScrollView
@@ -406,7 +410,10 @@ const ShopScreen = () => {
           >
             {/* Header con imagen */}
             <View style={styles.headerImageContainer}>
-              <Image source={{ uri: shop?.deliveryImage }} style={styles.headerImage} />
+              <Image
+                source={{ uri: shop?.deliveryImage }}
+                style={styles.headerImage}
+              />
               <TouchableOpacity
                 onPress={() => {
                   if (!selectedProduct) {
@@ -428,7 +435,7 @@ const ShopScreen = () => {
               </TouchableOpacity>
             </View>
 
-            {/* Info de la tienda */}
+            {/* Información del local */}
             <View style={styles.shopInfoContainer}>
               <Text style={styles.shopName}>{shop?.name}</Text>
               <TouchableOpacity
@@ -439,19 +446,28 @@ const ShopScreen = () => {
                 <Text style={styles.shopAddress}>{shop?.address}</Text>
               </TouchableOpacity>
 
-              {/* Rating y tipos de orden */}
+              {/* Rating y botones de orderType */}
               <View style={styles.ratingAndOrderTypeContainer}>
-                <TouchableOpacity onPress={goReviewScreen} style={styles.shopRatingContainer}>
+                <TouchableOpacity
+                  onPress={goReviewScreen}
+                  style={styles.shopRatingContainer}
+                >
                   <FontAwesome name="star" size={14} color="#ffcc00" />
-                  <Text style={styles.shopRating}>{shop?.rating?.toFixed(1)}</Text>
-                  <Text style={styles.shopRatingOpinions}>({reviews.length || 0})</Text>
+                  <Text style={styles.shopRating}>
+                    {shop?.rating?.toFixed(1)}
+                  </Text>
+                  <Text style={styles.shopRatingOpinions}>
+                    ({reviews.length || 0})
+                  </Text>
                   <FontAwesome name="chevron-right" style={styles.shopRatingArrow} />
                 </TouchableOpacity>
-                <View style={styles.orderTypeButtonsContainer}>{renderOrderTypeButtons()}</View>
+                <View style={styles.orderTypeButtonsContainer}>
+                  {renderOrderTypeButtons()}
+                </View>
               </View>
             </View>
 
-            {/* Lista de categorías */}
+            {/* Barra de categorías */}
             <View
               style={styles.categoryListContainer}
               onLayout={event => {
@@ -459,11 +475,17 @@ const ShopScreen = () => {
                 setCategoryListY(layout.y);
               }}
             >
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.contentContainer}>
-                {categories.map((item, index) => (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.contentContainer}
+              >
+                {filteredCategories.map((item, index) => (
                   <TouchableOpacity
                     key={item.id}
-                    onPress={() => positionsReady && isComponentReady && scrollToCategory(index)}
+                    onPress={() =>
+                      positionsReady && isComponentReady && scrollToCategory(index)
+                    }
                     disabled={!positionsReady || !isComponentReady}
                     style={[
                       styles.categoryButton,
@@ -485,15 +507,15 @@ const ShopScreen = () => {
               <View style={styles.categorySeparator} />
             </View>
 
-            {/* PromoCard (si existe) */}
+            {/* PromoCard (si hay promoción) */}
             {promotion && Object.keys(promotion).length > 0 && (
               <PromoCard user={user} shop={shop} token={token} promotion={promotion} />
             )}
 
-            {/* Contenido principal (categorías y productos) */}
+            {/* Si está cargando => Skeleton; si no, renderiza las categorías */}
             {loading ? (
               <CartSkeletonLoader />
-            ) : (
+            ) : filteredCategories.length > 0 ? (
               <ShopContentOrderIn
                 selectedProduct={selectedProduct}
                 setSelectedProduct={setSelectedProduct}
@@ -502,14 +524,21 @@ const ShopScreen = () => {
                 selectedOptions={selectedOptions}
                 setSelectedOptions={setSelectedOptions}
                 closeProductDetail={closeProductDetail}
-                orderType={orderType}
+                categories={filteredCategories}
                 categoryRefs={categoryRefs}
                 categoryPositions={categoryPositions}
                 setPositionsReady={setPositionsReady}
                 promotion={promotion}
                 shop={shop}
-                categories={categories}
               />
+            ) : (
+              <View style={extraStyles.noProductsContainer}>
+                <FontAwesome name="frown-o" style={extraStyles.noProductsIcon} />
+                <Text style={extraStyles.noProductsTitle}>No Dishes Available</Text>
+                <Text style={extraStyles.noProductsText}>
+                  We're currently updating our menu. Please check back soon for exciting new dishes!
+                </Text>
+              </View>
             )}
           </ScrollView>
 
@@ -550,10 +579,12 @@ const ShopScreen = () => {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.categoryScrollContainer}
             >
-              {categories.map((item, index) => (
+              {filteredCategories.map((item, index) => (
                 <TouchableOpacity
                   key={item.id}
-                  onPress={() => positionsReady && isComponentReady && scrollToCategory(index)}
+                  onPress={() =>
+                    positionsReady && isComponentReady && scrollToCategory(index)
+                  }
                   disabled={!positionsReady || !isComponentReady}
                   style={[
                     styles.categoryButton,
@@ -576,7 +607,7 @@ const ShopScreen = () => {
         </>
       )}
 
-      {/* Barra del carrito (abajo) */}
+      {/* Barra inferior del carrito */}
       {cart.length > 0 && !selectedProduct && (
         <View style={styles.cartContainer}>
           <Text style={styles.cartText}>
@@ -597,3 +628,39 @@ const ShopScreen = () => {
 };
 
 export default ShopScreen;
+
+// Estilos complementarios
+const extraStyles = StyleSheet.create({
+  noProductsContainer: {
+    marginHorizontal: 16,
+    marginVertical: 20,
+    padding: 20,
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  noProductsIcon: {
+    fontSize: 32,
+    color: '#999',
+    marginBottom: 8,
+  },
+  noProductsTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  noProductsText: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+});

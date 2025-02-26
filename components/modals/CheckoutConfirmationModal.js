@@ -1,5 +1,3 @@
-// CheckoutConfirmationModal.js
-
 import React from 'react';
 import {
   View,
@@ -7,7 +5,6 @@ import {
   Modal,
   TouchableOpacity,
   ScrollView,
-  TextInput,
   Image,
   StyleSheet,
 } from 'react-native';
@@ -17,20 +14,25 @@ const CheckoutConfirmationModal = ({
   onClose,
   onConfirm,
   orderType,
-  getOrderTypeDisplay,
-  deliveryInstructions,
-  setDeliveryInstructions,
-  addressInfo,
   cart,
   calculateSubtotal,
-  serviceFee,
-  user,
-  originalDeliveryFee,
-  deliveryFee,
   calculateTax,
   calculateTotal,
-  calculateSavings, // Added this line
+  // Se elimina calculateSavings ya que ahora se calcula internamente
 }) => {
+  const subtotal = calculateSubtotal();
+  const taxAmt = calculateTax(subtotal);
+  const total = calculateTotal();
+
+  console.log(cart)
+  // Calcular los savings usando originalPrice y finalPrice
+  const savings = cart.reduce((totalSavings, item) => {
+    const original = Number(item.price) || 0;
+    const final = Number(item.finalPrice) || 0;
+    const diff = original - final;
+    return totalSavings + (diff > 0 ? diff * item.quantity : 0);
+  }, 0);
+
   return (
     <Modal
       visible={visible}
@@ -46,56 +48,23 @@ const CheckoutConfirmationModal = ({
           <ScrollView style={styles.modalScrollView}>
             <View style={styles.modalSection}>
               <Text style={[styles.modalSectionTitle, { color: '#000' }]}>
-                {orderType === 'Delivery' ? 'Delivery Address' : 'Order Type'}
+                Order Type
               </Text>
               <Text style={[styles.modalText, { color: '#666' }]}>
-                {getOrderTypeDisplay(orderType)}
+                {orderType}
               </Text>
             </View>
-            {orderType === 'Delivery' && (
-              <View style={styles.modalSection}>
-                <Text style={[styles.modalSectionTitle, { color: '#000' }]}>
-                  Enter Delivery Instructions
-                </Text>
-                <TextInput
-                  style={[
-                    styles.instructionsInput,
-                    { color: '#000', borderColor: '#e0e0e0' },
-                  ]}
-                  placeholder="Enter delivery instructions"
-                  placeholderTextColor="#A9A9A9"
-                  value={
-                    deliveryInstructions || addressInfo?.deliveryInstructions
-                  }
-                  onChangeText={setDeliveryInstructions}
-                  multiline
-                />
-              </View>
-            )}
             <View style={styles.modalSection}>
               <Text style={[styles.modalSectionTitle, { color: '#000' }]}>
                 Order Summary
               </Text>
               {cart.map((item) => {
-                const selectedExtrasArray = Object.values(
-                  item.selectedExtras || {}
-                ).flat();
-                const itemPrice =
-                  typeof item.price === 'string'
-                    ? parseFloat(item.price.replace('$', ''))
-                    : item.price;
-
-                const extrasTotal = selectedExtrasArray.reduce(
-                  (extraTotal, extra) =>
-                    extraTotal +
-                    (typeof extra.price === 'string'
-                      ? parseFloat(extra.price.replace('$', ''))
-                      : extra.price),
-                  0
-                );
-
-                const totalPrice = (itemPrice + extrasTotal).toFixed(2);
-
+                // Se usa finalPrice para calcular el precio final
+                const itemFinalPrice =
+                  typeof item.finalPrice === 'string'
+                    ? parseFloat(item.finalPrice.replace('$', ''))
+                    : item.finalPrice;
+                const totalPrice = itemFinalPrice * item.quantity;
                 return (
                   <View key={item.id} style={styles.cartItem}>
                     <Image
@@ -106,30 +75,11 @@ const CheckoutConfirmationModal = ({
                       <Text style={[styles.cartItemName, { color: '#000' }]}>
                         {item.name}
                       </Text>
-                      {selectedExtrasArray.length > 0 && (
-                        <View style={styles.cartItemExtras}>
-                          {selectedExtrasArray.map((extra, index) => (
-                            <Text
-                              key={index}
-                              style={[
-                                styles.cartItemExtraText,
-                                { color: '#666' },
-                              ]}
-                            >
-                              {extra.name} (${extra.price})
-                            </Text>
-                          ))}
-                        </View>
-                      )}
                       <View style={styles.cartItemPriceRow}>
-                        <Text
-                          style={[styles.cartItemPrice, { color: '#000' }]}
-                        >
-                          ${totalPrice}
+                        <Text style={[styles.cartItemPrice, { color: '#000' }]}>
+                          ${totalPrice.toFixed(2)}
                         </Text>
-                        <Text
-                          style={[styles.cartItemQuantity, { color: '#666' }]}
-                        >
+                        <Text style={[styles.cartItemQuantity, { color: '#666' }]}>
                           Qty: {item.quantity}
                         </Text>
                       </View>
@@ -144,100 +94,33 @@ const CheckoutConfirmationModal = ({
                   Subtotal:
                 </Text>
                 <Text style={[styles.summaryValue, { color: '#000' }]}>
-                  ${calculateSubtotal()}
+                  ${subtotal.toFixed(2)}
                 </Text>
               </View>
-              {orderType === 'Delivery' && (
-                <View style={styles.summaryRow}>
-                  <Text style={[styles.summaryLabel, { color: '#000' }]}>
-                    Service Fee:
-                  </Text>
-                  <Text style={[styles.summaryValue, { color: '#000' }]}>
-                    ${serviceFee.toFixed(2)}
-                  </Text>
-                </View>
-              )}
-              {orderType === 'Delivery' && (
-                <View style={styles.summaryRow}>
-                  <Text style={[styles.summaryLabel, { color: '#000' }]}>
-                    Delivery Fee:
-                  </Text>
-                  {user.subscription === 1 ? (
-                    <View style={styles.feeContainer}>
-                      <Text
-                        style={[
-                          styles.summaryValue,
-                          styles.strikethrough,
-                          { color: '#000' },
-                        ]}
-                      >
-                        ${originalDeliveryFee.toFixed(2)}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.summaryValue,
-                          styles.freeText,
-                          { color: '#4CAF50' },
-                        ]}
-                      >
-                        Free
-                      </Text>
-                    </View>
-                  ) : (
-                    <Text style={[styles.summaryValue, { color: '#000' }]}>
-                      ${deliveryFee.toFixed(2)}
-                    </Text>
-                  )}
-                </View>
-              )}
               <View style={styles.summaryRow}>
                 <Text style={[styles.summaryLabel, { color: '#000' }]}>
-                  Tax:
+                  Tax (8%):
                 </Text>
-                {user.subscription === 1 ? (
-                  <View style={styles.feeContainer}>
-                    <Text
-                      style={[
-                        styles.summaryValue,
-                        styles.strikethrough,
-                        { color: '#000' },
-                      ]}
-                    >
-                      ${(
-                        calculateTax(parseFloat(calculateSubtotal())) * 2
-                      ).toFixed(2)}
-                    </Text>
-                    <Text style={[styles.summaryValue, { color: '#000' }]}>
-                      ${calculateTax(parseFloat(calculateSubtotal())).toFixed(2)}
-                    </Text>
-                  </View>
-                ) : (
-                  <Text style={[styles.summaryValue, { color: '#000' }]}>
-                    ${calculateTax(parseFloat(calculateSubtotal())).toFixed(2)}
-                  </Text>
-                )}
+                <Text style={[styles.summaryValue, { color: '#000' }]}>
+                  ${taxAmt.toFixed(2)}
+                </Text>
               </View>
-
-              {/* Savings Row */}
-              {parseFloat(calculateSavings()) > 0 && (
+              {savings > 0 && (
                 <View style={styles.summaryRow}>
                   <Text style={[styles.summaryLabel, { color: '#000' }]}>
                     Savings:
                   </Text>
-                  <Text
-                    style={[styles.summaryValue, { color: '#4CAF50' }]}
-                  >
-                    -${parseFloat(calculateSavings()).toFixed(2)}
+                  <Text style={[styles.summaryValue, { color: '#4CAF50' }]}>
+                    -${savings.toFixed(2)}
                   </Text>
                 </View>
               )}
-
               <View style={[styles.summaryRow, styles.totalRow]}>
                 <Text style={[styles.totalLabel, { color: '#000' }]}>
                   Total:
                 </Text>
                 <Text style={[styles.totalValue, { color: '#000' }]}>
-                  ${calculateTotal()}
+                  ${total.toFixed(2)}
                 </Text>
               </View>
             </View>
@@ -245,7 +128,10 @@ const CheckoutConfirmationModal = ({
           <View style={styles.modalButtons}>
             <TouchableOpacity
               style={[styles.confirmButton, { backgroundColor: '#FFA500' }]}
-              onPress={onConfirm}
+              onPress={() => {
+                onConfirm();
+                onClose();
+              }}
             >
               <Text style={styles.confirmButtonText}>Confirm</Text>
             </TouchableOpacity>
@@ -297,13 +183,6 @@ const styles = StyleSheet.create({
   modalText: {
     fontSize: 16,
   },
-  instructionsInput: {
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 10,
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
   cartItem: {
     flexDirection: 'row',
     marginBottom: 15,
@@ -323,12 +202,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
     marginBottom: 5,
-  },
-  cartItemExtras: {
-    marginBottom: 5,
-  },
-  cartItemExtraText: {
-    fontSize: 14,
   },
   cartItemPriceRow: {
     flexDirection: 'row',
@@ -356,19 +229,6 @@ const styles = StyleSheet.create({
   summaryValue: {
     fontSize: 16,
     fontWeight: '500',
-  },
-  feeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  strikethrough: {
-    textDecorationLine: 'line-through',
-    color: '#999',
-    marginRight: 5,
-  },
-  freeText: {
-    color: '#4CAF50',
-    fontWeight: 'bold',
   },
   totalRow: {
     borderTopWidth: 1,

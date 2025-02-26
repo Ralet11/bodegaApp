@@ -48,7 +48,6 @@ const OrderScreen = () => {
   const [showDatePickerModal, setShowDatePickerModal] = useState(false);
   const [finishedProcessed, setFinishedProcessed] = useState(false);
 
-  console.log(ordersIn, "order")
 
   const roundToTwo = (num) => {
     return Math.round((num + Number.EPSILON) * 100) / 100;
@@ -131,7 +130,7 @@ const OrderScreen = () => {
   const calculateTotalSavings = (orderDetails) => {
     const totalSavings = orderDetails.reduce((total, item) => {
       let originalPrice = parseFloat(item.originalPrice || 0);
-      const currentPrice = parseFloat(item.currentPrice || 0);
+      const currentPrice = parseFloat(item.finalPrice || 0);
       const quantity = item.quantity || 1;
 
       if (item.selectedExtras && typeof item.selectedExtras === 'object') {
@@ -270,7 +269,10 @@ const OrderScreen = () => {
   };
 
   const renderOrderItem = ({ item }) => {
-    const productCount = item.order_details.length;
+    const productCount = item.order_details.reduce(
+      (total, product) => total + (product.quantity || 1),
+      0
+    );
     const savings = roundToTwo(calculateTotalSavings(item.order_details));
     const existingReview = reviews.find((review) => review.local_id === item.local.id);
 

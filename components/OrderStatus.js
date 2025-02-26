@@ -1,64 +1,13 @@
-import React, { useEffect, useCallback, useState } from 'react';
+// OrderStatus.js
+import React, { useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
-import { setCurrentOrder, updateOrderIn, removeOrderIn, setHistoricOrders } from '../redux/slices/orders.slice';
-import socketIOClient from "socket.io-client";
-import { API_URL } from '@env';
-import Axios from 'react-native-axios';
+import { setCurrentOrder, removeOrderIn } from '../redux/slices/orders.slice';
 import { Package, ArrowRight, CheckCircle, XCircle, Clock, Truck } from 'lucide-react-native';
-import { setOrderAux } from '../redux/slices/setUp.slice';
 
 const OrderItem = React.memo(({ item, onPress }) => {
   const { mainText, icon, color } = getOrderStatusInfo(item);
-  const token = useSelector(state => state?.user?.userInfo.data.token);
-  const user = useSelector((state) => state?.user?.userInfo?.data?.client);
-  const dispatch = useDispatch();
-
-
-  const navigation = useNavigation();
-
-  useEffect(() => {
-    const socket = socketIOClient(`${API_URL}`);
-
-    socket.on('changeOrderState', (data) => {
-      const { orderId } = data;
-      const fetchOrder = async () => {
-        try {
-          const response = await Axios.get(`${API_URL}/api/orders/getByOrderId/${orderId}`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
-          console.log(response.data, 'response.data en satus');
-          const updatedOrder = response.data;
-          dispatch(updateOrderIn({ orderId: updatedOrder.id, status: updatedOrder.status }));
-
-          if (updatedOrder.status === 'rejected' || updatedOrder.status === 'finished') {
-            dispatch(removeOrderIn({ orderId: updatedOrder.id }));
-            dispatch(setCurrentOrder(updatedOrder));
-            dispatch(setOrderAux());
-            if (updatedOrder.type === 'Delivery') {
-              navigation.navigate('AcceptedOrder');
-            } else {
-              navigation.navigate('PickUpOrderFinish');
-            }
-          }
-        } catch (error) {
-          console.log(error);
-        }
-      };
-
-      fetchOrder();
-    });
-
-    return () => {
-      socket.disconnect();
-    };
-  }, [dispatch, token, navigation]);
-
-
-  
 
   return (
     <View style={[styles.orderContainer, styles.lightContainer]}>
@@ -83,7 +32,9 @@ const OrderItem = React.memo(({ item, onPress }) => {
           Order Code: {item.code}
         </Text>
         <View style={styles.seeOrderContainer}>
-          <Text style={[styles.seeOrderText, { color: color }]}>See Order Details</Text>
+          <Text style={[styles.seeOrderText, { color: color }]}>
+            See Order Details
+          </Text>
           <ArrowRight color={color} size={20} />
         </View>
       </TouchableOpacity>
@@ -115,7 +66,9 @@ const getOrderStatusInfo = (order) => {
         break;
       case 'sending':
         mainText = type === 'Pick-up' ? 'Ready for pickup' : 'Order on the way';
-        icon = type === 'Pick-up' ? <Package color="#e67e22" size={24} /> : <Truck color="#e67e22" size={24} />;
+        icon = type === 'Pick-up'
+          ? <Package color="#e67e22" size={24} />
+          : <Truck color="#e67e22" size={24} />;
         color = '#e67e22';
         break;
       case 'rejected':
@@ -138,50 +91,10 @@ const getOrderStatusInfo = (order) => {
   return { mainText, icon, color };
 };
 
-const OrderStatus = ({ finishedProcessed, setFinishedProcessed }) => {
+const OrderStatus = () => {
   const ordersIn = useSelector((state) => state.orders.ordersIn);
   const navigation = useNavigation();
   const dispatch = useDispatch();
-  const token = useSelector((state) => state?.user?.userInfo.data.token);
-
-  useEffect(() => {
-    const socket = socketIOClient(`${API_URL}`);
-
-    socket.on('changeOrderState', (data) => {
-      const { orderId } = data;
-      const fetchOrder = async () => {
-        try {
-          const response = await Axios.get(`${API_URL}/api/orders/getByOrderId/${orderId}`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
-          const updatedOrder = response.data;
-          dispatch(updateOrderIn({ orderId: updatedOrder.id, status: updatedOrder.status }));
-
-          if (updatedOrder.status === 'rejected' || updatedOrder.status === 'finished') {
-            dispatch(removeOrderIn({ orderId: updatedOrder.id }));
-            dispatch(setCurrentOrder(updatedOrder));
-            setFinishedProcessed(!finishedProcessed);
-
-            if (updatedOrder.type === 'Delivery') {
-              navigation.navigate('AcceptedOrder');
-            } else {
-              navigation.navigate('PickUpOrderFinish');
-            }
-          }
-        } catch (error) {
-          console.log(error);
-        }
-      };
-
-      fetchOrder();
-    });
-
-    return () => {
-      socket.disconnect();
-    };
-  }, [dispatch, token, navigation]);
 
   const handleSeeOrder = useCallback((item) => {
     if (item.status === 'rejected' || item.status === 'finished') {
@@ -197,10 +110,7 @@ const OrderStatus = ({ finishedProcessed, setFinishedProcessed }) => {
   }, [dispatch, navigation]);
 
   const renderOrderItem = useCallback(({ item }) => (
-    <OrderItem
-      item={item}
-      onPress={handleSeeOrder}
-    />
+    <OrderItem item={item} onPress={handleSeeOrder} />
   ), [handleSeeOrder]);
 
   return (

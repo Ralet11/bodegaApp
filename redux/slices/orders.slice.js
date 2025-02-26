@@ -45,9 +45,21 @@ export const orderSlice = createSlice({
     changeOrderStatus: (state, action) => {
       state.ordersIn[0].info.status = action.payload;
     },
+    // Reducer finishOrder modificado:
     finishOrder: (state, action) => {
-      const orderIdToRemove = action.payload;
-      state.ordersIn = state.ordersIn.filter(order => order.info.newOrderId !== Number(orderIdToRemove));
+      // Se espera que action.payload sea el objeto de la orden finalizada
+      const finishedOrder = action.payload;
+      // Removemos la orden de ordersIn utilizando un identificador (por ejemplo, finishedOrder.info.newOrderId)
+      state.ordersIn = state.ordersIn.filter(
+        order => order.info.newOrderId !== finishedOrder.info.newOrderId
+      );
+      // Si la orden finalizada aún no existe en historicOrders, la agregamos
+      const exists = state.historicOrders.find(
+        order => order.info.newOrderId === finishedOrder.info.newOrderId
+      );
+      if (!exists) {
+        state.historicOrders.push(finishedOrder);
+      }
     },
     getOrdersByUser: (state, action) => {
       state.historicOrders = action.payload || [];
@@ -84,8 +96,9 @@ export const {
   updateOrderIn, 
   setOrderIn,
   setHistoricOrders,
-  removeOrderIn, // Exportamos la nueva acción
-  clearOrders // Exportamos la acción clearOrders
+  removeOrderIn,
+  finishOrder, // Ahora actualiza historicOrders
+  clearOrders
 } = orderSlice.actions;
 
 // Acción asincrónica
@@ -101,8 +114,8 @@ export const fetchOrders = (data) => async (dispatch) => {
 export const getAllOrders = (data, token) => async (dispatch) => {
   try {
     const headers = {
-      'Authorization': `Bearer ${token}`, // Aquí debes reemplazar 'tuToken' con el token real que deseas enviar
-      'Content-Type': 'application/json', // Esto indica que estás enviando datos en formato JSON
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
     };
     dispatch(getOrdersByUserStart());
     const orders = await Axios.get(`${API_URL}/api/orders/getByUser/${data}`, { headers });

@@ -1,5 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Image, useColorScheme, Modal, BackHandler, FlatList, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  Image,
+  useColorScheme,
+  Modal,
+  BackHandler,
+  FlatList,
+  StyleSheet
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import { useDispatch, useSelector } from 'react-redux';
@@ -15,8 +27,7 @@ import OrderStatus from '../../components/OrderStatus';
 import SkeletonLoader from '../../components/SkeletonLoader';
 import { setUserDiscounts } from '../../redux/slices/setUp.slice';
 import { lightTheme, darkTheme } from '../../components/themes';
-import socketIOClient from "socket.io-client";
-
+// NOTA: ya no importamos socketIOClient acá
 
 const Dashboard = () => {
   const scheme = useColorScheme();
@@ -27,7 +38,7 @@ const Dashboard = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [addressModalVisible, setAddressModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [deliveryMode, setDeliveryMode] = useState('Pickup');
+  const [deliveryMode, setDeliveryMode] = useState('Pickup'); // 'Pickup' o 'Delivery'
   const categories = useSelector((state) => state?.setUp?.categories) || [];
   const address = useSelector((state) => state?.user?.address?.formatted_address);
   const addresses = useSelector((state) => state?.user?.addresses);
@@ -40,7 +51,6 @@ const Dashboard = () => {
   const [allTags, setAllTags] = useState([]);
   const [filteredShopsByTags, setFilteredShopsByTags] = useState({});
   const orderTypeParam = deliveryMode === 'Delivery' ? 2 : deliveryMode === 'Pickup' ? 1 : null;
-  console.log(address, "address")
 
   const categoryTitles = {
     1: 'Best smoke shops',
@@ -48,30 +58,16 @@ const Dashboard = () => {
     3: 'Our Restaurants',
     4: 'Markets',
   };
-  console.log(auxShops, "auxShops")
 
-  useEffect(() => {
-    
-const socket = socketIOClient(`${API_URL}`);
-    const syncShops = () => {
-      console.log("probando sync")
-      dispatch(setAuxShops());
-    }
+  // NOTA: La lógica de socket (para sincronizar shops) se centraliza en el hook global useSocket (iniciado en App.js)
+  // Por ello, aquí ya no se hace ninguna conexión local a socket.
 
-    socket.on('syncShops', syncShops);
-
-    return () => {
-      socket.off('syncShops');
-      socket.disconnect();
-    };
-  }, [dispatch, token]);
-
+  // Obtener shops de la API
   const fetchShops = async () => {
     try {
-      console.log("acstualizando shop")
       const response = await Axios.get(`${API_URL}/api/local/app/getShopsOrderByCat`);
       setShopsByCategory(response.data);
-      extractTags(response.data); // Extraer y guardar los tags
+      extractTags(response.data);
       filterShopsByTags(response.data, deliveryMode);
       filterShops(response.data, deliveryMode);
       setLoading(false);
@@ -82,25 +78,16 @@ const socket = socketIOClient(`${API_URL}`);
     }
   };
 
+  // Obtener direcciones del usuario
   const fetchAddress = async () => {
-    if (!token) {
-      console.warn('Token not available');
-      return;
-    }
-
+    if (!token) return;
     try {
       const response = await Axios.get(`${API_URL}/api/addresses/getById`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
-
-      console.log(response.data)
-
       if (response.status === 200) {
         dispatch(setAddresses(response.data));
         if (!response.data || response.data.length === 0) {
-          console.log(response.data, "en modal visi")
           setModalVisible(true);
         } else {
           dispatch(setAddress(response.data[0]));
@@ -112,47 +99,40 @@ const socket = socketIOClient(`${API_URL}`);
     }
   };
 
+  // Traer descuentos del usuario
   useEffect(() => {
-
     if (user?.id && token) {
       const fetchUserDiscounts = async () => {
         try {
-          console.log("actualizando dicounts")
           const response = await Axios.get(`${API_URL}/api/discounts/userDiscount/${user.id}`, {
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
+            headers: { Authorization: `Bearer ${token}` },
           });
           dispatch(setUserDiscounts(response.data));
         } catch (error) {
           console.error('Error fetching user discounts:', error);
         }
       };
-
       fetchUserDiscounts();
     }
-  }, [user, token, auxShops]);
+  }, [user, token, auxShops, dispatch]);
 
   useEffect(() => {
-
     fetchShops();
     fetchAddress();
   }, [dispatch, token, auxShops]);
 
+  // Bloqueo del botón back (para deshabilitar retrocesos)
   useFocusEffect(
     useCallback(() => {
-      const onBackPress = () => {
-        return true;
-      };
-
+      const onBackPress = () => true;
       BackHandler.addEventListener('hardwareBackPress', onBackPress);
-
       return () => {
         BackHandler.removeEventListener('hardwareBackPress', onBackPress);
       };
     }, [])
   );
 
+  // Mostrar modal si no hay dirección (tras 2 segundos)
   useFocusEffect(
     useCallback(() => {
       let timer;
@@ -167,6 +147,7 @@ const socket = socketIOClient(`${API_URL}`);
     }, [address])
   );
 
+  // Limpiar búsqueda al enfocar
   useFocusEffect(
     useCallback(() => {
       setSearchQuery('');
@@ -178,7 +159,6 @@ const socket = socketIOClient(`${API_URL}`);
   };
 
   const handleAddressSelect = (selectedAddress) => {
-    console.log(selectedAddress, "selectedAddress")
     dispatch(setAddress(selectedAddress));
     setAddressModalVisible(false);
   };
@@ -187,23 +167,22 @@ const socket = socketIOClient(`${API_URL}`);
     navigation.navigate('Shop', { shop, orderTypeParam });
   };
 
+  // Extraer tags únicas
   const extractTags = (shops) => {
-    const tags = new Set(); // Usamos un Set para evitar duplicados
-    Object.keys(shops).forEach((categoryId) => {
-        shops[categoryId].forEach((shop) => {
-            if (shop.tags && Array.isArray(shop.tags)) {
-                shop.tags.forEach((tag) => tags.add(JSON.stringify(tag))); // Convertimos el objeto tag a string para que Set pueda detectar duplicados
-            }
-        });
+    const tags = new Set();
+    Object.keys(shops).forEach((catId) => {
+      shops[catId].forEach((shop) => {
+        if (shop.tags && Array.isArray(shop.tags)) {
+          shop.tags.forEach((tag) => tags.add(JSON.stringify(tag)));
+        }
+      });
     });
-    const uniqueTagsArray = Array.from(tags).map(tag => JSON.parse(tag)); // Volvemos a convertir los tags a objetos
-    setAllTags(uniqueTagsArray); // Guardamos los tags completos en el estado
-};
+    const uniqueTagsArray = Array.from(tags).map((t) => JSON.parse(t));
+    setAllTags(uniqueTagsArray);
+  };
 
   const handleCategoryPress = (selectedTag) => {
-    console.log(selectedTag, "tag")
-   /*  navigation.navigate('CategoryShops', { categoryId: category.id, categoryName: category.name }); */
-   navigation.navigate( 'CategoryShops', {selectedTag, allTags });
+    navigation.navigate('CategoryShops', { selectedTag, allTags });
   };
 
   const toggleDrawer = () => {
@@ -214,55 +193,55 @@ const socket = socketIOClient(`${API_URL}`);
     setDrawerVisible(false);
     navigation.navigate(screen);
   };
+
   const handleSearchSubmit = () => {
     if (searchQuery.trim()) {
-        const filteredShops = [];
-
-        // Filtrar los shops por el input de búsqueda
-        Object.keys(filteredShopsByTags).forEach((tagName) => {
-            const shops = filteredShopsByTags[tagName].filter((shop) =>
-                shop.name.toLowerCase().includes(searchQuery.toLowerCase())
-            );
-            if (shops.length > 0) {
-                filteredShops.push(...shops);
-            }
-        });
-
-        // Navegar a CategoryShops, pasando el searchQuery y un selectedTag como null
-        navigation.navigate('CategoryShops', { filteredShops, searchQuery, selectedTag: null, allTags });
-    }
-};
-
-const filterShopsByTags = (shops, mode) => {
-  const currentDateTime = new Date();
-  const currentDay = currentDateTime.toLocaleString('en-US', { weekday: 'short' }).toLowerCase();
-  const currentTime = currentDateTime.toTimeString().slice(0, 8);
-
-  const filtered = {};
-  Object.keys(shops).forEach((categoryId) => {
-      shops[categoryId].forEach((shop) => {
-          const isModeMatch = mode === 'orderIn' ? shop.orderIn : shop.pickUp;
-          const isOpen = shop.openingHours.some((hour) => {
-              return (
-                  hour.day === currentDay &&
-                  hour.open_hour <= currentTime &&
-                  hour.close_hour >= currentTime
-              );
-          });
-
-          if (isModeMatch && isOpen) {
-              shop.tags.forEach((tag) => {
-                  if (!filtered[tag.name]) {
-                      filtered[tag.name] = [];
-                  }
-                  filtered[tag.name].push(shop);
-              });
-          }
+      const filteredShops = [];
+      Object.keys(filteredShopsByTags).forEach((tagName) => {
+        const shopsFound = filteredShopsByTags[tagName].filter((shop) =>
+          shop.name.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+        if (shopsFound.length > 0) filteredShops.push(...shopsFound);
       });
-  });
+      navigation.navigate('CategoryShops', {
+        filteredShops,
+        searchQuery,
+        selectedTag: null,
+        allTags,
+      });
+    }
+  };
 
-  setFilteredShopsByTags(filtered);
-};
+  // Funciones para filtrar shops según horarios, modo, etc.
+  const filterShopsByTags = (shops, mode) => {
+    const currentDateTime = new Date();
+    const currentDay = currentDateTime.toLocaleString('en-US', { weekday: 'short' }).toLowerCase();
+    const currentTime = currentDateTime.toTimeString().slice(0, 8);
+
+    const filtered = {};
+    Object.keys(shops).forEach((catId) => {
+      shops[catId].forEach((shop) => {
+        const isModeMatch = mode === 'orderIn' ? shop.orderIn : shop.pickUp;
+        const isOpen = shop.openingHours.some((hour) => {
+          return (
+            hour.day === currentDay &&
+            hour.open_hour <= currentTime &&
+            hour.close_hour >= currentTime
+          );
+        });
+        if (isModeMatch && isOpen) {
+          shop.tags.forEach((tag) => {
+            if (!filtered[tag.name]) {
+              filtered[tag.name] = [];
+            }
+            filtered[tag.name].push(shop);
+          });
+        }
+      });
+    });
+    setFilteredShopsByTags(filtered);
+  };
+
   const handleToggle = (mode) => {
     setDeliveryMode(mode);
     filterShops(shopsByCategory, mode);
@@ -271,11 +250,11 @@ const filterShopsByTags = (shops, mode) => {
   const filterShops = (shops, mode) => {
     const currentDateTime = new Date();
     const currentDay = currentDateTime.toLocaleString('en-US', { weekday: 'short' }).toLowerCase();
-    const currentTime = currentDateTime.toTimeString().slice(0, 8); // Obtener la hora actual en formato HH:MM:SS
+    const currentTime = currentDateTime.toTimeString().slice(0, 8);
 
     const filtered = {};
-    Object.keys(shops).forEach((categoryId) => {
-      filtered[categoryId] = shops[categoryId].filter((shop) => {
+    Object.keys(shops).forEach((catId) => {
+      filtered[catId] = shops[catId].filter((shop) => {
         const isModeMatch = mode === 'Delivery' ? shop.delivery : shop.pickUp;
         const isOpen = shop.openingHours.some((hour) => {
           return (
@@ -291,7 +270,7 @@ const filterShopsByTags = (shops, mode) => {
   };
 
   const noShopsAvailable = !Object.keys(filteredShopsByCategory).some(
-    (categoryId) => filteredShopsByCategory[categoryId].length > 0
+    (catId) => filteredShopsByCategory[catId].length > 0
   );
 
   if (loading) {
@@ -300,7 +279,7 @@ const filterShopsByTags = (shops, mode) => {
 
   return (
     <SafeAreaView style={lightTheme.safeArea}>
-     {/*  <View style={lightTheme.header}>
+      <View style={lightTheme.header}>
         <View style={lightTheme.addressToggleContainer}>
           <TouchableOpacity onPress={changeAddress} style={{ flexDirection: 'row', alignItems: 'center' }}>
             <FontAwesome name="map-marker" size={20} color="#333" style={{ marginRight: 5 }} />
@@ -321,7 +300,8 @@ const filterShopsByTags = (shops, mode) => {
             </TouchableOpacity>
           </View>
         </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', paddingHorizontal: 10 }}>
+
+        <View style={styles.rowBetween}>
           <TouchableOpacity onPress={toggleDrawer} style={lightTheme.iconButton}>
             <FontAwesome name="bars" size={24} color="#333" />
           </TouchableOpacity>
@@ -335,7 +315,7 @@ const filterShopsByTags = (shops, mode) => {
           />
         </View>
       </View>
-  
+
       <ScrollView contentContainerStyle={lightTheme.contentContainer}>
         <PromoSlider />
         <View style={{ paddingHorizontal: 15, paddingVertical: 10 }}>
@@ -360,7 +340,7 @@ const filterShopsByTags = (shops, mode) => {
         </ScrollView>
         {ordersIn && ordersIn.length > 0 && <OrderStatus />}
         {noShopsAvailable ? (
-          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 50 }}>
+          <View style={styles.noShopsWrapper}>
             <Image
               source={{ uri: 'https://res.cloudinary.com/doqyrz0sg/image/upload/v1720400961/c0e3cfe8-b839-496f-b6af-9e9f76d7360c_dev8hm.webp' }}
               style={{ width: 200, height: 200 }}
@@ -370,30 +350,40 @@ const filterShopsByTags = (shops, mode) => {
             </Text>
           </View>
         ) : (
-          Object.keys(filteredShopsByCategory).map((categoryId) => (
-            filteredShopsByCategory[categoryId].length > 0 && (
+          Object.keys(filteredShopsByCategory).map((catId) => (
+            filteredShopsByCategory[catId].length > 0 && (
               <HorizontalScroll
-                key={categoryId}
-                title={categoryTitles[categoryId] || `Category ${categoryId}`}
-                items={filteredShopsByCategory[categoryId]}
+                key={catId}
+                title={categoryTitles[catId] || `Category ${catId}`}
+                items={filteredShopsByCategory[catId]}
                 handleItemPress={handleShopPress}
-                categoryId={categoryId}
+                categoryId={catId}
                 orderTypeParam={orderTypeParam}
               />
             )
           ))
         )}
       </ScrollView>
-      <AccountDrawer visible={drawerVisible} onClose={toggleDrawer} onNavigate={handleNavigate} user={user} />
-      <Modal animationType="slide" transparent={true} visible={modalVisible} onRequestClose={() => setModalVisible(!modalVisible)}>
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <View style={{ width: 300, padding: 20, backgroundColor: '#fff', borderRadius: 10, alignItems: 'center' }}>
+
+      <AccountDrawer
+        visible={drawerVisible}
+        onClose={toggleDrawer}
+        onNavigate={handleNavigate}
+        user={user}
+      />
+
+      <Modal
+        animationType="slide"
+        transparent
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
             <FontAwesome name="map-marker" size={50} color="#FFC107" />
-            <Text style={{ marginTop: 15, fontSize: 18, textAlign: 'center', color: '#333' }}>
-              You need to select an address to continue
-            </Text>
+            <Text style={styles.modalTitle}>You need to select an address to continue</Text>
             <TouchableOpacity
-              style={{ marginTop: 20, paddingVertical: 10, paddingHorizontal: 20, backgroundColor: '#FFC300', borderRadius: 5 }}
+              style={styles.btnSelectAddress}
               onPress={() => {
                 setModalVisible(false);
                 navigation.navigate('SetAddressScreen');
@@ -404,7 +394,13 @@ const filterShopsByTags = (shops, mode) => {
           </View>
         </View>
       </Modal>
-      <Modal animationType="slide" transparent={true} visible={addressModalVisible} onRequestClose={() => setAddressModalVisible(!addressModalVisible)}>
+
+      <Modal
+        animationType="slide"
+        transparent
+        visible={addressModalVisible}
+        onRequestClose={() => setAddressModalVisible(false)}
+      >
         <View style={lightTheme.modalBackground}>
           <View style={lightTheme.modalContainer}>
             <TouchableOpacity onPress={() => setAddressModalVisible(false)} style={lightTheme.closeButton}>
@@ -434,27 +430,50 @@ const filterShopsByTags = (shops, mode) => {
             </TouchableOpacity>
           </View>
         </View>
-      </Modal> */}
+      </Modal>
     </SafeAreaView>
   );
-}  
+};
+
 const styles = StyleSheet.create({
-  addressItem: {
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderRadius: 5,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    marginBottom: 10,
-  },
-  separator: {
-    height: 1,
-    backgroundColor: '#ddd',
+  rowBetween: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     width: '100%',
-    marginVertical: 10,
+    paddingHorizontal: 10,
   },
-  closeButton: {
-    alignSelf: 'flex-end',
-    marginBottom: 10,
+  noShopsWrapper: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 50,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalCard: {
+    width: 300,
+    padding: 20,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    marginTop: 15,
+    fontSize: 18,
+    textAlign: 'center',
+    color: '#333',
+  },
+  btnSelectAddress: {
+    marginTop: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: '#FFC300',
+    borderRadius: 5,
   },
 });
 

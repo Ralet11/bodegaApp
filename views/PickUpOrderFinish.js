@@ -18,31 +18,25 @@ import { FontAwesome5, Ionicons, FontAwesome } from '@expo/vector-icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
-import socketIOClient from 'socket.io-client';
 import Axios from 'react-native-axios';
 import { API_URL } from '@env';
 import { updateOrderIn, setCurrentOrder } from '../redux/slices/orders.slice';
-import {
-  Package,
-  ArrowRight,
-  CheckCircle,
-  XCircle,
-  Clock,
-  Truck,
-} from 'lucide-react-native';
+import { Clock, CheckCircle, XCircle, Package } from 'lucide-react-native';
 
 const OrderSummary = () => {
   const order = useSelector((state) => state.orders.currentOrder);
   const token = useSelector((state) => state.user.userInfo.data.token);
   const [shopData, setShopData] = useState(null);
-  const [showRatingModal, setShowRatingModal] = useState(false);
-  const orderRef = useRef(order);
   const navigation = useNavigation();
   const dispatch = useDispatch();
   const styles = lightStyles;
 
+  console.log(order.order_details)
+
+  // Cargar info de la tienda
   useEffect(() => {
     const fetchShopData = async () => {
+      if (!order?.local_id) return;
       try {
         const response = await fetch(`${API_URL}/api/local/get/${order.local_id}`);
         const data = await response.json();
@@ -51,71 +45,22 @@ const OrderSummary = () => {
         console.error('Error fetching shop data:', error);
       }
     };
-
     fetchShopData();
   }, [order]);
 
-  useEffect(() => {
-    const socket = socketIOClient(`${API_URL}`);
-
-    const fetchOrder = async (orderId) => {
-      try {
-        const response = await Axios.get(`${API_URL}/api/orders/getByOrderId/${orderId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        const updatedOrder = response.data;
-        dispatch(setCurrentOrder(updatedOrder));
-        dispatch(updateOrderIn({ orderId: updatedOrder.id, status: updatedOrder.status }));
-
-        if (updatedOrder.status === 'rejected' || updatedOrder.status === 'finished') {
-          setShowRatingModal(true);
-        }
-      } catch (error) {
-        console.log(error);
-      }
-    };
-
-    const handleOrderStateChange = (data) => {
-      const { orderId } = data;
-      if (orderId === orderRef.current.id) {
-        fetchOrder(orderId);
-      }
-    };
-
-    socket.on('changeOrderState', handleOrderStateChange);
-
-    return () => {
-      socket.off('changeOrderState');
-      socket.disconnect();
-    };
-  }, [dispatch, token]);
-
-  useEffect(() => {
-    if (order.status === 'finished') {
-      setShowRatingModal(true);
-    }
-  }, [order]);
-
-  // Manejar el botón de retroceso del hardware
+  // Bloquear back
   useEffect(() => {
     const backAction = () => {
       navigation.navigate('Main');
       return true;
     };
-
     const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
-
     return () => backHandler.remove();
   }, [navigation]);
 
   const formatPrice = (price) => {
-    if (typeof price === 'number') {
-      return price.toFixed(2);
-    } else if (!isNaN(parseFloat(price))) {
-      return parseFloat(price).toFixed(2);
-    }
+    if (typeof price === 'number') return price.toFixed(2);
+    if (!isNaN(parseFloat(price))) return parseFloat(price).toFixed(2);
     return '0.00';
   };
 
@@ -127,21 +72,20 @@ const OrderSummary = () => {
 
   const calculateDifference = () => {
     const subtotal = calculateSubtotal();
-    const total = order.total_price;
+    const total = parseFloat(order.total_price) || 0;
     return (total - subtotal).toFixed(2);
   };
 
   const calculateTotalSavings = () => {
-    return order.order_details
-      .reduce((totalSavings, item) => {
-        if (item.discount || item.promotion) {
-          const savings = (parseFloat(item.originalPrice) - parseFloat(item.price)) * item.quantity;
-          return totalSavings + savings;
-        }
-        return totalSavings;
-      }, 0)
-      .toFixed(2);
+    return order.order_details.reduce((acc, item) => {
+      if (item.finalPrice && item.finalPrice < item.price) {
+        const saving = (parseFloat(item.price) - parseFloat(item.finalPrice)) * item.quantity;
+        return acc + saving;
+      }
+      return acc;
+    }, 0).toFixed(2);
   };
+
   const openAddressInMaps = (address) => {
     const encodedAddress = encodeURIComponent(address);
     const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
@@ -150,16 +94,10 @@ const OrderSummary = () => {
     if (Platform.OS === 'ios') {
       Alert.alert(
         'Open in Maps',
-        'Would you like to open the address in Google Maps or Apple Maps?',
+        'Would you like to open in Google Maps or Apple Maps?',
         [
-          {
-            text: 'Google Maps',
-            onPress: () => Linking.openURL(googleMapsUrl),
-          },
-          {
-            text: 'Apple Maps',
-            onPress: () => Linking.openURL(appleMapsUrl),
-          },
+          { text: 'Google Maps', onPress: () => Linking.openURL(googleMapsUrl) },
+          { text: 'Apple Maps', onPress: () => Linking.openURL(appleMapsUrl) },
         ]
       );
     } else {
@@ -169,18 +107,14 @@ const OrderSummary = () => {
 
   const getTodayOpeningHours = () => {
     if (!shopData || !shopData.openingHours) return 'Closed today';
-
     const daysOfWeek = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
     const today = new Date().getDay();
     const todayString = daysOfWeek[today];
-
-    const todayHours = shopData.openingHours.find((hours) => hours.day === todayString);
-
+    const todayHours = shopData.openingHours.find((h) => h.day === todayString);
     if (todayHours) {
       return `Open from ${todayHours.open_hour.slice(0, 5)} to ${todayHours.close_hour.slice(0, 5)}`;
-    } else {
-      return 'Closed today';
     }
+    return 'Closed today';
   };
 
   const renderOrderDetails = ({ item }) => (
@@ -195,16 +129,6 @@ const OrderSummary = () => {
     </View>
   );
 
-  const handleSupport = () => {
-    Linking.openURL('https://your-support-link.com');
-  };
-
-  const handleClose = () => {
-    setShowRatingModal(false);
-    navigation.navigate('Main');
-  };
-
-  // Función para obtener la información del estado del pedido
   const getOrderStatusInfo = (order) => {
     const { status } = order;
     let mainText = '';
@@ -242,7 +166,6 @@ const OrderSummary = () => {
         icon = <Clock color="#95a5a6" size={24} />;
         color = '#95a5a6';
     }
-
     return { mainText, icon, color };
   };
 
@@ -265,7 +188,6 @@ const OrderSummary = () => {
 
             <View style={styles.yellowBackground}>
               <Text style={styles.instruction}>Show this code to receive your order</Text>
-
               <View style={styles.codeContainer}>
                 {order.code.split('').map((digit, index) => (
                   <View key={index} style={styles.codeDigit}>
@@ -295,47 +217,49 @@ const OrderSummary = () => {
               <FontAwesome name="arrow-right" size={20} color={styles.iconColor.color} />
             </TouchableOpacity>
 
-            {/* Renderizado condicional basado en el tipo de orden */}
-            {order.type === 'Order-in' ? (
+            {order.type === 'Order-in' && (
               <View style={styles.deliveryInfo}>
                 <Text style={styles.deliveryTitle}>{getTodayOpeningHours()}</Text>
                 <Text style={styles.deliverySubtitle}>
                   Only the account holder can receive the order during this time slot.
                 </Text>
               </View>
-            ) : order.type === 'Pick-up' ? (
+            )}
+            {order.type === 'Pick-up' && (
               <View style={styles.statusInfo}>
                 <View style={styles.statusHeader}>
                   {getOrderStatusInfo(order).icon}
-                  <Text style={[styles.statusText, { color: getOrderStatusInfo(order).color }]}>
+                  <Text
+                    style={[
+                      styles.statusText,
+                      { color: getOrderStatusInfo(order).color },
+                    ]}
+                  >
                     {getOrderStatusInfo(order).mainText}
                   </Text>
                 </View>
               </View>
-            ) : null}
+            )}
 
             <View style={styles.summary}>
               <Text style={styles.summaryTitle}>Order Summary</Text>
-
               <FlatList
                 data={order.order_details}
                 renderItem={renderOrderDetails}
                 keyExtractor={(item) => item.id.toString()}
                 style={styles.orderDetailsList}
-                contentContainerStyle={styles.orderDetailsContent}
-                scrollEnabled={true}
+                scrollEnabled
               />
-
               <View style={styles.totalContainer}>
                 <Text style={styles.totalLabel}>Additional Charges</Text>
                 <Text style={styles.totalPrice}>${calculateDifference()}</Text>
               </View>
-
               <View style={styles.totalContainer}>
                 <Text style={styles.totalLabel}>Total</Text>
-                <Text style={styles.totalPrice}>${formatPrice(order.total_price)}</Text>
+                <Text style={styles.totalPrice}>
+                  ${formatPrice(order.total_price)}
+                </Text>
               </View>
-
               <View style={styles.discountContainer}>
                 <FontAwesome5 name="tags" size={16} color="#FFD700" style={{ marginRight: 8 }} />
                 <Text style={styles.discountText}>You saved with Bodega+</Text>
@@ -349,34 +273,15 @@ const OrderSummary = () => {
           </View>
         </ScrollView>
       </LinearGradient>
-
-      <Modal visible={showRatingModal} transparent animationType="slide">
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>{'Your order has been marked as delivered'}</Text>
-            <Text style={styles.modalSubtitle}>{'If you need assistance, contact support.'}</Text>
-
-            <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
-              <Text style={styles.closeButtonText}>Close</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.supportButton} onPress={handleSupport}>
-              <Text style={styles.supportButtonText}>Something wrong? Contact support</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      {/* Sin rating ni socket aquí */}
     </SafeAreaView>
   );
 };
+
 const commonStyles = {
-safeArea: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  gradient: {
-    flex: 1,
-  },
+  safeArea: { flex: 1, backgroundColor: '#FFFFFF' },
+  gradient: { flex: 1 },
+  scrollContainer: {},
   container: {
     flex: 1,
     padding: 20,
@@ -384,8 +289,6 @@ safeArea: {
     backgroundColor: '#FFFFFF',
     marginHorizontal: 20,
     marginVertical: 20,
-    // Eliminamos width y márgenes innecesarios
-    // Ajustamos las sombras y elevación según sea necesario
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.1,
     shadowRadius: 6,
@@ -530,9 +433,7 @@ safeArea: {
     marginRight: 15,
     color: '#333333',
   },
-  itemDetails: {
-    flexDirection: 'column',
-  },
+  itemDetails: { flexDirection: 'column' },
   itemName: {
     fontSize: 14,
     fontWeight: 'bold',
@@ -583,46 +484,6 @@ safeArea: {
     textAlign: 'center',
     marginTop: 20,
     color: '#888888',
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  modalContent: {
-    padding: 20,
-    borderRadius: 10,
-    width: '80%',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    color: '#333333',
-  },
-  modalSubtitle: {
-    fontSize: 14,
-    marginBottom: 20,
-    color: '#666666',
-    textAlign: 'center',
-  },
-  closeButton: {
-    marginTop: 20,
-  },
-  closeButtonText: {
-    fontSize: 16,
-    color: '#333333',
-  },
-  supportButton: {
-    marginTop: 10,
-  },
-  supportButtonText: {
-    fontSize: 14,
-    textDecorationLine: 'underline',
-    color: '#007BFF',
   },
   iconColor: {
     color: '#000000',

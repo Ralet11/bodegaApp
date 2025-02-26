@@ -1,5 +1,3 @@
-// CartScreen.js
-
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -10,15 +8,11 @@ import {
   SafeAreaView,
   TextInput,
   Alert,
-  Modal,
   ActivityIndicator,
   useColorScheme,
-  Switch,
-  Keyboard,
-  TouchableWithoutFeedback,
-  StyleSheet,
   Platform,
   Linking,
+  StyleSheet,
 } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import {
@@ -29,30 +23,26 @@ import {
 } from '../redux/slices/cart.slice';
 import Axios from 'react-native-axios';
 import { FontAwesome } from '@expo/vector-icons';
-import { API_URL } from '@env'; // Replace with your actual API URL
+import { API_URL } from '@env';
 import { useStripe } from '@stripe/stripe-react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useIsFocused } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { setAddress } from '../redux/slices/user.slice';
 import { setCurrentOrder, setOrderIn } from '../redux/slices/orders.slice';
 import { setUser } from '../redux/slices/user.slice';
 import Toast from 'react-native-toast-message';
-import SelectAddressModal from '../components/modals/SelectYourAddressModal';
 import CheckoutConfirmationModal from '../components/modals/CheckoutConfirmationModal';
-import { useIsFocused } from '@react-navigation/native';
+
+const TAX_RATE = 0.08;
 
 const CartItem = ({ item }) => {
   const dispatch = useDispatch();
   const navigation = useNavigation();
   const colorScheme = useColorScheme();
- 
+
   const selectedExtrasArray = Object.values(item.selectedExtras || {}).flat();
 
-  const itemPrice =
-    typeof item.price === 'string'
-      ? parseFloat(item.price.replace('$', ''))
-      : item.price;
-
+  // Se usa finalPrice para el precio final
+  const itemFinalPrice = Number(item.finalPrice) || 0;
   const extrasTotal = selectedExtrasArray.reduce(
     (extraTotal, extra) =>
       extraTotal +
@@ -61,8 +51,8 @@ const CartItem = ({ item }) => {
         : extra.price),
     0
   );
-
-  const totalPrice = (itemPrice + extrasTotal).toFixed(2);
+  // Si se quiere quitar la lógica de extras, se ignoran extrasTotal
+  const totalPrice = (itemFinalPrice * item.quantity).toFixed(2);
 
   const handleIncrement = () => {
     dispatch(incrementQuantity(item.id));
@@ -73,45 +63,13 @@ const CartItem = ({ item }) => {
   };
 
   return (
-    <View
-      style={[
-        styles.cartItem,
-        { backgroundColor: '#fff' },
-      ]}
-    >
+    <View style={[styles.cartItem, { backgroundColor: '#fff' }]}>
       <Image source={{ uri: item.image || item.img }} style={styles.itemImage} />
       <View style={styles.itemDetails}>
-        <Text
-          style={[
-            styles.itemName,
-            { color:  '#000' },
-          ]}
-        >
-          {item.name}
-        </Text>
-        {/* Display extras */}
-        {selectedExtrasArray.length > 0 && (
-          <View style={styles.cartItemExtras}>
-            {selectedExtrasArray.map((extra, index) => (
-              <Text
-                key={index}
-                style={[
-                  styles.cartItemExtraText,
-                  { color: '#666' },
-                ]}
-              >
-                {extra.name} (${extra.price})
-              </Text>
-            ))}
-          </View>
-        )}
+        <Text style={[styles.itemName, { color: '#000' }]}>{item.name}</Text>
+        {/* Se elimina la lógica de extras */}
         <View style={styles.priceRow}>
-          <Text
-            style={[
-              styles.itemPrice,
-              { color: '#000' },
-            ]}
-          >
+          <Text style={[styles.itemPrice, { color: '#000' }]}>
             ${totalPrice}
           </Text>
           {item.discount && (
@@ -130,14 +88,7 @@ const CartItem = ({ item }) => {
         <TouchableOpacity style={styles.quantityButton} onPress={handleDecrement}>
           <Text style={styles.quantityButtonText}>-</Text>
         </TouchableOpacity>
-        <Text
-          style={[
-            styles.quantityText,
-            { color: '#000' },
-          ]}
-        >
-          {item.quantity}
-        </Text>
+        <Text style={[styles.quantityText, { color: '#000' }]}>{item.quantity}</Text>
         <TouchableOpacity style={styles.quantityButton} onPress={handleIncrement}>
           <Text style={styles.quantityButtonText}>+</Text>
         </TouchableOpacity>
@@ -152,300 +103,62 @@ const CartScreen = () => {
   const user = useSelector((state) => state.user.userInfo.data.client);
   const dispatch = useDispatch();
   const navigation = useNavigation();
-  const address =
-    useSelector((state) => state?.user?.address?.formatted_address) || '';
-  const addressInfo = useSelector((state) => state?.user?.address) || '';
   const colorScheme = useColorScheme();
   const route = useRoute();
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const token = useSelector((state) => state.user.userInfo.data.token);
-  const [deliveryFee, setDeliveryFee] = useState(0);
-  const [originalDeliveryFee, setOriginalDeliveryFee] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [confirmationModalVisible, setConfirmationModalVisible] =
-    useState(false);
-    const isFocused = useIsFocused();
+  const [isLoading, setIsLoading] = useState(false);
   const [checkoutModalVisible, setCheckoutModalVisible] = useState(false);
-  const [newOrderType, setNewOrderType] = useState(
-    route.params?.orderType || 'Pick-up'
-  );
-  const userAddresses =
-    useSelector((state) => state?.user?.addresses) || [];
-  const shops = useSelector((state) => state?.setUp?.shops);
+  const [newOrderType, setNewOrderType] = useState(route.params?.orderType || 'Pick-up');
   const shop = route.params?.shop;
   const [useBalance, setUseBalance] = useState(false);
   const [balance, setBalance] = useState(user?.balance || 0);
   const [prevBalance, setPrevBalance] = useState(user?.balance || 0);
-  const [finalPrice, setFinalPrice] = useState(null);
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
-  const orderType = newOrderType;
+  const constOrderType = newOrderType;
   const [loginModalVisible, setLoginModalVisible] = useState(false);
   const [loginMode, setLoginMode] = useState(true);
-  const [serviceFee, setServiceFee] = useState(0);
-  const [tip, setTip] = useState(0);
-  const [customTip, setCustomTip] = useState('');
-  const [deliveryInstructions, setDeliveryInstructions] = useState(
-    addressInfo.additionalDetails || ''
-  );
-  const [isSubscribed, setIsSubscribed] = useState(user.subscription === 1);
-  const [tax, setTax] = useState(0);
-  const [total, setTotal] = useState(0);
+  const isFocused = useIsFocused();
 
-  const GOOGLE_API_KEY = 'YOUR_GOOGLE_API_KEY'; // Replace with your actual Google API key
-
-  const handleBalanceChange = (value) => {
-    setUseBalance(value);
-    if (value) {
-      setPrevBalance(balance);
-    } else {
-      setBalance(prevBalance);
-    }
-  };
-
-  const openAddressInMaps = (address) => {
-    const encodedAddress = encodeURIComponent(address);
-    const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
-    const appleMapsUrl = `http://maps.apple.com/?q=${encodedAddress}`;
-
-    if (Platform.OS === 'ios') {
-      Alert.alert(
-        'Open in Maps',
-        'Would you like to open the address in Google Maps or Apple Maps?',
-        [
-          {
-            text: 'Google Maps',
-            onPress: () => Linking.openURL(googleMapsUrl),
-          },
-          {
-            text: 'Apple Maps',
-            onPress: () => Linking.openURL(appleMapsUrl),
-          },
-        ]
-      );
-    } else {
-      Linking.openURL(googleMapsUrl);
-    }
-  };
-
-  useEffect(() => {
-    if (route.params && route.params.orderType) {
-      setNewOrderType(route.params.orderType);
-    }
-  }, [route.params?.orderType]);
-
+  // Funciones de cálculo usando finalPrice sin extras
   const calculateSubtotal = () => {
-    return cart
-      .reduce((total, item) => {
-        const itemPrice =
-          typeof item.price === 'string'
-            ? parseFloat(item.price.replace('$', ''))
-            : item.price;
-
-        const selectedExtrasArray = Object.values(
-          item.selectedExtras || {}
-        ).flat();
-
-        const extrasTotal = selectedExtrasArray.reduce(
-          (extraTotal, extra) =>
-            extraTotal +
-            (typeof extra.price === 'string'
-              ? parseFloat(extra.price.replace('$', ''))
-              : extra.price),
-          0
-        );
-
-        return total + (itemPrice + extrasTotal) * item.quantity;
-      }, 0)
-      .toFixed(2);
+    return cart.reduce((total, item) => {
+      const itemFinalPrice = Number(item.finalPrice) || 0;
+      return total + itemFinalPrice * item.quantity;
+    }, 0);
   };
 
-  const getOrderTypeDisplay = (type) => {
-    switch (type) {
-      case 'Delivery':
-        return address;
-      case 'Order-in':
-        return 'Dine-in';
-      default:
-        return type;
-    }
-  };
-
-  const calculateTax = () => {
-    const taxRate = 0.08;
-    const tax = calculateSubtotal() * taxRate;
-    return user.subscription === 1 ? tax / 2 : tax;
-  };
-
-  const calculateTipAmount = (subtotal) => {
-    const tipPercentage = parseFloat(tip) || parseFloat(customTip) || 0;
-    return ((subtotal * tipPercentage) / 100).toFixed(2);
-  };
-
-  const calculateRealTotal = () => {
-    const subtotal = parseFloat(calculateSubtotal()) || 0;
-    const taxAmount = calculateTax(subtotal) || 0;
-    const tipAmount = parseFloat(calculateTipAmount(subtotal)) || 0;
-    const total =
-      subtotal +
-      taxAmount +
-      tipAmount +
-      (orderType === 'Delivery' ? deliveryFee + serviceFee : 0);
-
-    return total.toFixed(2);
-  };
-
-  const calculateTotalAfterBalance = (realTotal) => {
-    let finalTotal = realTotal;
-
-    if (useBalance) {
-      if (user.balance >= finalTotal) {
-        finalTotal = 0;
-      } else {
-        finalTotal = Math.max(0, finalTotal - user.balance);
-      }
-    }
-
-    return finalTotal.toFixed(2);
+  const calculateTax = (subtotal) => {
+    return subtotal * TAX_RATE;
   };
 
   const calculateTotal = () => {
-    const realTotal = parseFloat(calculateRealTotal());
-    const finalTotal = calculateTotalAfterBalance(realTotal);
-    return finalTotal;
-  };
-
-  const handleRemove = (item) => {
-    dispatch(
-      removeFromCart({ id: item.id, selectedExtras: item.selectedExtras })
-    );
-  };
-
-  console.log(cart, "cart")
-
-  const calculateSavings = () => {
-    return cart
-      .reduce((totalSavings, item) => {
-   
-          const savings =
-            (parseFloat(item.price) - parseFloat(item.finalPrice)) *
-            item.quantity;
-          return totalSavings + savings;
-        
-        return totalSavings;
-      }, 0)
-      .toFixed(2);
-  };
-
-  const findCurrentShop = () => {
-    for (const categoryId in shops) {
-      const shop = shops[categoryId].find((shop) => shop.id === currentShop);
-      if (shop) {
-        return shop;
-      }
+    const subtotal = calculateSubtotal();
+    const taxAmt = calculateTax(subtotal);
+    const totalBeforeBalance = subtotal + taxAmt;
+    if (useBalance) {
+      return user.balance >= totalBeforeBalance
+        ? 0
+        : totalBeforeBalance - user.balance;
     }
-    return null;
+    return totalBeforeBalance;
+  };
+
+  // Función para calcular el total ahorrado (savings)
+  const calculateSavings = () => {
+    return cart.reduce((totalSavings, item) => {
+      const original = Number(item.price) || 0;
+      const final = Number(item.finalPrice) || 0;
+      const diff = original - final;
+      return totalSavings + (diff > 0 ? diff * item.quantity : 0);
+    }, 0);
   };
 
   useEffect(() => {
-    if (orderType === 'Delivery') {
-      const currentShopDetails = findCurrentShop();
-
-      const calculateAdjustedDeliveryFee = (
-        orderTotal,
-        calculatedDeliveryFee
-      ) => {
-        const companyShare = orderTotal * 0.2;
-        const percentage1 = companyShare * 0.25;
-        const serviceFee = orderTotal * 0.05;
-        const totalFromBoth5 = percentage1 + serviceFee;
-        let adjustedDeliveryFee = calculatedDeliveryFee - totalFromBoth5;
-
-        if (adjustedDeliveryFee < 0) {
-          adjustedDeliveryFee = 0;
-        }
-
-        return {
-          adjustedDeliveryFee: adjustedDeliveryFee.toFixed(2),
-          serviceFee: serviceFee.toFixed(2),
-          percentage1: percentage1.toFixed(2),
-        };
-      };
-
-      if (address && currentShopDetails && currentShopDetails.address) {
-        const calculateDeliveryFee = async () => {
-          try {
-            const response = await Axios.get(
-              `https://maps.googleapis.com/maps/api/distancematrix/json?units=imperial&origins=${encodeURIComponent(
-                address
-              )}&destinations=${encodeURIComponent(
-                currentShopDetails.address
-              )}&key=${GOOGLE_API_KEY}`
-            );
-            if (response.data.status === 'OK') {
-              const distance =
-                response.data.rows[0].elements[0].distance.value / 1609.34;
-              let fee = 0;
-
-              if (distance <= 1.5) {
-                fee = 3;
-              } else if (distance > 1.5 && distance <= 3) {
-                fee = 5;
-              } else if (distance > 3 && distance <= 7) {
-                fee = 8;
-              } else if (distance > 7 && distance <= 10) {
-                fee = 10;
-              }
-
-              setOriginalDeliveryFee(fee);
-
-              const { adjustedDeliveryFee, serviceFee } =
-                calculateAdjustedDeliveryFee(
-                  parseFloat(calculateSubtotal()),
-                  fee
-                );
-
-              setServiceFee(parseFloat(serviceFee));
-
-              setDeliveryFee(
-                user.subscription === 1 ? 0 : parseFloat(adjustedDeliveryFee)
-              );
-            } else {
-              console.error(
-                'Error fetching distance from Google Maps API:',
-                response.data
-              );
-              Alert.alert(
-                'Error',
-                'Failed to calculate delivery fee. Please try again.'
-              );
-            }
-            setIsLoading(false);
-          } catch (error) {
-            console.error(
-              'Error fetching distance from Google Maps API:',
-              error
-            );
-            Alert.alert(
-              'Error',
-              'Failed to calculate delivery fee. Please try again.'
-            );
-            setIsLoading(false);
-          }
-        };
-
-        calculateDeliveryFee();
-      } else {
-        setIsLoading(false);
-        Alert.alert(
-          'Error',
-          'Selected shop not found or address is empty.'
-        );
-      }
-    } else {
-      setIsLoading(false);
+    if (isFocused && cart.length === 0) {
+      navigation.goBack();
     }
-  }, [address, currentShop, user.subscription, shops]);
+  }, [isFocused, cart.length, navigation]);
 
   const handleIncrement = (item) => {
     if (item.extras && Object.keys(item.extras).length > 0) {
@@ -463,28 +176,33 @@ const CartScreen = () => {
 
   const confirmPayment = async () => {
     if (isLoading || isCheckoutLoading) {
-      Alert.alert('Please wait', 'Calculating delivery fee...');
+      Alert.alert('Por favor espera', 'Procesando pago...');
       return;
     }
 
     setIsCheckoutLoading(true);
-
-    const total_price = parseFloat(calculateTotal());
+    const subtotal = calculateSubtotal();
+    const taxAmt = calculateTax(subtotal);
+    const totalBeforeBalance = subtotal + taxAmt;
+    const finalTotal =
+      useBalance && user.balance >= totalBeforeBalance
+        ? 0
+        : useBalance
+        ? totalBeforeBalance - user.balance
+        : totalBeforeBalance;
 
     try {
-      if (total_price > 0) {
+      if (finalTotal > 0) {
         const response = await Axios.post(`${API_URL}/api/payment/intent`, {
-          finalPrice: Math.floor(total_price * 100),
+          finalPrice: Math.floor(finalTotal * 100),
         });
         const { clientSecret } = response.data;
 
         if (response.error) {
-          Alert.alert('Something went wrong');
+          Alert.alert('Algo salió mal');
           setIsCheckoutLoading(false);
           return;
         }
-
-        const paymentIntentId = clientSecret.split('_secret')[0];
 
         const initResponse = await initPaymentSheet({
           merchantDisplayName: 'YourAppName',
@@ -498,7 +216,7 @@ const CartScreen = () => {
 
         if (initResponse.error) {
           console.log(initResponse.error);
-          Alert.alert('Something went wrong');
+          Alert.alert('Algo salió mal');
           setIsCheckoutLoading(false);
           return;
         }
@@ -509,150 +227,109 @@ const CartScreen = () => {
           console.log(error);
           Alert.alert(`Error code: ${error.code}`, error.message);
         } else {
-          handleOrder(paymentIntentId);
+          handleOrder(clientSecret.split('_secret')[0]);
         }
       } else {
         handleOrder('balancePayment');
       }
     } catch (error) {
-      console.error('Error during payment request:', error);
+      console.error('Error en el pago:', error);
       Alert.alert(
         'Error',
-        'There was an error processing your payment. Please try again.'
+        'Ocurrió un error procesando el pago. Inténtalo nuevamente.'
       );
       setIsCheckoutLoading(false);
     }
   };
 
-  const handleOrderTypeChange = (type) => {
-    setNewOrderType(type);
-  
-  };
-
-  const confirmOrderTypeChange = () => {
-    navigation.setParams({ orderType: newOrderType });
-    setConfirmationModalVisible(false);
-  };
-
   const handleOrder = async (pi) => {
-    console.log('Starting handleOrder...');
-    
-    const realTotalPrice = parseFloat(calculateRealTotal());
-    const totalPriceAfterBalance = parseFloat(
-      calculateTotalAfterBalance(realTotalPrice)
-    );
-  
-    const deliveryAddress = {
-      address: orderType === 'Delivery' ? address : '',
-      instructions: deliveryInstructions,
-    };
-  
-    const hasPromotion = cart.some((item) => item.promotion);
-  
+    const subtotal = calculateSubtotal();
+    const taxAmt = calculateTax(subtotal);
+    const totalBeforeBalance = subtotal + taxAmt;
+    const finalTotal =
+      useBalance && user.balance >= totalBeforeBalance
+        ? 0
+        : useBalance
+        ? totalBeforeBalance - user.balance
+        : totalBeforeBalance;
+
+    // Calcular el ahorro total usando la función calculateSavings
+    const savings = calculateSavings();
+
     const data = {
-      delivery_fee: deliveryFee,
-      total_price: realTotalPrice,
-      amount_paid: totalPriceAfterBalance,
+      total_price: totalBeforeBalance.toFixed(2),
+      amount_paid: finalTotal.toFixed(2),
       order_details: cart,
       local_id: currentShop,
       status: 'new order',
       date_time: new Date().toISOString().slice(0, -5),
       pi: pi,
-      type: orderType,
-      savings: calculateSavings(),
-      deliveryAddressAndInstructions: deliveryAddress,
-      originalDeliveryFee,
-      serviceFee,
-      tip: calculateTipAmount(parseFloat(calculateSubtotal())),
-      promotion: hasPromotion ? true : false,
+      type: constOrderType,
+      savings: savings.toFixed(2),
     };
-  
-    console.log('Order data to send:', data);
-  
+
     try {
       const headers = {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       };
-  
-      console.log('Sending order to API...');
+
       const response = await Axios.post(`${API_URL}/api/orders/add`, data, {
         headers,
       });
-  
-      console.log('Order successfully created:', response.data.newOrder);
-  
+
       dispatch(setOrderIn(response.data.newOrder));
-  
+
       const info = {
         data: {
           client: response.data.userUpdate,
           token,
         },
       };
-  
+
       dispatch(setUser(info));
       dispatch(clearCart());
-  
+
       if (useBalance) {
-        const newBalance = Math.max(user.balance - realTotalPrice, 0);
-  
+        const newBalance = Math.max(user.balance - totalBeforeBalance, 0);
         const balanceData = { newBalance };
-  
-        console.log('Updating user balance:', balanceData);
-  
-        await Axios.put(
-          `${API_URL}/api/users/removeUserBalance`,
-          balanceData,
-          { headers }
-        );
-  
+
+        await Axios.put(`${API_URL}/api/users/removeUserBalance`, balanceData, {
+          headers,
+        });
+
         const updatedUser = {
           ...user,
           balance: newBalance,
         };
-  
+
         dispatch(setUser({ data: { client: updatedUser, token } }));
         setBalance(newBalance);
       }
-  
+
       dispatch(setCurrentOrder(response.data.newOrder));
-  
-      console.log('Navigating to appropriate screen...');
-      if (response.data.newOrder.type === 'Delivery') {
-        navigation.navigate('AcceptedOrder');
-      } else {
-        navigation.navigate('PickUpOrderFinish');
-      }
-  
-      console.log('Navigated successfully.');
+
+      // Navegación según el tipo de orden (Pick-up o Dine-in)
+      navigation.navigate('PickUpOrderFinish');
     } catch (error) {
-      console.error('Error during order creation:', error.message);
-      console.error(error);
+      console.error('Error durante la creación de la orden:', error.message);
       Alert.alert(
         'Error',
-        'There was an issue processing your order. Please try again later.'
+        'Ocurrió un problema procesando tu orden. Inténtalo más tarde.'
       );
     }
   };
-  
-  
 
-  useEffect(() => {
-    if (isFocused && cart.length === 0) {
-      navigation.goBack();
-    }
-  }, [isFocused, cart.length, navigation]);
-
-  const selectAddress = (address) => {
-    dispatch(setAddress(address.formatted_address));
-    setModalVisible(false);
-  };
-
-  const confirmCheckout = () => {
-    confirmPayment();
-    setCheckoutModalVisible(false);
-  };
+  // Variables para el resumen
+  const subtotal = calculateSubtotal();
+  const taxAmt = calculateTax(subtotal);
+  const totalBeforeBalance = subtotal + taxAmt;
+  const finalTotal =
+    useBalance && user.balance >= totalBeforeBalance
+      ? 0
+      : useBalance
+      ? totalBeforeBalance - user.balance
+      : totalBeforeBalance;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: '#f5f5f5' }]}>
@@ -669,14 +346,14 @@ const CartScreen = () => {
               <TouchableOpacity
                 style={[
                   styles.orderTypeButton,
-                  orderType === 'Pick-up' && styles.orderTypeButtonActive,
+                  constOrderType === 'Pick-up' && styles.orderTypeButtonActive,
                 ]}
-                onPress={() => handleOrderTypeChange('Pick-up')}
+                onPress={() => setNewOrderType('Pick-up')}
               >
                 <Text
                   style={[
                     styles.orderTypeButtonText,
-                    orderType === 'Pick-up' && styles.orderTypeButtonTextActive,
+                    constOrderType === 'Pick-up' && styles.orderTypeButtonTextActive,
                   ]}
                 >
                   Pickup
@@ -685,14 +362,14 @@ const CartScreen = () => {
               <TouchableOpacity
                 style={[
                   styles.orderTypeButton,
-                  orderType === 'Order-in' && styles.orderTypeButtonActive,
+                  constOrderType === 'Dine-in' && styles.orderTypeButtonActive,
                 ]}
-                onPress={() => handleOrderTypeChange('Order-in')}
+                onPress={() => setNewOrderType('Dine-in')}
               >
                 <Text
                   style={[
                     styles.orderTypeButtonText,
-                    orderType === 'Order-in' && styles.orderTypeButtonTextActive,
+                    constOrderType === 'Dine-in' && styles.orderTypeButtonTextActive,
                   ]}
                 >
                   Dine-in
@@ -705,34 +382,16 @@ const CartScreen = () => {
               </Text>
             </TouchableOpacity>
           </View>
-  
+
           <ScrollView style={styles.cartItemsContainer}>
-            {/* Address Section (if Delivery) */}
-            {orderType === 'Delivery' && (
-              <View style={[styles.addressContainer, { backgroundColor: '#fff' }]}>
-                <Text style={[styles.addressLabel, { color: '#000' }]}>
-                  Delivery Address:
-                </Text>
-                <View style={styles.addressInputContainer}>
-                  <TextInput
-                    style={[
-                      styles.addressInput,
-                      { color: '#000', borderColor: '#e0e0e0' },
-                    ]}
-                    placeholder="Enter your address"
-                    placeholderTextColor="#A9A9A9"
-                    value={address}
-                    editable={false}
-                  />
-                  <TouchableOpacity onPress={() => setModalVisible(true)}>
-                    <Icon name="location-outline" size={24} color="#000" />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
-  
-            {/* Restaurant Info */}
-            <TouchableOpacity onPress={() => openAddressInMaps(shop?.address)}>
+            {/* Información del Restaurante */}
+            <TouchableOpacity
+              onPress={() => {
+                const encodedAddress = encodeURIComponent(shop?.address);
+                const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+                Linking.openURL(googleMapsUrl);
+              }}
+            >
               <View style={[styles.restaurantInfo, { backgroundColor: '#fff' }]}>
                 <View style={styles.restaurantDetails}>
                   <Text style={[styles.restaurantName, { color: '#000' }]}>
@@ -744,145 +403,42 @@ const CartScreen = () => {
                 </View>
               </View>
             </TouchableOpacity>
-  
-            {/* Cart Items */}
+
+            {/* Items del Carrito */}
             {cart.map((item) => (
               <CartItem key={item.id} item={item} />
             ))}
-  
-            {/* Tip Section */}
-            {orderType === 'Delivery' && (
-              <View style={[styles.tipContainer, { backgroundColor: '#fff' }]}>
-                <Text style={[styles.tipLabel, { color: '#000' }]}>Tip:</Text>
-                <View style={styles.tipOptions}>
-                  {[0, 5, 10, 15, 20].map((percentage) => (
-                    <TouchableOpacity
-                      key={percentage}
-                      style={[
-                        styles.tipButton,
-                        tip === percentage && styles.tipButtonSelected,
-                        { backgroundColor: '#f0f0f0' },
-                      ]}
-                      onPress={() => {
-                        setTip(percentage);
-                        setCustomTip('');
-                      }}
-                    >
-                      <Text style={[styles.tipButtonText, { color: '#000' }]}>
-                        {percentage}%
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                  <TouchableOpacity
-                    style={[
-                      styles.tipButton,
-                      customTip !== '' && styles.tipButtonSelected,
-                      { backgroundColor: '#f0f0f0' },
-                    ]}
-                    onPress={() => {
-                      setTip('');
-                      setCustomTip('');
-                    }}
-                  >
-                    <Text style={[styles.tipButtonText, { color: '#000' }]}>
-                      Custom
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-                {tip === '' && (
-                  <TextInput
-                    style={[
-                      styles.customTipInput,
-                      { color: '#000', borderColor: '#e0e0e0' },
-                    ]}
-                    placeholder="Enter custom tip percentage"
-                    placeholderTextColor="#A9A9A9"
-                    keyboardType="numeric"
-                    value={customTip}
-                    onChangeText={(text) =>
-                      setCustomTip(text.replace(/[^0-9.]/g, ''))
-                    }
-                  />
-                )}
-              </View>
-            )}
           </ScrollView>
-  
-          {/* Summary */}
+
+          {/* Resumen de la Orden */}
           <View style={[styles.summaryContainer, { backgroundColor: '#fff' }]}>
             <View style={styles.summaryRow}>
               <Text style={[styles.summaryLabel, { color: '#000' }]}>
                 Subtotal:
               </Text>
               <Text style={[styles.summaryValue, { color: '#000' }]}>
-                ${calculateSubtotal()}
+                ${subtotal.toFixed(2)}
               </Text>
             </View>
-  
-            {orderType === 'Delivery' && (
-              <View style={styles.summaryRow}>
-                <Text style={[styles.summaryLabel, { color: '#000' }]}>
-                  Service Fee:
-                </Text>
-                <Text style={[styles.summaryValue, { color: '#000' }]}>
-                  ${serviceFee.toFixed(2)}
-                </Text>
-              </View>
-            )}
-  
-            {orderType === 'Delivery' && (
-              <View style={styles.summaryRow}>
-                <Text style={[styles.summaryLabel, { color: '#000' }]}>
-                  Delivery Fee:
-                </Text>
-                {isSubscribed ? (
-                  <View style={styles.feeContainer}>
-                    <Text
-                      style={[styles.summaryValue, styles.strikethrough, { color: '#000' }]}
-                    >
-                      ${deliveryFee.toFixed(2)}
-                    </Text>
-                    <Text style={[styles.summaryValue, styles.freeText, { color: '#4CAF50' }]}>
-                      Free
-                    </Text>
-                  </View>
-                ) : (
-                  <Text style={[styles.summaryValue, { color: '#000' }]}>
-                    ${deliveryFee.toFixed(2)}
-                  </Text>
-                )}
-              </View>
-            )}
-  
             <View style={styles.summaryRow}>
-              <Text style={[styles.summaryLabel, { color: '#000' }]}>Tax:</Text>
-              {isSubscribed ? (
-                <View style={styles.feeContainer}>
-                  <Text
-                    style={[styles.summaryValue, styles.strikethrough, { color: '#000' }]}
-                  >
-                    ${(calculateTax() * 2).toFixed(2)}
-                  </Text>
-                  <Text style={[styles.summaryValue, { color: '#000' }]}>
-                    ${calculateTax().toFixed(2)}
-                  </Text>
-                </View>
-              ) : (
-                <Text style={[styles.summaryValue, { color: '#000' }]}>
-                  ${calculateTax().toFixed(2)}
-                </Text>
-              )}
+              <Text style={[styles.summaryLabel, { color: '#000' }]}>
+                Tax (8%):
+              </Text>
+              <Text style={[styles.summaryValue, { color: '#000' }]}>
+                ${taxAmt.toFixed(2)}
+              </Text>
             </View>
-  
             <View style={[styles.summaryRow, styles.totalRow]}>
-              <Text style={[styles.totalLabel, { color: '#000' }]}>Total:</Text>
+              <Text style={[styles.totalLabel, { color: '#000' }]}>
+                Total:
+              </Text>
               <Text style={[styles.totalValue, { color: '#000' }]}>
-                ${calculateRealTotal()}
+                ${finalTotal.toFixed(2)}
               </Text>
             </View>
           </View>
-  
-          {/* Checkout Button */}
+
+          {/* Botón de Checkout */}
           <TouchableOpacity
             style={styles.checkoutButton}
             onPress={() =>
@@ -896,455 +452,22 @@ const CartScreen = () => {
               <Text style={styles.checkoutButtonText}>Checkout</Text>
             )}
           </TouchableOpacity>
-  
-          {/* Modals */}
+
           {/* Checkout Confirmation Modal */}
           <CheckoutConfirmationModal
             visible={checkoutModalVisible}
             onClose={() => setCheckoutModalVisible(false)}
-            onConfirm={confirmCheckout}
-            orderType={orderType}
-            getOrderTypeDisplay={getOrderTypeDisplay}
-            deliveryInstructions={deliveryInstructions}
-            setDeliveryInstructions={setDeliveryInstructions}
-            addressInfo={addressInfo}
+            onConfirm={confirmPayment}
+            orderType={constOrderType}
             cart={cart}
             calculateSubtotal={calculateSubtotal}
-            serviceFee={serviceFee}
-            user={user}
-            originalDeliveryFee={originalDeliveryFee}
-            deliveryFee={deliveryFee}
             calculateTax={calculateTax}
-            calculateTipAmount={calculateTipAmount}
             calculateTotal={calculateTotal}
-            address={address}
-            styles={styles}
-            calculateSavings={calculateSavings} 
-          />
-  
-          {/* Address Selection Modal */}
-          <SelectAddressModal
-            visible={modalVisible}
-            onClose={() => setModalVisible(false)}
-            addresses={userAddresses}
-            onSelectAddress={selectAddress}
-            styles={styles}
           />
         </>
       )}
       <Toast />
     </SafeAreaView>
-  );
-  
-};
-
-// LoginForm Component
-const LoginForm = ({ setLoginMode, handleLoginSuccess }) => {
-  const [clientData, setClientData] = useState({ email: '', password: '' });
-  const [errors, setErrors] = useState({ email: false, password: false });
-  const [loading, setLoading] = useState(false);
-  const dispatch = useDispatch();
-  const colorScheme = useColorScheme();
-
-  const handleChange = (fieldName, value) => {
-    setClientData((prevState) => ({ ...prevState, [fieldName]: value }));
-
-    let emailError = false;
-    let passwordError = false;
-
-    if (fieldName === 'email') {
-      emailError = !value.trim() || !/^\S+@\S+\.\S+$/.test(value);
-    } else if (fieldName === 'password') {
-      passwordError = !value.trim();
-    }
-
-    setErrors({ email: emailError, password: passwordError });
-  };
-
-  const handleLogin = async () => {
-    if (errors.email || errors.password) {
-      Toast.show({
-        type: 'error',
-        text1: 'Validation Error',
-        text2: 'Please fill in all fields correctly.',
-      });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const response = await Axios.post(`${API_URL}/api/auth/loginUser`, {
-        clientData,
-        credentials: true,
-      });
-      if (!response.data.error) {
-        const _clientData = response.data;
-        dispatch(setUser(_clientData));
-        handleLoginSuccess();
-      } else {
-        Toast.show({
-          type: 'error',
-          text1: 'Login Error',
-          text2: response.data.message || 'Invalid username or password.',
-        });
-      }
-    } catch (error) {
-      Toast.show({
-        type: 'error',
-        text1: 'Network Error',
-        text2:
-          error.response?.data?.message ||
-          error.message ||
-          'Something went wrong. Please try again later.',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <View style={styles.formContainer}>
-      <View style={styles.inputContainer}>
-        <TextInput
-          onChangeText={(value) => handleChange('email', value)}
-          style={[
-            styles.input,
-            {
-              borderColor: errors.email
-                ? 'red'
-                : colorScheme === 'dark'
-                ? '#FFF'
-                : '#ccc',
-              color: colorScheme === 'dark' ? '#fff' : '#000',
-            },
-          ]}
-          value={clientData.email}
-          placeholder="Email Address"
-          placeholderTextColor={colorScheme === 'dark' ? '#888' : '#888'}
-        />
-        <Icon
-          name="mail-outline"
-          size={24}
-          color={colorScheme === 'dark' ? '#fff' : '#000'}
-        />
-      </View>
-      {errors.email && (
-        <Text style={styles.errorText}>Valid email is required.</Text>
-      )}
-      <View style={styles.inputContainer}>
-        <TextInput
-          onChangeText={(value) => handleChange('password', value)}
-          style={[
-            styles.input,
-            {
-              borderColor: errors.password
-                ? 'red'
-                : colorScheme === 'dark'
-                ? '#FFF'
-                : '#ccc',
-              color: colorScheme === 'dark' ? '#fff' : '#000',
-            },
-          ]}
-          secureTextEntry={true}
-          value={clientData.password}
-          placeholder="Password"
-          placeholderTextColor={colorScheme === 'dark' ? '#888' : '#888'}
-        />
-        <Icon
-          name="lock-closed-outline"
-          size={24}
-          color={colorScheme === 'dark' ? '#fff' : '#000'}
-        />
-      </View>
-      {errors.password && (
-        <Text style={styles.errorText}>Password is required.</Text>
-      )}
-      <TouchableOpacity
-        onPress={handleLogin}
-        style={styles.button}
-        disabled={loading}
-      >
-        {loading ? (
-          <ActivityIndicator size="small" color="#FFF" />
-        ) : (
-          <Text style={styles.buttonText}>Log In</Text>
-        )}
-      </TouchableOpacity>
-      <TouchableOpacity onPress={() => setLoginMode(false)} style={styles.footerLink}>
-        <Text style={styles.footerText}>Don't have an account? Sign up</Text>
-      </TouchableOpacity>
-    </View>
-  );
-};
-
-// SignUpForm Component
-const SignUpForm = ({ setLoginMode, handleSignUpSuccess }) => {
-  const [clientData, setClientData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    phone: '',
-  });
-  const [errors, setErrors] = useState({
-    name: false,
-    email: false,
-    password: false,
-    confirmPassword: false,
-    phone: false,
-  });
-  const [loading, setLoading] = useState(false);
-  const dispatch = useDispatch();
-  const colorScheme = useColorScheme();
-
-  const handleChange = (fieldName, value) => {
-    setClientData((prevState) => ({ ...prevState, [fieldName]: value }));
-
-    let nameError = false;
-    let emailError = false;
-    let passwordError = false;
-    let confirmPasswordError = false;
-    let phoneError = false;
-
-    if (fieldName === 'name') {
-      nameError = !value.trim() || value.length > 45;
-    } else if (fieldName === 'email') {
-      emailError = !value.trim() || !/^\S+@\S+\.\S+$/.test(value);
-    } else if (fieldName === 'password') {
-      passwordError = !value.trim() || value.length < 6;
-    } else if (fieldName === 'confirmPassword') {
-      confirmPasswordError = value !== clientData.password;
-    } else if (fieldName === 'phone') {
-      phoneError = !value.trim();
-    }
-
-    setErrors({
-      name: nameError,
-      email: emailError,
-      password: passwordError,
-      confirmPassword: confirmPasswordError,
-      phone: phoneError,
-    });
-  };
-
-  const handleSignUp = async () => {
-    const currentErrors = {
-      name: !clientData.name.trim() || clientData.name.length > 45,
-      email: !clientData.email.trim() || !/^\S+@\S+\.\S+$/.test(clientData.email),
-      password: !clientData.password.trim() || clientData.password.length < 6,
-      confirmPassword: clientData.confirmPassword !== clientData.password,
-      phone: !clientData.phone.trim(),
-    };
-
-    setErrors(currentErrors);
-
-    if (Object.values(currentErrors).some((error) => error)) {
-      Toast.show({
-        type: 'error',
-        text1: 'Validation Error',
-        text2: 'Please fill in all fields correctly.',
-      });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const response = await Axios.post(`${API_URL}/api/auth/registerUser`, {
-        clientData,
-        credentials: true,
-      });
-      if (!response.data.error) {
-        const _clientData = response.data;
-        dispatch(setUser(_clientData));
-        handleSignUpSuccess();
-      } else {
-        Toast.show({
-          type: 'error',
-          text1: 'Sign Up Error',
-          text2: response.data.message || 'Error in server response.',
-        });
-      }
-    } catch (error) {
-      const backendErrors = error.response?.data?.errors || {};
-      setErrors({
-        name: backendErrors.name || currentErrors.name,
-        email: backendErrors.email || currentErrors.email,
-        password: backendErrors.password || currentErrors.password,
-        confirmPassword: backendErrors.confirmPassword || currentErrors.confirmPassword,
-        phone: backendErrors.phone || currentErrors.phone,
-      });
-
-      Toast.show({
-        type: 'error',
-        text1: 'Network Error',
-        text2:
-          error.response?.data?.message ||
-          error.message ||
-          'Something went wrong. Please try again later.',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <View style={styles.formContainer}>
-      <View style={styles.inputContainer}>
-        <TextInput
-          onChangeText={(value) => handleChange('name', value)}
-          style={[
-            styles.input,
-            {
-              borderColor: errors.name
-                ? 'red'
-                : colorScheme === 'dark'
-                ? '#FFF'
-                : '#ccc',
-              color: colorScheme === 'dark' ? '#fff' : '#000',
-            },
-          ]}
-          value={clientData.name}
-          placeholder="Name"
-          placeholderTextColor={colorScheme === 'dark' ? '#888' : '#888'}
-        />
-        <Icon
-          name="person-outline"
-          size={24}
-          color={colorScheme === 'dark' ? '#fff' : '#000'}
-        />
-      </View>
-      {errors.name && (
-        <Text style={styles.errorText}>
-          Name is required and must be less than 45 characters.
-        </Text>
-      )}
-      <View style={styles.inputContainer}>
-        <TextInput
-          onChangeText={(value) => handleChange('email', value)}
-          style={[
-            styles.input,
-            {
-              borderColor: errors.email
-                ? 'red'
-                : colorScheme === 'dark'
-                ? '#FFF'
-                : '#ccc',
-              color: colorScheme === 'dark' ? '#fff' : '#000',
-            },
-          ]}
-          value={clientData.email}
-          placeholder="Email Address"
-          placeholderTextColor={colorScheme === 'dark' ? '#888' : '#888'}
-        />
-        <Icon
-          name="mail-outline"
-          size={24}
-          color={colorScheme === 'dark' ? '#fff' : '#000'}
-        />
-      </View>
-      {errors.email && (
-        <Text style={styles.errorText}>Valid email is required.</Text>
-      )}
-      <View style={styles.inputContainer}>
-        <TextInput
-          onChangeText={(value) => handleChange('password', value)}
-          style={[
-            styles.input,
-            {
-              borderColor: errors.password
-                ? 'red'
-                : colorScheme === 'dark'
-                ? '#FFF'
-                : '#ccc',
-              color: colorScheme === 'dark' ? '#fff' : '#000',
-            },
-          ]}
-          secureTextEntry={true}
-          value={clientData.password}
-          placeholder="Password"
-          placeholderTextColor={colorScheme === 'dark' ? '#888' : '#888'}
-        />
-        <Icon
-          name="lock-closed-outline"
-          size={24}
-          color={colorScheme === 'dark' ? '#fff' : '#000'}
-        />
-      </View>
-      {errors.password && (
-        <Text style={styles.errorText}>
-          Password is required and must be at least 6 characters.
-        </Text>
-      )}
-      <View style={styles.inputContainer}>
-        <TextInput
-          onChangeText={(value) => handleChange('confirmPassword', value)}
-          style={[
-            styles.input,
-            {
-              borderColor: errors.confirmPassword
-                ? 'red'
-                : colorScheme === 'dark'
-                ? '#FFF'
-                : '#ccc',
-              color: colorScheme === 'dark' ? '#fff' : '#000',
-            },
-          ]}
-          secureTextEntry={true}
-          value={clientData.confirmPassword}
-          placeholder="Confirm Password"
-          placeholderTextColor={colorScheme === 'dark' ? '#888' : '#888'}
-        />
-        <Icon
-          name="lock-closed-outline"
-          size={24}
-          color={colorScheme === 'dark' ? '#fff' : '#000'}
-        />
-      </View>
-      {errors.confirmPassword && (
-        <Text style={styles.errorText}>Passwords do not match.</Text>
-      )}
-      <View style={styles.inputContainer}>
-        <TextInput
-          onChangeText={(value) => handleChange('phone', value)}
-          style={[
-            styles.input,
-            {
-              borderColor: errors.phone
-                ? 'red'
-                : colorScheme === 'dark'
-                ? '#FFF'
-                : '#ccc',
-              color: colorScheme === 'dark' ? '#fff' : '#000',
-            },
-          ]}
-          value={clientData.phone}
-          placeholder="Phone Number"
-          placeholderTextColor={colorScheme === 'dark' ? '#888' : '#888'}
-        />
-        <Icon
-          name="call-outline"
-          size={24}
-          color={colorScheme === 'dark' ? '#fff' : '#000'}
-        />
-      </View>
-      {errors.phone && (
-        <Text style={styles.errorText}>Valid phone number is required.</Text>
-      )}
-      <TouchableOpacity
-        onPress={handleSignUp}
-        style={styles.button}
-        disabled={loading}
-      >
-        {loading ? (
-          <ActivityIndicator size="small" color="#FFF" />
-        ) : (
-          <Text style={styles.buttonText}>Sign Up</Text>
-        )}
-      </TouchableOpacity>
-      <TouchableOpacity onPress={() => setLoginMode(true)} style={styles.footerLink}>
-        <Text style={styles.footerText}>Already have an account? Log in</Text>
-      </TouchableOpacity>
-    </View>
   );
 };
 
@@ -1388,26 +511,6 @@ const styles = StyleSheet.create({
   emptyCartText: {
     fontSize: 16,
     fontWeight: 'bold',
-  },
-  // Address Container
-  addressContainer: {
-    padding: 16,
-  },
-  addressLabel: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  addressInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  addressInput: {
-    flex: 1,
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
-    marginRight: 8,
   },
   // Restaurant Info
   restaurantInfo: {
@@ -1493,56 +596,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     fontSize: 16,
   },
-  // Tip Section
-  tipContainer: {
-    padding: 16,
-  },
-  tipLabel: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  tipOptions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginBottom: 8,
-  },
-  tipButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    marginRight: 8,
-    marginBottom: 8,
-  },
-  tipButtonSelected: {
-    backgroundColor: '#FFA500',
-  },
-  tipButtonText: {
-    fontSize: 14,
-  },
-  customTipInput: {
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 8,
-  },
-  // Balance Section
-  balanceContainer: {
-    padding: 16,
-  },
-  balanceText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  useBalanceContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  useBalanceLabel: {
-    marginLeft: 8,
-    fontSize: 14,
-  },
   // Summary Section
   summaryContainer: {
     padding: 16,
@@ -1560,19 +613,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
   },
-  feeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  strikethrough: {
-    textDecorationLine: 'line-through',
-    color: '#999',
-    marginRight: 8,
-  },
-  freeText: {
-    color: '#4CAF50',
-    fontWeight: 'bold',
-  },
   totalRow: {
     marginTop: 8,
     borderTopWidth: 1,
@@ -1587,27 +627,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
-  // Savings and Ad
-  savingsContainer: {
-    padding: 16,
-    alignItems: 'center',
-  },
-  savingsText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  adContainer: {
-    padding: 16,
-    alignItems: 'center',
-  },
-  adTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  adText: {
-    fontSize: 14,
-    marginTop: 4,
-  },
   // Checkout Button
   checkoutButton: {
     backgroundColor: '#333',
@@ -1619,68 +638,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  // Modal Styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalOrderTypeContainer: {
-    width: '80%',
-    padding: 16,
-    borderRadius: 8,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  modalOrderTypeText: {
-    fontSize: 16,
-    marginBottom: 16,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-  },
-  confirmButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    backgroundColor: '#FFA500',
-    borderRadius: 4,
-    marginRight: 8,
-  },
-  confirmButtonText: {
-    color: 'white',
-    fontSize: 14,
-  },
-  cancelButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-  },
-  cancelButtonText: {
-    fontSize: 14,
-  },
-  // Login Modal
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    padding: 16,
-  },
-  modalContent: {
-    padding: 16,
-    borderRadius: 8,
-  },
-  closeButton: {
-    marginTop: 16,
-    alignSelf: 'center',
-  },
-  closeButtonText: {
-    color: '#FFA500',
-    fontSize: 16,
-  },
-  // Form Styles
+  // Form & Modal Styles
   formContainer: {
     marginTop: 16,
   },

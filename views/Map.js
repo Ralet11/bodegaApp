@@ -1,148 +1,137 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
-  Modal,
   Image,
   FlatList,
   Dimensions,
   ScrollView,
   Animated,
   Linking,
-  Platform,
-} from 'react-native';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
-import { useDispatch, useSelector } from 'react-redux';
-import * as Location from 'expo-location';
-import { useNavigation } from '@react-navigation/native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { FontAwesome5 } from '@expo/vector-icons';
-import isEqual from 'lodash.isequal';
-import Axios from 'react-native-axios';
-import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
-import LottieView from 'lottie-react-native';
+  Platform
+} from 'react-native'
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps'
+import { useDispatch, useSelector } from 'react-redux'
+import * as Location from 'expo-location'
+import { useNavigation } from '@react-navigation/native'
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
+import { FontAwesome5 } from '@expo/vector-icons'
+import isEqual from 'lodash.isequal'
+import Axios from 'react-native-axios'
+import { BlurView } from 'expo-blur'
+import LottieView from 'lottie-react-native'
 
-const { width, height } = Dimensions.get('window');
-const GOOGLE_API_KEY = 'AIzaSyAvritMA-llcdIPnOpudxQ4aZ1b5WsHHUc'; // Reemplaza con tu API key real
+const { width, height } = Dimensions.get('window')
+// Definimos el ancho de la tarjeta para que sea más estrecho que la pantalla
+const CARD_WIDTH = width - 60
+const GOOGLE_API_KEY = 'AIzaSyAvritMA-llcdIPnOpudxQ4aZ1b5WsHHUc'
 
-const MapViewComponent = () => {
-  const dispatch = useDispatch();
-  const navigation = useNavigation();
-  const insets = useSafeAreaInsets();
+export default function MapViewComponent() {
+  const dispatch = useDispatch()
+  const navigation = useNavigation()
+  const insets = useSafeAreaInsets()
 
-  // Estados de Redux
-  const address = useSelector((state) => state?.user?.address?.formatted_address) || '';
-  const shopsByCategory = useSelector((state) => state?.setUp?.shopsDiscounts || {}, isEqual);
+  const address = useSelector(state => state?.user?.address?.formatted_address) || ''
+  const shopsByCategory = useSelector(state => state?.setUp?.shopsDiscounts || {}, isEqual)
 
-  // Estados del componente
-  const [region, setRegion] = useState(null);
-  const [marker, setMarker] = useState(null);
-  const [selectedLocalIndex, setSelectedLocalIndex] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [selectedTag, setSelectedTag] = useState(null);
-  const [locationPermissionDenied, setLocationPermissionDenied] = useState(false);
-  const [allTags, setAllTags] = useState([]);
-  const [distances, setDistances] = useState({});
+  const [region, setRegion] = useState(null)
+  const [marker, setMarker] = useState(null)
+  const [selectedLocalIndex, setSelectedLocalIndex] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [selectedTag, setSelectedTag] = useState(null)
+  const [locationPermissionDenied, setLocationPermissionDenied] = useState(false)
+  const [allTags, setAllTags] = useState([])
+  const [distances, setDistances] = useState({})
 
-  const flatListRef = useRef();
+  const flatListRef = useRef()
+  const fadeAnim = useRef(new Animated.Value(0)).current
+  const slideAnim = useRef(new Animated.Value(height)).current
+  const scaleAnim = useRef(new Animated.Value(0.5)).current
 
-  // Animaciones
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(height)).current;
-  const scaleAnim = useRef(new Animated.Value(0.5)).current;
-
-  /**
-   * Manejo de animaciones de modal (abrir / cerrar):
-   * Se cambia useNativeDriver a false para evitar conflictos en iOS.
-   */
+  // Animación de la tarjeta
   useEffect(() => {
     if (selectedLocalIndex !== null) {
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 1,
           duration: 300,
-          useNativeDriver: false, // <-- Cambiado a false
+          useNativeDriver: true
         }),
         Animated.spring(slideAnim, {
           toValue: 0,
           speed: 12,
           bounciness: 8,
-          useNativeDriver: false, // <-- Cambiado a false
+          useNativeDriver: true
         }),
         Animated.spring(scaleAnim, {
           toValue: 1,
           friction: 3,
           tension: 40,
-          useNativeDriver: false, // <-- Cambiado a false
-        }),
-      ]).start();
+          useNativeDriver: true
+        })
+      ]).start()
     } else {
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 0,
           duration: 300,
-          useNativeDriver: false,
+          useNativeDriver: true
         }),
         Animated.timing(slideAnim, {
           toValue: height,
           duration: 300,
-          useNativeDriver: false,
+          useNativeDriver: true
         }),
         Animated.timing(scaleAnim, {
           toValue: 0.5,
           duration: 300,
-          useNativeDriver: false,
-        }),
-      ]).start();
+          useNativeDriver: true
+        })
+      ]).start()
     }
-  }, [selectedLocalIndex, fadeAnim, slideAnim, scaleAnim]);
+  }, [selectedLocalIndex, fadeAnim, slideAnim, scaleAnim])
 
-  /**
-   * Obtiene ubicación actual o la del address
-   */
+  // Obtener ubicación del usuario o de su dirección
   useEffect(() => {
     const fetchLocation = async () => {
       try {
-        let { status } = await Location.requestForegroundPermissionsAsync();
+        let { status } = await Location.requestForegroundPermissionsAsync()
         if (status !== 'granted') {
-          setLoading(false);
-          setLocationPermissionDenied(true);
-          return;
+          setLoading(false)
+          setLocationPermissionDenied(true)
+          return
         }
-
-        let location = await Location.getCurrentPositionAsync({});
-        const { latitude, longitude } = location.coords;
-
+        let location = await Location.getCurrentPositionAsync({})
+        const { latitude, longitude } = location.coords
         setRegion({
           latitude,
           longitude,
           latitudeDelta: 0.015,
-          longitudeDelta: 0.0121,
-        });
-        setMarker({ latitude, longitude });
+          longitudeDelta: 0.0121
+        })
+        setMarker({ latitude, longitude })
 
-        // Watch en tiempo real
+        // Watch location
         Location.watchPositionAsync(
           { accuracy: Location.Accuracy.High, timeInterval: 5000, distanceInterval: 10 },
-          (newLocation) => {
-            const { latitude, longitude } = newLocation.coords;
-            setRegion((prevRegion) => ({
+          newLocation => {
+            const { latitude, longitude } = newLocation.coords
+            setRegion(prevRegion => ({
               ...prevRegion,
               latitude,
-              longitude,
-            }));
-            setMarker({ latitude, longitude });
+              longitude
+            }))
+            setMarker({ latitude, longitude })
           }
-        );
+        )
       } catch (error) {
-        console.error('Error fetching location:', error);
+        console.error('Error fetching location:', error)
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    };
+    }
 
     const fetchAddressLocation = async () => {
       try {
@@ -150,61 +139,56 @@ const MapViewComponent = () => {
           `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
             address
           )}&key=${GOOGLE_API_KEY}`
-        );
-        const json = await response.json();
+        )
+        const json = await response.json()
         if (json.results.length > 0) {
-          const location = json.results[0].geometry.location;
+          const location = json.results[0].geometry.location
           setRegion({
             latitude: location.lat,
             longitude: location.lng,
             latitudeDelta: 0.015,
-            longitudeDelta: 0.0121,
-          });
+            longitudeDelta: 0.0121
+          })
           setMarker({
             latitude: location.lat,
-            longitude: location.lng,
-          });
+            longitude: location.lng
+          })
         }
       } catch (error) {
-        console.error('Error fetching address location:', error);
+        console.error('Error fetching address location:', error)
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    };
+    }
 
     if (!address) {
-      fetchLocation();
+      fetchLocation()
     } else {
-      fetchAddressLocation();
+      fetchAddressLocation()
     }
-  }, [address]);
+  }, [address])
 
-  /**
-   * Filtro de tiendas
-   */
+  // Filtrar shops según tag
   const filterShops = useCallback(() => {
     const allShops = Array.isArray(shopsByCategory)
-      ? shopsByCategory.filter((shop) => shop.orderIn)
-      : Object.values(shopsByCategory).flat().filter((shop) => shop.orderIn);
+      ? shopsByCategory.filter(shop => shop.orderIn)
+      : Object.values(shopsByCategory).flat().filter(shop => shop.orderIn)
 
     if (selectedTag) {
       return allShops.filter(
-        (shop) => shop.tags && shop.tags.some((t) => t.id === selectedTag.id)
-      );
+        shop => shop.tags && shop.tags.some(t => t.id === selectedTag.id)
+      )
     }
-    return allShops;
-  }, [selectedTag, shopsByCategory]);
+    return allShops
+  }, [selectedTag, shopsByCategory])
 
-  const filteredShops = useMemo(() => filterShops(), [filterShops]);
+  const filteredShops = useMemo(() => filterShops(), [filterShops])
 
-  /**
-   * Cálculo de distancias con Distance Matrix API
-   */
+  // Calcular distancias en millas
   useEffect(() => {
     const fetchDistances = async () => {
-      if (!address) return;
-
-      const newDistances = {};
+      if (!address) return
+      const newDistances = {}
       for (const shop of filteredShops) {
         if (shop.address) {
           try {
@@ -212,180 +196,127 @@ const MapViewComponent = () => {
               `https://maps.googleapis.com/maps/api/distancematrix/json?units=metric&origins=${encodeURIComponent(
                 address
               )}&destinations=${encodeURIComponent(shop.address)}&key=${GOOGLE_API_KEY}`
-            );
-            const distanceValueKm = response.data.rows[0].elements[0].distance.value / 1000;
-
-            // Convertir a millas
-            const distanceValueMiles = distanceValueKm * 0.621371;
-            const distanceTextMiles = `${distanceValueMiles.toFixed(2)} mi`;
-
-            // Ejemplo de filtro: solo guardamos si está dentro de 20 millas
+            )
+            const distanceValueKm = response.data.rows[0].elements[0].distance.value / 1000
+            const distanceValueMiles = distanceValueKm * 0.621371
+            const distanceTextMiles = `${distanceValueMiles.toFixed(2)} mi`
+            // Ejemplo: solo guardas si está a menos de 20 millas
             if (distanceValueMiles <= 20) {
-              newDistances[shop.id] = distanceTextMiles;
+              newDistances[shop.id] = distanceTextMiles
             }
           } catch (error) {
-            console.error('Error fetching distance:', error);
+            console.error('Error fetching distance:', error)
           }
         }
       }
-      setDistances(newDistances);
-    };
+      setDistances(newDistances)
+    }
+    fetchDistances()
+  }, [address, filteredShops])
 
-    fetchDistances();
-  }, [address, filteredShops]);
-
-  /**
-   * Obtener y setear todas las tags
-   */
+  // Obtener todos los tags
   useEffect(() => {
     const shopsArray = Array.isArray(shopsByCategory)
-      ? shopsByCategory.flat()
-      : Object.values(shopsByCategory).flat();
-    const tagsMap = new Map();
-
-    shopsArray.forEach((shop) => {
+      ? shopsByCategory
+      : Object.values(shopsByCategory).flat()
+    const tagsMap = new Map()
+    shopsArray.forEach(shop => {
       if (shop.tags) {
-        shop.tags.forEach((tag) => {
+        shop.tags.forEach(tag => {
           if (!tagsMap.has(tag.id)) {
-            tagsMap.set(tag.id, tag);
+            tagsMap.set(tag.id, tag)
           }
-        });
+        })
       }
-    });
+    })
+    const tagsArray = Array.from(tagsMap.values())
+    setAllTags(tagsArray)
+  }, [shopsByCategory])
 
-    const tagsArray = Array.from(tagsMap.values());
-    setAllTags(tagsArray);
-  }, [shopsByCategory]);
-
-  /**
-   * Manejo de markers y modal
-   */
-  const handleMarkerPress = useCallback((local, index) => {
-    setSelectedLocalIndex(index);
-  }, []);
+  // Handlers
+  const handleMarkerPress = useCallback((_shop, index) => {
+    setSelectedLocalIndex(index)
+  }, [])
 
   const handleCloseModal = useCallback(() => {
-    setSelectedLocalIndex(null);
-  }, []);
+    setSelectedLocalIndex(null)
+  }, [])
 
   const handleNavigateToShop = useCallback(
-    (shop) => {
-      navigation.navigate('Shop', { shop });
-      setSelectedLocalIndex(null);
+    shop => {
+      navigation.navigate('Shop', { shop })
+      setSelectedLocalIndex(null)
     },
     [navigation]
-  );
+  )
 
-  /**
-   * Manejo de tags
-   */
-  const handleTagPress = useCallback(
-    (tag) => {
-      // Si la tag actual está seleccionada, deseleccionamos
-      const newSelectedTag = selectedTag && selectedTag.id === tag.id ? null : tag;
-      setSelectedTag(newSelectedTag);
-    },
-    [selectedTag]
-  );
+  const handleTagPress = useCallback(tag => {
+    setSelectedTag(prev => (prev?.id === tag.id ? null : tag))
+  }, [])
 
-  /**
-   * Navegación entre tarjetas del modal
-   */
   const handleNext = () => {
     if (selectedLocalIndex < filteredShops.length - 1) {
-      const nextIndex = selectedLocalIndex + 1;
-      setSelectedLocalIndex(nextIndex);
-      flatListRef.current?.scrollToIndex({ index: nextIndex, animated: true });
+      const nextIndex = selectedLocalIndex + 1
+      setSelectedLocalIndex(nextIndex)
+      flatListRef.current?.scrollToIndex({ index: nextIndex, animated: true })
     }
-  };
+  }
 
   const handlePrevious = () => {
     if (selectedLocalIndex > 0) {
-      const prevIndex = selectedLocalIndex - 1;
-      setSelectedLocalIndex(prevIndex);
-      flatListRef.current?.scrollToIndex({ index: prevIndex, animated: true });
+      const prevIndex = selectedLocalIndex - 1
+      setSelectedLocalIndex(prevIndex)
+      flatListRef.current?.scrollToIndex({ index: prevIndex, animated: true })
     }
-  };
+  }
 
-  /**
-   * Renderizado de rating
-   */
-  const renderRating = (rating) => (
-    <View style={styles.ratingContainer}>
-      <Text style={styles.ratingText}>{rating.toFixed(1)}</Text>
-      <FontAwesome5 name="star" size={18} color="#FFD700" style={styles.starIcon} />
-    </View>
-  );
-
-  /**
-   * Abrir dirección en Google / Apple Maps
-   */
-  const openAddressInMaps = (shopAddress) => {
-    const encodedAddress = encodeURIComponent(shopAddress);
-    const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
-    const appleMapsUrl = `http://maps.apple.com/?q=${encodedAddress}`;
-
+  const openAddressInMaps = shopAddress => {
+    const encodedAddress = encodeURIComponent(shopAddress)
+    const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`
+    const appleMapsUrl = `http://maps.apple.com/?q=${encodedAddress}`
     if (Platform.OS === 'ios') {
-      Linking.openURL(appleMapsUrl);
+      Linking.openURL(appleMapsUrl)
     } else {
-      Linking.openURL(googleMapsUrl);
+      Linking.openURL(googleMapsUrl)
     }
-  };
-
-  /**
-   * Emojis opcionales para tags
-   */
-  const tagEmojis = {
-    Pizza: '🍕',
-    Burgers: '🍔',
-    Sushi: '🍣',
-    Vegan: '🥦',
-  };
+  }
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Cabecera con BlurView (sin flecha de go back) */}
-      <BlurView
-        intensity={100}
-        style={[
-          styles.headerContainer,
-          {
-            marginTop: insets.top,
-          },
-        ]}
-      >
+      {/* Encabezado con tags */}
+      <BlurView intensity={100} style={[styles.headerContainer, { marginTop: insets.top }]}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.tagsScrollView}
         >
-          {allTags.map((tag) => (
+          {allTags.map(tag => (
             <TouchableOpacity
               key={tag.id}
               style={[
                 styles.tagButton,
-                selectedTag && selectedTag.id === tag.id && styles.selectedTagButton,
+                selectedTag && selectedTag.id === tag.id && styles.selectedTagButton
               ]}
               onPress={() => handleTagPress(tag)}
             >
               <Text
                 style={[
                   styles.tagText,
-                  selectedTag && selectedTag.id === tag.id && styles.selectedTagText,
+                  selectedTag && selectedTag.id === tag.id && styles.selectedTagText
                 ]}
               >
-                {tagEmojis[tag.name] || '🍽️'} {tag.name}
+                {tag.name}
               </Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
       </BlurView>
 
-      {/* Contenido principal: mapa o loaders */}
+      {/* Loader o Permiso denegado */}
       {loading ? (
         <View style={styles.loaderContainer}>
           <LottieView
-            source={{ uri: 'https://lottiefiles.com/free-animation/map-QXiXmV9xvj' }}
+            source={{ uri: 'https://assets5.lottiefiles.com/packages/lf20_X7WDCg.json' }}
             autoPlay
             loop
             style={styles.lottieAnimation}
@@ -400,15 +331,15 @@ const MapViewComponent = () => {
             style={styles.lottieAnimation}
           />
           <Text style={styles.permissionDeniedText}>
-            Permission to access location was denied. Please enable location services to use the app.
+            Location access is required to use this feature. Please enable location services.
           </Text>
         </View>
       ) : (
+        // Mapa
         region && (
           <MapView
             style={styles.map}
             region={region}
-            // Para Android forzar Google
             {...(Platform.OS === 'android' ? { provider: PROVIDER_GOOGLE } : {})}
           >
             {/* Marker del usuario */}
@@ -427,348 +358,435 @@ const MapViewComponent = () => {
                 coordinate={{ latitude: shop.lat, longitude: shop.lng }}
                 onPress={() => handleMarkerPress(shop, index)}
               >
-                <Animated.View
-                  style={[
-                    styles.markerContainer,
-                    {
-                      transform: [
-                        {
-                          scale:
-                            selectedLocalIndex === index
-                              ? scaleAnim.interpolate({
-                                  inputRange: [0.5, 1],
-                                  outputRange: [1, 1.2],
-                                })
-                              : 1,
-                        },
-                      ],
-                    },
-                  ]}
-                >
-                  <Image source={{ uri: shop.logo }} style={styles.markerImage} />
-                </Animated.View>
+                <View style={styles.shopMarkerContainer}>
+                  {shop.logo ? (
+                    <Image source={{ uri: shop.logo }} style={styles.shopMarkerImage} />
+                  ) : (
+                    <View style={styles.defaultMarker}>
+                      <FontAwesome5 name="store" size={18} color="#fff" />
+                    </View>
+                  )}
+                  {shop.discountPercentage && (
+                    <View style={styles.markerDiscountBadge}>
+                      <Text style={styles.markerDiscountBadgeText}>
+                        {shop.discountPercentage}%
+                      </Text>
+                    </View>
+                  )}
+                  {shop.rating && (
+                    <View style={styles.markerRatingBadge}>
+                      <Text style={styles.markerRatingText}>{shop.rating.toFixed(1)}</Text>
+                      <FontAwesome5 name="star" size={12} color="#FFD700" />
+                    </View>
+                  )}
+                </View>
               </Marker>
             ))}
           </MapView>
         )
       )}
 
-      {/* Modal para info de la tienda seleccionada */}
-      <Modal
-        visible={selectedLocalIndex !== null}
-        transparent={true}
-        animationType="none"
-        onRequestClose={handleCloseModal}
-      >
+      {/* Cards al seleccionar un Marker */}
+      {selectedLocalIndex !== null && (
         <Animated.View
           style={[
-            styles.modalContainer,
+            styles.cardContainer,
             {
               opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }],
-            },
+              transform: [
+                {
+                  translateY: slideAnim.interpolate({
+                    inputRange: [0, height],
+                    outputRange: [0, height / 3]
+                  })
+                },
+                { scale: scaleAnim }
+              ]
+            }
           ]}
         >
-          {selectedLocalIndex !== null && (
-            <>
-              <TouchableOpacity style={styles.arrowLeft} onPress={handlePrevious}>
-                <FontAwesome5 name="chevron-left" size={24} color="#333" />
-              </TouchableOpacity>
-
-              <FlatList
-                ref={flatListRef}
-                data={filteredShops}
-                horizontal
-                pagingEnabled
-                renderItem={({ item }) => (
-                  <Animated.View
-                    style={[
-                      styles.modalContent,
-                      {
-                        transform: [{ scale: scaleAnim }],
-                      },
-                    ]}
-                  >
-                    <Image source={{ uri: item.placeImage }} style={styles.modalImage} />
-                    <LinearGradient
-                      colors={['rgba(0,0,0,0.7)', 'transparent']}
-                      style={styles.imageOverlay}
+          {/*
+            Usamos pagingEnabled, con cada "página" de ancho total (width).
+            Dentro, centramos la tarjeta con "justifyContent: 'center', alignItems: 'center'".
+          */}
+          <FlatList
+            ref={flatListRef}
+            data={filteredShops}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            decelerationRate="fast"
+            // Si quieres que la animación de scroll sea suave, podrías usar 'normal'
+            renderItem={({ item }) => (
+              <View style={styles.pageContainer}>
+                {/* Aquí centramos la tarjeta */}
+                <View style={styles.newCardContainer}>
+                  {/* Imagen */}
+                  <View style={styles.imageWrapper}>
+                    <Image
+                      source={{ uri: item.placeImage }}
+                      style={styles.cardImage}
+                      resizeMode="cover"
                     />
-                    <BlurView intensity={90} style={styles.modalInfo}>
-                      <Text style={styles.modalTitle}>{item.name}</Text>
-                      <View style={styles.ratingDistanceContainer}>
-                        {renderRating(item.rating)}
-                        {distances[item.id] && (
-                          <View style={styles.distanceContainer}>
-                            <FontAwesome5 name="street-view" size={14} color="#333" />
-                            <Text style={styles.distanceText}>{distances[item.id]}</Text>
-                          </View>
-                        )}
+                    {item.discountPercentage && (
+                      <View style={styles.cardDiscountBadge}>
+                        <Text style={styles.cardDiscountBadgeText}>
+                          Hasta {item.discountPercentage}% OFF
+                        </Text>
                       </View>
-                      <Text
-                        style={styles.modalAddress}
-                        onPress={() => openAddressInMaps(item.address)}
-                      >
-                        {item.address}
-                      </Text>
-                      <TouchableOpacity
-                        style={styles.navigateButton}
-                        onPress={() => handleNavigateToShop(item)}
-                      >
-                        <Text style={styles.navigateButtonText}>View Shop</Text>
-                      </TouchableOpacity>
-                    </BlurView>
-                  </Animated.View>
-                )}
-                keyExtractor={(item) => item.id.toString()}
-                initialScrollIndex={selectedLocalIndex}
-                getItemLayout={(data, index) => ({
-                  length: width,
-                  offset: width * index,
-                  index,
-                })}
-                /**
-                 * Evita crash en iOS cuando no puede hacer scroll al index inicial
-                 */
-                onScrollToIndexFailed={(info) => {
-                  setTimeout(() => {
-                    flatListRef.current?.scrollToIndex({
-                      index: info.index,
-                      animated: true,
-                    });
-                  }, 500);
-                }}
-              />
+                    )}
+                  </View>
 
-              <TouchableOpacity style={styles.arrowRight} onPress={handleNext}>
-                <FontAwesome5 name="chevron-right" size={24} color="#333" />
-              </TouchableOpacity>
+                  {/* Info de la tienda */}
+                  <View style={styles.cardInfo}>
+                    <Text style={styles.cardTitle}>{item.name}</Text>
 
-              <TouchableOpacity style={styles.closeButton} onPress={handleCloseModal}>
-                <FontAwesome5 name="times" size={24} color="#333" />
-              </TouchableOpacity>
-            </>
-          )}
+                    <View style={styles.cardDetails}>
+                      {/* Rating */}
+                      {item.rating && (
+                        <View style={styles.ratingContainer}>
+                          <Text style={styles.ratingText}>{item.rating.toFixed(1)}</Text>
+                          <FontAwesome5 name="star" size={14} color="#FFD700" />
+                        </View>
+                      )}
+
+                      {/* Distancia */}
+                      {distances[item.id] && (
+                        <View style={styles.distanceContainer}>
+                          <FontAwesome5 name="map-marker-alt" size={14} color="#666" />
+                          <Text style={styles.distanceText}>{distances[item.id]}</Text>
+                        </View>
+                      )}
+                    </View>
+
+                    {/* Dirección clickeable */}
+                    <Text
+                      style={styles.address}
+                      onPress={() => openAddressInMaps(item.address)}
+                    >
+                      {item.address}
+                    </Text>
+
+                    {/* Botón para ir a la tienda */}
+                    <TouchableOpacity
+                      style={styles.viewStoreButton}
+                      onPress={() => handleNavigateToShop(item)}
+                    >
+                      <Text style={styles.viewStoreText}>Ver tienda</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Botón de cerrar */}
+                  <TouchableOpacity style={styles.closeButton} onPress={handleCloseModal}>
+                    <FontAwesome5 name="times" size={20} color="#fff" />
+                  </TouchableOpacity>
+
+                  {/* Flechas de navegación */}
+                  {selectedLocalIndex > 0 && (
+                    <TouchableOpacity
+                      style={[styles.navButton, styles.leftButton]}
+                      onPress={handlePrevious}
+                    >
+                      <FontAwesome5 name="chevron-left" size={20} color="#fff" />
+                    </TouchableOpacity>
+                  )}
+                  {selectedLocalIndex < filteredShops.length - 1 && (
+                    <TouchableOpacity
+                      style={[styles.navButton, styles.rightButton]}
+                      onPress={handleNext}
+                    >
+                      <FontAwesome5 name="chevron-right" size={20} color="#fff" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+            )}
+            keyExtractor={item => item.id.toString()}
+            initialScrollIndex={selectedLocalIndex}
+            getItemLayout={(data, index) => ({
+              length: width,
+              offset: width * index,
+              index
+            })}
+            onScrollToIndexFailed={info => {
+              setTimeout(() => {
+                flatListRef.current?.scrollToIndex({ index: info.index, animated: true })
+              }, 500)
+            }}
+          />
         </Animated.View>
-      </Modal>
+      )}
     </SafeAreaView>
-  );
-};
-
-export default MapViewComponent;
+  )
+}
 
 const styles = StyleSheet.create({
+  // Contenedor principal
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#fff'
   },
   map: {
-    flex: 1,
-    zIndex: 1,
+    flex: 1
   },
-  loaderContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-  },
-  lottieAnimation: {
-    width: 200,
-    height: 200,
-  },
-  permissionDeniedContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#fff',
-  },
-  permissionDeniedText: {
-    fontSize: 16,
-    color: '#ff6b6b',
-    textAlign: 'center',
-    marginTop: 20,
-  },
+
+  // Encabezado con tags
   headerContainer: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    paddingHorizontal: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    zIndex: 11,
-    elevation: 11,
+    zIndex: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)'
   },
   tagsScrollView: {
-    flexGrow: 1,
     paddingVertical: 10,
+    paddingHorizontal: 15
   },
   tagButton: {
     paddingHorizontal: 15,
     paddingVertical: 8,
     backgroundColor: '#f0f0f0',
     borderRadius: 20,
-    marginRight: 10,
+    marginRight: 10
   },
   selectedTagButton: {
-    backgroundColor: '#4A90E2',
+    backgroundColor: '#007AFF'
   },
   tagText: {
     fontSize: 14,
-    color: '#333',
+    color: '#333'
   },
   selectedTagText: {
-    color: '#fff',
-    fontWeight: 'bold',
+    color: '#fff'
   },
+
+  // Loader
+  loaderContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  lottieAnimation: {
+    width: 200,
+    height: 200
+  },
+  permissionDeniedContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20
+  },
+  permissionDeniedText: {
+    fontSize: 16,
+    color: '#ff6b6b',
+    textAlign: 'center',
+    marginTop: 20
+  },
+
+  // Marker del usuario
   userMarker: {
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'center'
   },
-  markerContainer: {
+
+  // Marker de las tiendas
+  shopMarkerContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#fff',
-    borderWidth: 2,
-    borderColor: '#4A90E2',
-    overflow: 'hidden',
+    position: 'relative'
   },
-  markerImage: {
+  shopMarkerImage: {
     width: 46,
     height: 46,
     borderRadius: 23,
+    borderColor: '#4A90E2',
+    borderWidth: 2
   },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    justifyContent: 'flex-end',
-    zIndex: 2000, // Asegura que esté por encima en iOS
-  },
-  modalContent: {
-    width,
-    height: height * 0.6,
-    justifyContent: 'flex-end',
+  defaultMarker: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: '#4A90E2',
     alignItems: 'center',
-    overflow: 'hidden',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    marginTop: '35%',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#fff'
   },
-  modalImage: {
-    width: '100%',
-    height: '100%',
+  markerDiscountBadge: {
     position: 'absolute',
-    top: 0,
-    left: 0,
+    top: -10,
+    right: -10,
+    backgroundColor: '#FF3B30',
+    paddingVertical: 2,
+    paddingHorizontal: 5,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#fff'
   },
-  imageOverlay: {
+  markerDiscountBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold'
+  },
+  markerRatingBadge: {
     position: 'absolute',
-    top: 0,
+    bottom: -15,
+    backgroundColor: '#fff',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderRadius: 10,
+    borderColor: '#ccc',
+    borderWidth: 1
+  },
+  markerRatingText: {
+    marginRight: 2,
+    fontSize: 12,
+    color: '#333',
+    fontWeight: '600'
+  },
+
+  // Contenedor animado de la tarjeta
+  cardContainer: {
+    position: 'absolute',
+    top: '50%', // Más arriba para no chocar con nav inferior
     left: 0,
     right: 0,
-    height: 100,
+    paddingBottom: 80 // Espacio para no superponerse con barra inferior
   },
-  modalInfo: {
+
+  // Contenedor de cada página (ocupa toda la pantalla)
+  pageContainer: {
+    width: width, // Cada ítem/página ocupa el ancho total
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+
+  // Tarjeta en el centro de la página
+  newCardContainer: {
+    width: CARD_WIDTH,
+    borderRadius: 10,
+    backgroundColor: '#fff',
+    overflow: 'hidden',
+    // Sombra
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+    position: 'relative'
+  },
+  imageWrapper: {
     width: '100%',
-    padding: 20,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    height: 120,
+    position: 'relative',
+    borderTopLeftRadius: 10,
+    borderTopRightRadius: 10,
+    overflow: 'hidden'
   },
-  modalTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    marginBottom: 10,
-    color: '#333',
-    textAlign: 'center',
-  },
-  ratingDistanceContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  cardImage: {
     width: '100%',
+    height: '100%'
   },
-  distanceContainer: {
+  cardDiscountBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: '#FF3B30',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    zIndex: 2
+  },
+  cardDiscountBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold'
+  },
+  cardInfo: {
+    padding: 12
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333'
+  },
+  cardDetails: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  distanceText: {
-    marginLeft: 5,
-    fontSize: 14,
-    color: '#333',
+    marginTop: 6
   },
   ratingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFECB3',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 15,
-    marginBottom: 15,
+    marginRight: 15
   },
   ratingText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginRight: 5,
+    marginRight: 4,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333'
   },
-  starIcon: {
-    marginLeft: 2,
+  distanceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center'
   },
-  modalAddress: {
-    fontSize: 16,
-    color: '#444',
-    marginBottom: 20,
-    textAlign: 'center',
+  distanceText: {
+    fontSize: 14,
+    color: '#666',
+    marginLeft: 4
   },
-  navigateButton: {
+  address: {
+    fontSize: 13,
+    color: '#555',
+    marginTop: 6,
+    textDecorationLine: 'underline'
+  },
+  viewStoreButton: {
     marginTop: 10,
-    paddingVertical: 14,
-    paddingHorizontal: 30,
-    backgroundColor: '#4A90E2',
-    borderRadius: 25,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 10,
+    backgroundColor: '#007AFF',
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    alignSelf: 'center'
   },
-  navigateButtonText: {
+  viewStoreText: {
     color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 14,
+    fontWeight: '600'
   },
+
+  // Botón para cerrar la card
   closeButton: {
     position: 'absolute',
-    top: 40,
-    right: 20,
-    padding: 10,
-    backgroundColor: 'rgba(0, 0, 0, 0.1)',
-    borderRadius: 25,
+    top: 10,
+    right: 10,
+    zIndex: 10,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    alignItems: 'center',
+    justifyContent: 'center'
   },
-  arrowLeft: {
+  // Flechas de navegación
+  navButton: {
     position: 'absolute',
-    left: 20,
-    top: '50%',
-    transform: [{ translateY: -25 }],
-    zIndex: 1,
-    padding: 10,
-    backgroundColor: 'rgba(0, 0, 0, 0.1)',
-    borderRadius: 25,
+    top: '45%',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10
   },
-  arrowRight: {
-    position: 'absolute',
-    right: 20,
-    top: '50%',
-    transform: [{ translateY: -25 }],
-    zIndex: 1,
-    padding: 10,
-    backgroundColor: 'rgba(0, 0, 0, 0.1)',
-    borderRadius: 25,
+  leftButton: {
+    left: 0
   },
-});
+  rightButton: {
+    right: 0
+  }
+})
