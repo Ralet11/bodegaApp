@@ -24,9 +24,9 @@ import { BlurView } from 'expo-blur'
 import LottieView from 'lottie-react-native'
 
 const { width, height } = Dimensions.get('window')
-// Definimos el ancho de la tarjeta para que sea más estrecho que la pantalla
+// Definimos el ancho de la tarjeta
 const CARD_WIDTH = width - 60
-const GOOGLE_API_KEY = 'AIzaSyAvritMA-llcdIPnOpudxQ4aZ1b5WsHHUc'
+const GOOGLE_API_KEY = 'TU_API_KEY_AQUI'
 
 export default function MapViewComponent() {
   const dispatch = useDispatch()
@@ -34,7 +34,10 @@ export default function MapViewComponent() {
   const insets = useSafeAreaInsets()
 
   const address = useSelector(state => state?.user?.address?.formatted_address) || ''
-  const shopsByCategory = useSelector(state => state?.setUp?.shopsDiscounts || {}, isEqual)
+  const shopsByCategory = useSelector(
+    state => state?.setUp?.shopsDiscounts || {},
+    isEqual
+  )
 
   const [region, setRegion] = useState(null)
   const [marker, setMarker] = useState(null)
@@ -46,11 +49,14 @@ export default function MapViewComponent() {
   const [distances, setDistances] = useState({})
 
   const flatListRef = useRef()
+
+  // Animaciones
+  // fadeAnim para opacidad, slideAnim para mover la card verticalmente, scaleAnim para "escala".
   const fadeAnim = useRef(new Animated.Value(0)).current
-  const slideAnim = useRef(new Animated.Value(height)).current
+  const slideAnim = useRef(new Animated.Value(0)).current
   const scaleAnim = useRef(new Animated.Value(0.5)).current
 
-  // Animación de la tarjeta
+  // Al cambiar 'selectedLocalIndex', lanzamos las animaciones
   useEffect(() => {
     if (selectedLocalIndex !== null) {
       Animated.parallel([
@@ -59,8 +65,9 @@ export default function MapViewComponent() {
           duration: 300,
           useNativeDriver: true
         }),
+        // Aquí “slideAnim” pasa de 0 a 1
         Animated.spring(slideAnim, {
-          toValue: 0,
+          toValue: 1,
           speed: 12,
           bounciness: 8,
           useNativeDriver: true
@@ -79,8 +86,9 @@ export default function MapViewComponent() {
           duration: 300,
           useNativeDriver: true
         }),
+        // Al cerrar, regresamos la card hacia abajo (slideAnim vuelve a 0)
         Animated.timing(slideAnim, {
-          toValue: height,
+          toValue: 0,
           duration: 300,
           useNativeDriver: true
         }),
@@ -115,7 +123,11 @@ export default function MapViewComponent() {
 
         // Watch location
         Location.watchPositionAsync(
-          { accuracy: Location.Accuracy.High, timeInterval: 5000, distanceInterval: 10 },
+          {
+            accuracy: Location.Accuracy.High,
+            timeInterval: 5000,
+            distanceInterval: 10
+          },
           newLocation => {
             const { latitude, longitude } = newLocation.coords
             setRegion(prevRegion => ({
@@ -168,7 +180,7 @@ export default function MapViewComponent() {
     }
   }, [address])
 
-  // Filtrar shops según tag
+  // Filtrar shops según el tag seleccionado
   const filterShops = useCallback(() => {
     const allShops = Array.isArray(shopsByCategory)
       ? shopsByCategory.filter(shop => shop.orderIn)
@@ -184,7 +196,7 @@ export default function MapViewComponent() {
 
   const filteredShops = useMemo(() => filterShops(), [filterShops])
 
-  // Calcular distancias en millas
+  // Calcular distancias en millas (opcional)
   useEffect(() => {
     const fetchDistances = async () => {
       if (!address) return
@@ -197,10 +209,11 @@ export default function MapViewComponent() {
                 address
               )}&destinations=${encodeURIComponent(shop.address)}&key=${GOOGLE_API_KEY}`
             )
-            const distanceValueKm = response.data.rows[0].elements[0].distance.value / 1000
+            const distanceValueKm =
+              response.data.rows[0].elements[0].distance.value / 1000
             const distanceValueMiles = distanceValueKm * 0.621371
             const distanceTextMiles = `${distanceValueMiles.toFixed(2)} mi`
-            // Ejemplo: solo guardas si está a menos de 20 millas
+            // Solo guardamos si está a menos de 20 millas (ejemplo)
             if (distanceValueMiles <= 20) {
               newDistances[shop.id] = distanceTextMiles
             }
@@ -219,6 +232,7 @@ export default function MapViewComponent() {
     const shopsArray = Array.isArray(shopsByCategory)
       ? shopsByCategory
       : Object.values(shopsByCategory).flat()
+
     const tagsMap = new Map()
     shopsArray.forEach(shop => {
       if (shop.tags) {
@@ -335,16 +349,20 @@ export default function MapViewComponent() {
           </Text>
         </View>
       ) : (
-        // Mapa
         region && (
           <MapView
             style={styles.map}
             region={region}
-            {...(Platform.OS === 'android' ? { provider: PROVIDER_GOOGLE } : {})}
+            // Si quieres forzar Google Maps en iOS, añade:
+            // provider={PROVIDER_GOOGLE}
           >
             {/* Marker del usuario */}
             {marker && (
-              <Marker coordinate={marker}>
+              <Marker
+                coordinate={marker}
+                // Para no mostrar callouts nativos en iOS:
+                calloutEnabled={false}
+              >
                 <View style={styles.userMarker}>
                   <FontAwesome5 name="map-pin" size={24} color="#4A90E2" />
                 </View>
@@ -357,6 +375,7 @@ export default function MapViewComponent() {
                 key={shop.id}
                 coordinate={{ latitude: shop.lat, longitude: shop.lng }}
                 onPress={() => handleMarkerPress(shop, index)}
+                calloutEnabled={false} // Desactiva el callout nativo
               >
                 <View style={styles.shopMarkerContainer}>
                   {shop.logo ? (
@@ -394,10 +413,11 @@ export default function MapViewComponent() {
             {
               opacity: fadeAnim,
               transform: [
+                // slideAnim va de 0 (abajo) a 1 (arriba).
                 {
                   translateY: slideAnim.interpolate({
-                    inputRange: [0, height],
-                    outputRange: [0, height / 3]
+                    inputRange: [0, 1],
+                    outputRange: [height, 0]
                   })
                 },
                 { scale: scaleAnim }
@@ -405,10 +425,6 @@ export default function MapViewComponent() {
             }
           ]}
         >
-          {/*
-            Usamos pagingEnabled, con cada "página" de ancho total (width).
-            Dentro, centramos la tarjeta con "justifyContent: 'center', alignItems: 'center'".
-          */}
           <FlatList
             ref={flatListRef}
             data={filteredShops}
@@ -416,10 +432,8 @@ export default function MapViewComponent() {
             pagingEnabled
             showsHorizontalScrollIndicator={false}
             decelerationRate="fast"
-            // Si quieres que la animación de scroll sea suave, podrías usar 'normal'
             renderItem={({ item }) => (
               <View style={styles.pageContainer}>
-                {/* Aquí centramos la tarjeta */}
                 <View style={styles.newCardContainer}>
                   {/* Imagen */}
                   <View style={styles.imageWrapper}>
@@ -651,20 +665,19 @@ const styles = StyleSheet.create({
   // Contenedor animado de la tarjeta
   cardContainer: {
     position: 'absolute',
-    top: '50%', // Más arriba para no chocar con nav inferior
     left: 0,
     right: 0,
-    paddingBottom: 80 // Espacio para no superponerse con barra inferior
+    // Ubicamos la tarjeta abajo y la subimos por animación
+    bottom: 120,
+    zIndex: 10
   },
 
-  // Contenedor de cada página (ocupa toda la pantalla)
   pageContainer: {
     width: width, // Cada ítem/página ocupa el ancho total
     justifyContent: 'center',
     alignItems: 'center'
   },
 
-  // Tarjeta en el centro de la página
   newCardContainer: {
     width: CARD_WIDTH,
     borderRadius: 10,
@@ -771,6 +784,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center'
   },
+
   // Flechas de navegación
   navButton: {
     position: 'absolute',

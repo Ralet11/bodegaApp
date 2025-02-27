@@ -13,6 +13,7 @@ import {
   Alert,
   Modal,
   Platform,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
@@ -20,7 +21,11 @@ import { useDispatch, useSelector } from 'react-redux';
 import Axios from 'react-native-axios';
 import { API_URL } from '@env';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { setAuxShops, setShopsDiscounts, setUserDiscounts } from '../redux/slices/setUp.slice';
+import {
+  setAuxShops,
+  setShopsDiscounts,
+  setUserDiscounts
+} from '../redux/slices/setUp.slice';
 import PromoSlider from '../components/PromotionSlider';
 import AccountDrawer from '../components/AccountDrawer';
 import { setAddress, setLocation } from '../redux/slices/user.slice';
@@ -29,6 +34,8 @@ import DiscountShopScroll from '../components/DiscountShopScroll';
 import { clearCart } from '../redux/slices/cart.slice';
 import * as Location from 'expo-location';
 import DeliveryModeToggle from '../components/DeliveryModeToggle';
+
+const { width } = Dimensions.get('window');
 
 const DashboardDiscount = () => {
   const scheme = useColorScheme();
@@ -39,25 +46,30 @@ const DashboardDiscount = () => {
   const [addressModalVisible, setAddressModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [deliveryMode, setDeliveryMode] = useState('Dine-in');
+
+  // Redux
   const address = useSelector((state) => state?.user?.address?.formatted_address);
   const location = useSelector((state) => state?.user?.location);
   const addresses = useSelector((state) => state?.user?.addresses);
-  const navigation = useNavigation();
-  const dispatch = useDispatch();
   const user = useSelector((state) => state?.user?.userInfo?.data?.client);
   const token = useSelector((state) => state?.user?.userInfo?.data?.token);
   const auxShops = useSelector((state) => state?.setUp?.auxShops);
-  const [allTags, setAllTags] = useState([]);
   const cart = useSelector((state) => state.cart.items);
   const auxCart = useSelector((state) => state?.setUp?.auxCart);
 
-  // Mapear deliveryMode a un número
+  const [allTags, setAllTags] = useState([]);
+  const dispatch = useDispatch();
+  const navigation = useNavigation();
+
+  // Mapeo: 'Dine-in' -> 0, 'Pickup' -> 1
   const orderTypeParam = deliveryMode === 'Dine-in' ? 0 : deliveryMode === 'Pickup' ? 1 : null;
 
+  // Limpiar carrito cuando cambia auxCart
   useEffect(() => {
     dispatch(clearCart());
   }, [auxCart, dispatch]);
 
+  // Control del botón atrás en Android (y 'beforeRemove' en iOS)
   useFocusEffect(
     useCallback(() => {
       const onBackPress = () => true;
@@ -77,12 +89,14 @@ const DashboardDiscount = () => {
     }, [navigation])
   );
 
+  // Limpiar el searchQuery cuando entramos a la pantalla
   useFocusEffect(
     useCallback(() => {
       setSearchQuery('');
     }, [])
   );
 
+  // Extraer todos los tags únicos que hay en las shops
   const extractTags = (shops) => {
     const tags = new Set();
     Object.keys(shops).forEach((catId) => {
@@ -96,6 +110,7 @@ const DashboardDiscount = () => {
     setAllTags(uniqueTagsArray);
   };
 
+  // Obtener las tiendas
   const fetchShops = async () => {
     if (!token) return;
     try {
@@ -113,6 +128,7 @@ const DashboardDiscount = () => {
     }
   };
 
+  // Obtener ubicación actual
   const getCurrentLocation = async () => {
     try {
       let { status } = await Location.requestForegroundPermissionsAsync();
@@ -150,7 +166,7 @@ const DashboardDiscount = () => {
           longitude,
         };
         dispatch(setAddress(currentAddress));
-        dispatch(setLocation(currentAddress))
+        dispatch(setLocation(currentAddress));
       }
     } catch (error) {
       console.error('Error getting location:', error);
@@ -158,7 +174,7 @@ const DashboardDiscount = () => {
     }
   };
 
-  // Descuentos de usuario
+  // Obtener descuentos del usuario
   useEffect(() => {
     if (user?.id && token) {
       const fetchUserDiscounts = async () => {
@@ -175,6 +191,7 @@ const DashboardDiscount = () => {
     }
   }, [user?.id, token, dispatch]);
 
+  // Llamar a fetchShops + getCurrentLocation cuando tengamos token
   useEffect(() => {
     if (token) {
       fetchShops();
@@ -193,14 +210,17 @@ const DashboardDiscount = () => {
     setAddressModalVisible(false);
   };
 
+  // Ir a la tienda
   const handleShopPress = (shop) => {
     navigation.navigate('Shop', { shop, orderTypeParam });
   };
 
+  // Ir a la pantalla de categoría
   const handleCategoryPress = (selectedTag) => {
     navigation.navigate('CategoryShops', { selectedTag, allTags });
   };
 
+  // Drawer lateral
   const toggleDrawer = () => {
     setDrawerVisible(!drawerVisible);
   };
@@ -209,6 +229,7 @@ const DashboardDiscount = () => {
     navigation.navigate(screen);
   };
 
+  // Filtrar shops por nombre usando searchQuery
   const handleSearchSubmit = () => {
     if (searchQuery.trim()) {
       const filteredShops = [];
@@ -227,6 +248,7 @@ const DashboardDiscount = () => {
     }
   };
 
+  // Filtrar tiendas según "Dine-in" o "Pickup"
   const filterShopsByTags = (shops, mode) => {
     const currentDateTime = new Date();
     const currentDay = currentDateTime
@@ -263,20 +285,23 @@ const DashboardDiscount = () => {
     setFilteredShopsByTags(filtered);
   };
 
+  // Verificar si no hay tiendas disponibles
   const noShopsAvailable = !Object.keys(filteredShopsByTags).some(
     (tagName) => filteredShopsByTags[tagName].length > 0
   );
 
+  // Loading
   if (loading || !token) {
     return <SkeletonLoader />;
   }
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      {/* Header con dirección y modo de entrega */}
       <View style={styles.header}>
         <View style={styles.addressToggleContainer}>
           <TouchableOpacity
-            onPress={() => navigation.navigate("Addresses")}
+            onPress={() => navigation.navigate('Addresses')}
             style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
           >
             <FontAwesome
@@ -285,13 +310,22 @@ const DashboardDiscount = () => {
               color="#333"
               style={{ marginRight: 5 }}
             />
-            <Text style={styles.addressText} numberOfLines={1} ellipsizeMode="tail">
+            {/* Ajustes para texto largo */}
+            <Text
+              style={[styles.addressText, { flexShrink: 1 }]}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
               {address}
             </Text>
           </TouchableOpacity>
-          <DeliveryModeToggle deliveryMode={deliveryMode} onToggle={setDeliveryMode} />
+          {/* DeliveryModeToggle */}
+          <View style={{ flexShrink: 0, marginLeft: 10 }}>
+            <DeliveryModeToggle deliveryMode={deliveryMode} onToggle={setDeliveryMode} />
+          </View>
         </View>
 
+        {/* Barra de búsqueda + botón drawer */}
         <View style={styles.searchContainer}>
           <TouchableOpacity onPress={toggleDrawer} style={[styles.iconButton, styles.iconButtonFix]}>
             <FontAwesome name="bars" size={20} color="#333" />
@@ -307,7 +341,9 @@ const DashboardDiscount = () => {
         </View>
       </View>
 
+      {/* Contenido principal */}
       <ScrollView contentContainerStyle={{ paddingBottom: 50 }}>
+        {/* Slider de promociones */}
         <PromoSlider />
 
         <View style={{ paddingHorizontal: 15, paddingVertical: 10 }}>
@@ -316,6 +352,7 @@ const DashboardDiscount = () => {
           </Text>
         </View>
 
+        {/* Tags / Categorías */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           {allTags.map((tag) => (
             <TouchableOpacity
@@ -336,6 +373,7 @@ const DashboardDiscount = () => {
           ))}
         </ScrollView>
 
+        {/* Lista de shops o mensaje de no disponible */}
         {noShopsAvailable ? (
           <View style={styles.noShopsContainer}>
             <View style={styles.noShopsCard}>
@@ -377,6 +415,7 @@ const DashboardDiscount = () => {
         )}
       </ScrollView>
 
+      {/* Drawer de cuenta */}
       <AccountDrawer
         visible={drawerVisible}
         onClose={toggleDrawer}
@@ -385,6 +424,7 @@ const DashboardDiscount = () => {
         user={user}
       />
 
+      {/* Modal de direcciones */}
       <Modal
         animationType="slide"
         transparent
@@ -446,6 +486,8 @@ const styles = StyleSheet.create({
   addressText: {
     fontSize: 14,
     color: '#333',
+    // No le ponemos maxWidth por defecto, pues flexShrink ya ayuda
+    // Si quieres, podrías usar maxWidth para acortar más: maxWidth: width * 0.5, etc.
   },
   searchContainer: {
     flexDirection: 'row',
