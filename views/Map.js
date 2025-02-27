@@ -26,7 +26,7 @@ import LottieView from 'lottie-react-native'
 const { width, height } = Dimensions.get('window')
 // Definimos el ancho de la tarjeta
 const CARD_WIDTH = width - 60
-const GOOGLE_API_KEY = 'TU_API_KEY_AQUI'
+const GOOGLE_API_KEY = 'AIzaSyAvritMA-llcdIPnOpudxQ4aZ1b5WsHHUc'
 
 export default function MapViewComponent() {
   const dispatch = useDispatch()
