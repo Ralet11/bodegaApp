@@ -24,7 +24,6 @@ import { BlurView } from 'expo-blur'
 import LottieView from 'lottie-react-native'
 
 const { width, height } = Dimensions.get('window')
-// Definimos el ancho de la tarjeta
 const CARD_WIDTH = width - 60
 const GOOGLE_API_KEY = 'AIzaSyAvritMA-llcdIPnOpudxQ4aZ1b5WsHHUc'
 
@@ -50,13 +49,12 @@ export default function MapViewComponent() {
 
   const flatListRef = useRef()
 
-  // Animaciones
-  // fadeAnim para opacidad, slideAnim para mover la card verticalmente, scaleAnim para "escala".
+  // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current
   const slideAnim = useRef(new Animated.Value(0)).current
   const scaleAnim = useRef(new Animated.Value(0.5)).current
 
-  // Al cambiar 'selectedLocalIndex', lanzamos las animaciones
+  // When 'selectedLocalIndex' changes, we trigger the animations
   useEffect(() => {
     if (selectedLocalIndex !== null) {
       Animated.parallel([
@@ -65,7 +63,6 @@ export default function MapViewComponent() {
           duration: 300,
           useNativeDriver: true
         }),
-        // Aquí “slideAnim” pasa de 0 a 1
         Animated.spring(slideAnim, {
           toValue: 1,
           speed: 12,
@@ -86,7 +83,6 @@ export default function MapViewComponent() {
           duration: 300,
           useNativeDriver: true
         }),
-        // Al cerrar, regresamos la card hacia abajo (slideAnim vuelve a 0)
         Animated.timing(slideAnim, {
           toValue: 0,
           duration: 300,
@@ -101,7 +97,7 @@ export default function MapViewComponent() {
     }
   }, [selectedLocalIndex, fadeAnim, slideAnim, scaleAnim])
 
-  // Obtener ubicación del usuario o de su dirección
+  // Get user location or address location
   useEffect(() => {
     const fetchLocation = async () => {
       try {
@@ -180,7 +176,7 @@ export default function MapViewComponent() {
     }
   }, [address])
 
-  // Filtrar shops según el tag seleccionado
+  // Filter shops based on selected tag
   const filterShops = useCallback(() => {
     const allShops = Array.isArray(shopsByCategory)
       ? shopsByCategory.filter(shop => shop.orderIn)
@@ -196,7 +192,7 @@ export default function MapViewComponent() {
 
   const filteredShops = useMemo(() => filterShops(), [filterShops])
 
-  // Calcular distancias en millas (opcional)
+  // Calculate distances in miles (optional)
   useEffect(() => {
     const fetchDistances = async () => {
       if (!address) return
@@ -213,7 +209,7 @@ export default function MapViewComponent() {
               response.data.rows[0].elements[0].distance.value / 1000
             const distanceValueMiles = distanceValueKm * 0.621371
             const distanceTextMiles = `${distanceValueMiles.toFixed(2)} mi`
-            // Solo guardamos si está a menos de 20 millas (ejemplo)
+            // Only save if it's less than 20 miles (example)
             if (distanceValueMiles <= 20) {
               newDistances[shop.id] = distanceTextMiles
             }
@@ -227,7 +223,7 @@ export default function MapViewComponent() {
     fetchDistances()
   }, [address, filteredShops])
 
-  // Obtener todos los tags
+  // Get all tags
   useEffect(() => {
     const shopsArray = Array.isArray(shopsByCategory)
       ? shopsByCategory
@@ -297,7 +293,7 @@ export default function MapViewComponent() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Encabezado con tags */}
+      {/* Header with tags */}
       <BlurView intensity={100} style={[styles.headerContainer, { marginTop: insets.top }]}>
         <ScrollView
           horizontal
@@ -326,7 +322,7 @@ export default function MapViewComponent() {
         </ScrollView>
       </BlurView>
 
-      {/* Loader o Permiso denegado */}
+      {/* Loader or Permission denied */}
       {loading ? (
         <View style={styles.loaderContainer}>
           <LottieView
@@ -353,14 +349,14 @@ export default function MapViewComponent() {
           <MapView
             style={styles.map}
             region={region}
-            // Si quieres forzar Google Maps en iOS, añade:
+            // If you want to force Google Maps on iOS, add:
             // provider={PROVIDER_GOOGLE}
           >
-            {/* Marker del usuario */}
+            {/* User marker */}
             {marker && (
               <Marker
                 coordinate={marker}
-                // Para no mostrar callouts nativos en iOS:
+                // To not show native callouts on iOS:
                 calloutEnabled={false}
               >
                 <View style={styles.userMarker}>
@@ -369,13 +365,13 @@ export default function MapViewComponent() {
               </Marker>
             )}
 
-            {/* Markers de las tiendas */}
+            {/* Shop markers */}
             {filteredShops.map((shop, index) => (
               <Marker
                 key={shop.id}
                 coordinate={{ latitude: shop.lat, longitude: shop.lng }}
                 onPress={() => handleMarkerPress(shop, index)}
-                calloutEnabled={false} // Desactiva el callout nativo
+                calloutEnabled={false} // Disable native callout
               >
                 <View style={styles.shopMarkerContainer}>
                   {shop.logo ? (
@@ -405,7 +401,7 @@ export default function MapViewComponent() {
         )
       )}
 
-      {/* Cards al seleccionar un Marker */}
+      {/* Cards when selecting a Marker - REDESIGNED AND ADJUSTED */}
       {selectedLocalIndex !== null && (
         <Animated.View
           style={[
@@ -413,7 +409,6 @@ export default function MapViewComponent() {
             {
               opacity: fadeAnim,
               transform: [
-                // slideAnim va de 0 (abajo) a 1 (arriba).
                 {
                   translateY: slideAnim.interpolate({
                     inputRange: [0, 1],
@@ -434,84 +429,80 @@ export default function MapViewComponent() {
             decelerationRate="fast"
             renderItem={({ item }) => (
               <View style={styles.pageContainer}>
-                <View style={styles.newCardContainer}>
-                  {/* Imagen */}
-                  <View style={styles.imageWrapper}>
+                <View style={styles.modernCardContainer}>
+                  {/* Image with overlay for better contrast */}
+                  <View style={styles.modernImageWrapper}>
                     <Image
                       source={{ uri: item.placeImage }}
-                      style={styles.cardImage}
+                      style={styles.modernCardImage}
                       resizeMode="cover"
                     />
+                    <View style={styles.imageOverlay} />
+                    
+                    {/* Close button */}
+                    <TouchableOpacity 
+                      style={styles.modernCloseButton} 
+                      onPress={handleCloseModal}
+                    
+                      onPress={handleCloseModal}
+                    >
+                      <FontAwesome5 name="times" size={16} color="#fff" />
+                    </TouchableOpacity>
+                    
+                    {/* Discount on image */}
                     {item.discountPercentage && (
-                      <View style={styles.cardDiscountBadge}>
-                        <Text style={styles.cardDiscountBadgeText}>
-                          Hasta {item.discountPercentage}% OFF
+                      <View style={styles.modernDiscountBadge}>
+                        <Text style={styles.modernDiscountText}>
+                          {item.discountPercentage}% OFF
                         </Text>
                       </View>
                     )}
                   </View>
 
-                  {/* Info de la tienda */}
-                  <View style={styles.cardInfo}>
-                    <Text style={styles.cardTitle}>{item.name}</Text>
-
-                    <View style={styles.cardDetails}>
-                      {/* Rating */}
+                  {/* Card content */}
+                  <View style={styles.modernCardContent}>
+                    {/* Title and rating on the same line */}
+                    <View style={styles.modernTitleRow}>
+                      <Text style={styles.modernCardTitle} numberOfLines={1}>
+                        {item.name}
+                      </Text>
+                      
                       {item.rating && (
-                        <View style={styles.ratingContainer}>
-                          <Text style={styles.ratingText}>{item.rating.toFixed(1)}</Text>
-                          <FontAwesome5 name="star" size={14} color="#FFD700" />
-                        </View>
-                      )}
-
-                      {/* Distancia */}
-                      {distances[item.id] && (
-                        <View style={styles.distanceContainer}>
-                          <FontAwesome5 name="map-marker-alt" size={14} color="#666" />
-                          <Text style={styles.distanceText}>{distances[item.id]}</Text>
+                        <View style={styles.modernRatingContainer}>
+                          <Text style={styles.modernRatingText}>{item.rating.toFixed(1)}</Text>
+                          <FontAwesome5 name="star" size={12} color="#FF9900" />
                         </View>
                       )}
                     </View>
-
-                    {/* Dirección clickeable */}
-                    <Text
-                      style={styles.address}
+                    
+                    {/* Address with icon */}
+                    <TouchableOpacity 
+                      style={styles.modernAddressRow}
                       onPress={() => openAddressInMaps(item.address)}
                     >
-                      {item.address}
-                    </Text>
-
-                    {/* Botón para ir a la tienda */}
-                    <TouchableOpacity
-                      style={styles.viewStoreButton}
-                      onPress={() => handleNavigateToShop(item)}
-                    >
-                      <Text style={styles.viewStoreText}>Ver tienda</Text>
+                      <FontAwesome5 name="map-marker-alt" size={12} color="#FF9900" />
+                      <Text style={styles.modernAddressText} numberOfLines={2}>
+                        {item.address}
+                      </Text>
                     </TouchableOpacity>
+                    
+                    {/* Distance and button on the same line */}
+                    <View style={styles.modernBottomRow}>
+                      {distances[item.id] && (
+                        <View style={styles.modernDistanceContainer}>
+                          <FontAwesome5 name="walking" size={12} color="#666" />
+                          <Text style={styles.modernDistanceText}>{distances[item.id]}</Text>
+                        </View>
+                      )}
+                      
+                      <TouchableOpacity
+                        style={styles.modernViewButton}
+                        onPress={() => handleNavigateToShop(item)}
+                      >
+                        <Text style={styles.modernViewButtonText}>View Store</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
-
-                  {/* Botón de cerrar */}
-                  <TouchableOpacity style={styles.closeButton} onPress={handleCloseModal}>
-                    <FontAwesome5 name="times" size={20} color="#fff" />
-                  </TouchableOpacity>
-
-                  {/* Flechas de navegación */}
-                  {selectedLocalIndex > 0 && (
-                    <TouchableOpacity
-                      style={[styles.navButton, styles.leftButton]}
-                      onPress={handlePrevious}
-                    >
-                      <FontAwesome5 name="chevron-left" size={20} color="#fff" />
-                    </TouchableOpacity>
-                  )}
-                  {selectedLocalIndex < filteredShops.length - 1 && (
-                    <TouchableOpacity
-                      style={[styles.navButton, styles.rightButton]}
-                      onPress={handleNext}
-                    >
-                      <FontAwesome5 name="chevron-right" size={20} color="#fff" />
-                    </TouchableOpacity>
-                  )}
                 </View>
               </View>
             )}
@@ -528,6 +519,24 @@ export default function MapViewComponent() {
               }, 500)
             }}
           />
+          
+          {/* Navigation arrows outside the card */}
+          {selectedLocalIndex > 0 && (
+            <TouchableOpacity
+              style={[styles.modernNavButton, styles.modernLeftButton]}
+              onPress={handlePrevious}
+            >
+              <FontAwesome5 name="chevron-left" size={16} color="#fff" />
+            </TouchableOpacity>
+          )}
+          {selectedLocalIndex < filteredShops.length - 1 && (
+            <TouchableOpacity
+              style={[styles.modernNavButton, styles.modernRightButton]}
+              onPress={handleNext}
+            >
+              <FontAwesome5 name="chevron-right" size={16} color="#fff" />
+            </TouchableOpacity>
+          )}
         </Animated.View>
       )}
     </SafeAreaView>
@@ -535,7 +544,7 @@ export default function MapViewComponent() {
 }
 
 const styles = StyleSheet.create({
-  // Contenedor principal
+  // Main container
   container: {
     flex: 1,
     backgroundColor: '#fff'
@@ -544,7 +553,7 @@ const styles = StyleSheet.create({
     flex: 1
   },
 
-  // Encabezado con tags
+  // Header with tags
   headerContainer: {
     position: 'absolute',
     top: 0,
@@ -565,7 +574,7 @@ const styles = StyleSheet.create({
     marginRight: 10
   },
   selectedTagButton: {
-    backgroundColor: '#007AFF'
+    backgroundColor: '#FF9900' // Primary color
   },
   tagText: {
     fontSize: 14,
@@ -598,13 +607,13 @@ const styles = StyleSheet.create({
     marginTop: 20
   },
 
-  // Marker del usuario
+  // User marker
   userMarker: {
     alignItems: 'center',
     justifyContent: 'center'
   },
 
-  // Marker de las tiendas
+  // Shop markers
   shopMarkerContainer: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -614,14 +623,14 @@ const styles = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: 23,
-    borderColor: '#4A90E2',
+    borderColor: '#FF9900', // Primary color
     borderWidth: 2
   },
   defaultMarker: {
     width: 46,
     height: 46,
     borderRadius: 23,
-    backgroundColor: '#4A90E2',
+    backgroundColor: '#FF9900', // Primary color
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
@@ -631,7 +640,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -10,
     right: -10,
-    backgroundColor: '#FF3B30',
+    backgroundColor: '#FF9900', // Primary color
     paddingVertical: 2,
     paddingHorizontal: 5,
     borderRadius: 10,
@@ -662,145 +671,158 @@ const styles = StyleSheet.create({
     fontWeight: '600'
   },
 
-  // Contenedor animado de la tarjeta
+  // Animated card container
   cardContainer: {
     position: 'absolute',
     left: 0,
     right: 0,
-    // Ubicamos la tarjeta abajo y la subimos por animación
-    bottom: 120,
+    bottom: Platform.OS === 'ios' ? 180 : 100, // Adjusted for iOS
     zIndex: 10
   },
-
   pageContainer: {
-    width: width, // Cada ítem/página ocupa el ancho total
+    width: width,
     justifyContent: 'center',
     alignItems: 'center'
   },
 
-  newCardContainer: {
+  // REDESIGNED CARD - More minimalist and modern
+  modernCardContainer: {
     width: CARD_WIDTH,
-    borderRadius: 10,
+    height: 230, // Increased height to fit all content
+    borderRadius: 12,
     backgroundColor: '#fff',
     overflow: 'hidden',
-    // Sombra
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3
+  },
+  modernImageWrapper: {
+    width: '100%',
+    height: 100,
     position: 'relative'
   },
-  imageWrapper: {
-    width: '100%',
-    height: 120,
-    position: 'relative',
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
-    overflow: 'hidden'
-  },
-  cardImage: {
+  modernCardImage: {
     width: '100%',
     height: '100%'
   },
-  cardDiscountBadge: {
+  imageOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.2)'
+  },
+  modernCloseButton: {
     position: 'absolute',
     top: 8,
     right: 8,
-    backgroundColor: '#FF3B30',
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 6,
-    zIndex: 2
-  },
-  cardDiscountBadgeText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold'
-  },
-  cardInfo: {
-    padding: 12
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333'
-  },
-  cardDetails: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 6
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 15
-  },
-  ratingText: {
-    marginRight: 4,
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333'
-  },
-  distanceContainer: {
-    flexDirection: 'row',
-    alignItems: 'center'
-  },
-  distanceText: {
-    fontSize: 14,
-    color: '#666',
-    marginLeft: 4
-  },
-  address: {
-    fontSize: 13,
-    color: '#555',
-    marginTop: 6,
-    textDecorationLine: 'underline'
-  },
-  viewStoreButton: {
-    marginTop: 10,
-    backgroundColor: '#007AFF',
-    paddingVertical: 8,
-    paddingHorizontal: 20,
-    borderRadius: 20,
-    alignSelf: 'center'
-  },
-  viewStoreText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600'
-  },
-
-  // Botón para cerrar la card
-  closeButton: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    zIndex: 10,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-
-  // Flechas de navegación
-  navButton: {
-    position: 'absolute',
-    top: '45%',
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0,0,0,0.5)',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 10
   },
-  leftButton: {
-    left: 0
+  modernDiscountBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    backgroundColor: '#FF9900',
+    paddingVertical: 3,
+    paddingHorizontal: 6,
+    borderRadius: 4
   },
-  rightButton: {
-    right: 0
+  modernDiscountText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: 'bold'
+  },
+  modernCardContent: {
+    padding: 12,
+    flex: 1,
+    justifyContent: 'space-between'
+  },
+  modernTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
+  modernCardTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    flex: 1,
+    marginRight: 8
+  },
+  modernRatingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF8E7',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4
+  },
+  modernRatingText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#333',
+    marginRight: 4
+  },
+  modernAddressRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginTop: 6
+  },
+  modernAddressText: {
+    fontSize: 12,
+    color: '#666',
+    marginLeft: 6,
+    flex: 1,
+    lineHeight: 16
+  },
+  modernBottomRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 8
+  },
+  modernDistanceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center'
+  },
+  modernDistanceText: {
+    fontSize: 12,
+    color: '#666',
+    marginLeft: 4
+  },
+  modernViewButton: {
+    backgroundColor: '#FF9900',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 4
+  },
+  modernViewButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold'
+  },
+  
+  // Modern navigation buttons
+  modernNavButton: {
+    position: 'absolute',
+    top: '50%',
+    marginTop: -16,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  modernLeftButton: {
+    left: 10
+  },
+  modernRightButton: {
+    right: 10
   }
 })
