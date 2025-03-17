@@ -50,5 +50,15 @@
     "scheme": "bodegaplus",
     "jsEngine": "hermes",
     "newArchEnabled": true,
+
+    "plugins": [
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.com.khtech.bodega",
+          "enableGooglePay": true
+        }
+      ]
+    ]
   }
 }
