@@ -14,6 +14,7 @@ import {
   Modal,
   Platform,
   Dimensions,
+  AppState, // Importar AppState
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
@@ -134,6 +135,7 @@ const DashboardDiscount = () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert('Permission Required', 'Location permission is needed.', [{ text: 'OK' }]);
+        setLoading(false); // Aseguramos que loading se detenga
         return;
       }
       const locationEnabled = await Location.hasServicesEnabledAsync();
@@ -147,17 +149,14 @@ const DashboardDiscount = () => {
             },
           },
         ]);
+        setLoading(false);
         return;
       }
       let loc = await Location.getCurrentPositionAsync({});
       let { latitude, longitude } = loc.coords;
       let geocode = await Location.reverseGeocodeAsync({ latitude, longitude });
       if (geocode && geocode.length > 0) {
-        const formatted_address = `${geocode[0].street || ''} ${geocode[0].name || ''}, ${
-          geocode[0].city || ''
-        }, ${geocode[0].region || ''}, ${geocode[0].postalCode || ''}, ${
-          geocode[0].country || ''
-        }`;
+        const formatted_address = `${geocode[0].street || ''} ${geocode[0].name || ''}, ${geocode[0].city || ''}, ${geocode[0].region || ''}, ${geocode[0].postalCode || ''}, ${geocode[0].country || ''}`;
         const currentAddress = {
           id: 'current_location',
           name: 'Current Location',
@@ -171,8 +170,19 @@ const DashboardDiscount = () => {
     } catch (error) {
       console.error('Error getting location:', error);
       Alert.alert('Error', 'Unable to get current location.', [{ text: 'OK' }]);
+      setLoading(false);
     }
   };
+
+  // Listener para reintentar obtener ubicación cuando la app se vuelve activa
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextAppState) => {
+      if (nextAppState === 'active' && token && !address) {
+        getCurrentLocation();
+      }
+    });
+    return () => subscription.remove();
+  }, [token, address]);
 
   // Obtener descuentos del usuario
   useEffect(() => {
@@ -310,7 +320,6 @@ const DashboardDiscount = () => {
               color="#333"
               style={{ marginRight: 5 }}
             />
-            {/* Ajustes para texto largo */}
             <Text
               style={[styles.addressText, { flexShrink: 1 }]}
               numberOfLines={1}
@@ -319,7 +328,6 @@ const DashboardDiscount = () => {
               {address}
             </Text>
           </TouchableOpacity>
-          {/* DeliveryModeToggle */}
           <View style={{ flexShrink: 0, marginLeft: 10 }}>
             <DeliveryModeToggle deliveryMode={deliveryMode} onToggle={setDeliveryMode} />
           </View>
@@ -486,8 +494,6 @@ const styles = StyleSheet.create({
   addressText: {
     fontSize: 14,
     color: '#333',
-    // No le ponemos maxWidth por defecto, pues flexShrink ya ayuda
-    // Si quieres, podrías usar maxWidth para acortar más: maxWidth: width * 0.5, etc.
   },
   searchContainer: {
     flexDirection: 'row',

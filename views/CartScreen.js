@@ -175,61 +175,61 @@ const CartScreen = () => {
   };
 
   const confirmPayment = async () => {
-    if (isLoading || isCheckoutLoading) {
-      Alert.alert('Por favor espera', 'Procesando pago...');
-      return;
-    }
-
     setIsCheckoutLoading(true);
     const subtotal = calculateSubtotal();
     const taxAmt = calculateTax(subtotal);
     const totalBeforeBalance = subtotal + taxAmt;
-    const finalTotal =
-      useBalance && user.balance >= totalBeforeBalance
-        ? 0
-        : useBalance
-        ? totalBeforeBalance - user.balance
-        : totalBeforeBalance;
-
+    const finalTotal = useBalance && user.balance >= totalBeforeBalance
+      ? 0
+      : useBalance
+      ? totalBeforeBalance - user.balance
+      : totalBeforeBalance;
+  
     try {
       if (finalTotal > 0) {
         const response = await Axios.post(`${API_URL}/api/payment/intent`, {
           finalPrice: Math.floor(finalTotal * 100),
         });
         const { clientSecret } = response.data;
-
+  
         if (response.error) {
           Alert.alert('Algo salió mal');
           setIsCheckoutLoading(false);
           return;
         }
-
+  
+        // Aquí pasamos applePay con la countryCode
         const initResponse = await initPaymentSheet({
           merchantDisplayName: 'YourAppName',
           paymentIntentClientSecret: clientSecret,
-          applePay: true,
-          googlePay: true,
+          applePay: {
+            merchantCountryCode: 'US', 
+            // Opcional: Configura callback setOrderTracking si lo requieres (iOS 16+)
+          },
+          googlePay: true, // si también quieres habilitar Google Pay
           style: 'automatic',
           testEnv: true,
           allowsDelayedPaymentMethods: true,
         });
-
+  
         if (initResponse.error) {
           console.log(initResponse.error);
           Alert.alert('Algo salió mal');
           setIsCheckoutLoading(false);
           return;
         }
-
+  
         const { error } = await presentPaymentSheet();
-
+  
         if (error) {
           console.log(error);
           Alert.alert(`Error code: ${error.code}`, error.message);
         } else {
+          // Pago exitoso, crea la orden en tu backend
           handleOrder(clientSecret.split('_secret')[0]);
         }
       } else {
+        // Pago cubierto completamente por balance
         handleOrder('balancePayment');
       }
     } catch (error) {
@@ -238,6 +238,7 @@ const CartScreen = () => {
         'Error',
         'Ocurrió un error procesando el pago. Inténtalo nuevamente.'
       );
+    } finally {
       setIsCheckoutLoading(false);
     }
   };
