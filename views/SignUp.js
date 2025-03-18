@@ -1,5 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, TextInput, StyleSheet, useColorScheme, Image, Animated, Keyboard, TouchableWithoutFeedback, Dimensions, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  TextInput,
+  StyleSheet,
+  useColorScheme,
+  Image,
+  Animated,
+  Keyboard,
+  TouchableWithoutFeedback,
+  Dimensions,
+  Platform,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Axios from 'react-native-axios';
 import { useDispatch } from 'react-redux';
@@ -63,7 +76,7 @@ export default function Signup() {
   const [request, response, promptAsync] = Google.useAuthRequest({
     androidClientId: '446223706539-i8b0j8tasvjm66luvhvt67gtgjl4h41a.apps.googleusercontent.com',
     expoClientId: '446223706539-u2lnq90ruft4lk7onsp9dmot8dh811eb.apps.googleusercontent.com',
-    iosClientId:'446223706539-f18kn0300m6l69q9ccj3j4lj27q51att.apps.googleusercontent.com',
+    iosClientId: '446223706539-f18kn0300m6l69q9ccj3j4lj27q51att.apps.googleusercontent.com',
     scopes: ['profile', 'email']
   });
 
@@ -121,55 +134,56 @@ export default function Signup() {
     }
   };
 
-  // Logic for Apple Sign-In
+  // Apple Sign-In logic
   const handleAppleSignIn = async () => {
     try {
-        const credential = await AppleAuthentication.signInAsync({
-            requestedScopes: [
-                AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-                AppleAuthentication.AppleAuthenticationScope.EMAIL,
-            ],
-        });
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
 
-        if (!credential.identityToken) {
-            throw new Error('No identity token received');
-        }
+      if (!credential.identityToken) {
+        throw new Error('No identity token received.');
+      }
 
-        const userInfo = {
-            email: credential.email || '', 
-            fullName: credential.fullName?.givenName || 'Apple User',
-            appleUserId: credential.user,
-        };
+      const userInfo = {
+        email: credential.email || '', 
+        fullName: credential.fullName?.givenName || 'Apple User',
+        appleUserId: credential.user,
+      };
 
-        const backendResponse = await Axios.post(`${API_URL}/api/auth/appleSignIn`, {
-            token: credential.identityToken,
-        });
+      const backendResponse = await Axios.post(`${API_URL}/api/auth/appleSignIn`, {
+        token: credential.identityToken,
+      });
 
-        if (backendResponse.data.error === false) {
-            const _clientData = backendResponse.data;
-            dispatch(setUser(_clientData)); 
+      if (backendResponse.data.error === false) {
+        const _clientData = backendResponse.data;
+        dispatch(setUser(_clientData)); 
            
-            navigation.navigate('Main'); 
-        } else {
-            Alert.alert(
-                'Error',
-                backendResponse.data.message || 'Error en la respuesta del servidor.',
-                [{ text: 'OK' }]
-            );
-        }
+        navigation.navigate('Main'); 
+      } else {
+        Alert.alert(
+          'Error',
+          backendResponse.data.message || 'Error in server response.',
+          [{ text: 'OK' }]
+        );
+      }
     } catch (e) {
-        console.error('Error en Apple Sign-In:', e); 
-        if (e.code === 'ERR_CANCELED') {
-            console.log('El usuario canceló la operación.');
-        } else {
-            Alert.alert(
-                'Error',
-                `Algo salió mal durante el inicio de sesión con Apple: ${e.message} ${e}`,
-                [{ text: 'OK' }]
-            );
-        }
+      console.error('Error during Apple Sign-In:', e); 
+      if (e.code === 'ERR_CANCELED') {
+        console.log('The user canceled the operation.');
+      } else {
+        Alert.alert(
+          'Error',
+          `Something went wrong during Apple Sign-In: ${e.message}`,
+          [{ text: 'OK' }]
+        );
+      }
     }
-};
+  };
+
   const handleChange = (fieldName, value) => {
     setClientData(prevState => ({
       ...prevState,
@@ -262,7 +276,7 @@ export default function Signup() {
         if (response.data.error === false) {
           const _clientData = response.data;
           dispatch(setUser(_clientData));
-   
+  
           navigation.navigate('Main');
         } else {
           Toast.show({
@@ -425,24 +439,26 @@ export default function Signup() {
               <Animated.Text style={[styles.signInButtonText, { transform: [{ scale: buttonAnim }] }]}>Sign Up</Animated.Text>
             </TouchableOpacity>
 
-            {/* Google Sign-In Button */}
-            <TouchableOpacity
-              onPress={() => {
-                promptAsync();
-              }}
-              style={styles.googleButton}
-            >
-              <FontAwesome name="google" size={20} color="#FFF" style={styles.icon} />
-              <Text style={styles.googleButtonText}>Continue with Google</Text>
-            </TouchableOpacity>
-
-            {/* Apple Sign-In Button */}
+            {/* Conditional Sign-In Button */}
+            {Platform.OS === 'android' && (
+              <TouchableOpacity
+                onPress={() => {
+                  promptAsync();
+                }}
+                style={styles.googleButton}
+              >
+                <FontAwesome name="google" size={20} color="#FFF" style={styles.icon} />
+                <Text style={styles.googleButtonText}>Continue with Google</Text>
+              </TouchableOpacity>
+            )}
             {Platform.OS === 'ios' && (
               <AppleAuthentication.AppleAuthenticationButton
                 buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
                 buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-                cornerRadius={5}
-                style={{ width: 200, height: 44 }}
+                // Set the corner radius to match the sign-up button's borderRadius (25)
+                cornerRadius={25}
+                // Use the signInButton style to match size and shape
+                style={styles.signInButton}
                 onPress={handleAppleSignIn}
               />
             )}

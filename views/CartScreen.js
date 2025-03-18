@@ -24,7 +24,7 @@ import {
   useStripe,
   usePlatformPay,
   PlatformPayButton,
-} from '@stripe/stripe-react-native'; // <-- Import adicional
+} from '@stripe/stripe-react-native';
 import { useNavigation, useRoute, useIsFocused } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { setCurrentOrder, setOrderIn } from '../redux/slices/orders.slice';
@@ -49,7 +49,7 @@ const CartItem = ({ item }) => {
         <Text style={styles.itemName}>{item.name}</Text>
         <View style={styles.priceRow}>
           <Text style={styles.itemPrice}>${totalPrice}</Text>
-          {/* Si hay discount o promotion */}
+          {/* If there is a discount or promotion */}
           {item.discount && (
             <View style={styles.discountBadge}>
               <Text style={styles.discountText}>Discount</Text>
@@ -75,7 +75,7 @@ const CartScreen = () => {
   const navigation = useNavigation();
   const isFocused = useIsFocused();
 
-  // Redux
+  // Redux state
   const cart = useSelector((state) => state.cart.items);
   const currentShop = useSelector((state) => state.currentShop.currentShop);
   const user = useSelector((state) => state.user.userInfo.data.client);
@@ -84,24 +84,29 @@ const CartScreen = () => {
   // Stripe PaymentSheet
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
 
-  // ApplePay/GooglePay nativo
+  // Native ApplePay/GooglePay
   const { isPlatformPaySupported, confirmPlatformPayPayment } = usePlatformPay();
 
   const route = useRoute();
   const shop = route.params?.shop;
-  const [newOrderType, setNewOrderType] = useState(route.params?.orderType || 'Pick-up');
-  const constOrderType = newOrderType;
+  const [newOrderType, setNewOrderType] = useState(
+    route.params?.orderType || 'Pick-up'
+  );
+  const orderType = newOrderType;
 
-  const [checkoutModalVisible, setCheckoutModalVisible] = useState(false);
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
 
+  // For Apple/Google Pay
+  const [clientSecretPlatform, setClientSecretPlatform] = useState('');
+  const [readyForPlatformPay, setReadyForPlatformPay] = useState(false);
+
   // ---------------------------
-  //   Cálculos de carrito
+  //   Cart Calculations
   // ---------------------------
   const calculateSubtotal = () => {
     return cart.reduce((sum, item) => {
-      const finPrice = Number(item.finalPrice) || 0;
-      return sum + finPrice * item.quantity;
+      const finalPrice = Number(item.finalPrice) || 0;
+      return sum + finalPrice * item.quantity;
     }, 0);
   };
 
@@ -109,11 +114,11 @@ const CartScreen = () => {
 
   const calculateTotal = () => {
     const subtotal = calculateSubtotal();
-    const taxAmt = calculateTax(subtotal);
-    return subtotal + taxAmt;
+    const taxAmount = calculateTax(subtotal);
+    return subtotal + taxAmount;
   };
 
-  // Si no hay items, regresar
+  // If no items, go back
   useEffect(() => {
     if (isFocused && cart.length === 0) {
       navigation.goBack();
@@ -121,28 +126,28 @@ const CartScreen = () => {
   }, [isFocused, cart, navigation]);
 
   // ---------------------------------
-  //   Crear PaymentIntent y PaymentSheet
+  //   Create PaymentIntent and PaymentSheet
   // ---------------------------------
   const preparePaymentSheet = async () => {
     try {
       setIsCheckoutLoading(true);
 
       const total = calculateTotal();
-      // Crear PaymentIntent en backend:
+      // Create PaymentIntent on the backend
       const response = await Axios.post(`${API_URL}/api/payment/intent`, {
-        finalPrice: Math.round(total * 100), // en centavos
+        finalPrice: Math.round(total * 100), // in cents
       });
 
       const { clientSecret } = response.data;
 
       const initResponse = await initPaymentSheet({
         paymentIntentClientSecret: clientSecret,
-        merchantDisplayName: 'MiApp',
+        merchantDisplayName: 'MyApp',
         applePay: {
-          merchantCountryCode: 'US', // Ajusta tu país
+          merchantCountryCode: 'US',
         },
         googlePay: {
-          merchantCountryCode: 'US', // Ajusta tu país
+          merchantCountryCode: 'US',
         },
         testEnv: true,
         style: 'automatic',
@@ -155,16 +160,16 @@ const CartScreen = () => {
         return;
       }
 
-      // Si está OK, presentamos la PaymentSheet
+      // Present the PaymentSheet
       openPaymentSheet(clientSecret);
     } catch (error) {
-      console.error('Error preparePaymentSheet:', error);
-      Alert.alert('Error', 'No se pudo inicializar la PaymentSheet.');
+      console.error('Error preparing PaymentSheet:', error);
+      Alert.alert('Error', 'Unable to initialize PaymentSheet.');
       setIsCheckoutLoading(false);
     }
   };
 
-  // Presentar PaymentSheet
+  // Present PaymentSheet
   const openPaymentSheet = async (clientSecret) => {
     try {
       const { error } = await presentPaymentSheet();
@@ -172,35 +177,31 @@ const CartScreen = () => {
       if (error) {
         Alert.alert(`Error code: ${error.code}`, error.message);
       } else {
-        // Pago completado. guardamos la orden
+        // Payment completed, save the order
         handleOrder(clientSecret.split('_secret')[0]);
       }
     } catch (error) {
-      console.error('Error presentPaymentSheet:', error);
-      Alert.alert('Error', 'No se pudo presentar la PaymentSheet.');
+      console.error('Error presenting PaymentSheet:', error);
+      Alert.alert('Error', 'Unable to present PaymentSheet.');
     } finally {
       setIsCheckoutLoading(false);
     }
   };
 
   // ---------------------------------
-  //   Manejo de ApplePay/GooglePay nativo
+  //   Native ApplePay/GooglePay Handling
   // ---------------------------------
-  const [clientSecretPlatform, setClientSecretPlatform] = useState('');
-  const [readyForPlatformPay, setReadyForPlatformPay] = useState(false);
-
-  // Creamos PaymentIntent para Apple/Google Pay y guardamos clientSecret
   const setupPlatformPay = async () => {
     try {
       const supported = await isPlatformPaySupported();
       if (!supported) {
-        Alert.alert('No soportado', 'Tu dispositivo no soporta Apple/Google Pay');
+        Alert.alert('Not Supported', 'Your device does not support Apple/Google Pay');
         return;
       }
 
       const total = calculateTotal();
       if (total === 0) {
-        Alert.alert('Nada que pagar', 'El carrito está en 0');
+        Alert.alert('Nothing to Pay', 'The cart is empty');
         return;
       }
 
@@ -211,12 +212,12 @@ const CartScreen = () => {
       setClientSecretPlatform(response.data.clientSecret);
       setReadyForPlatformPay(true);
     } catch (error) {
-      console.error('Error setupPlatformPay:', error);
-      Alert.alert('Error', 'No se pudo crear PaymentIntent para Apple Pay/Google Pay');
+      console.error('Error setting up PlatformPay:', error);
+      Alert.alert('Error', 'Unable to create PaymentIntent for Apple/Google Pay');
     }
   };
 
-  // Confirmar ApplePay/GooglePay
+  // Confirm ApplePay/GooglePay Payment
   const payWithPlatformPay = async () => {
     try {
       setReadyForPlatformPay(false);
@@ -224,7 +225,7 @@ const CartScreen = () => {
       const total = calculateTotal();
       const cartItems = [
         {
-          label: 'Productos',
+          label: 'Products',
           amount: total.toFixed(2),
           paymentType: 'Immediate',
         },
@@ -247,23 +248,23 @@ const CartScreen = () => {
         Alert.alert(`Error code: ${error.code}`, error.message);
         setReadyForPlatformPay(true);
       } else {
-        // ¡Éxito! Pago realizado
+        // Success! Payment completed
         handleOrder(clientSecretPlatform.split('_secret')[0]);
       }
     } catch (err) {
-      console.error('payWithPlatformPay:', err);
-      Alert.alert('Error', 'Hubo un problema con Apple/Google Pay');
+      console.error('Error with PlatformPay:', err);
+      Alert.alert('Error', 'There was a problem with Apple/Google Pay');
       setReadyForPlatformPay(true);
     }
   };
 
   // ---------------------------------
-  //   Manejo final de la Orden
+  //   Final Order Handling
   // ---------------------------------
   const handleOrder = async (pi) => {
     const subtotal = calculateSubtotal();
-    const taxAmt = calculateTax(subtotal);
-    const totalBeforeBalance = subtotal + taxAmt;
+    const taxAmount = calculateTax(subtotal);
+    const totalBeforeBalance = subtotal + taxAmount;
 
     const data = {
       total_price: totalBeforeBalance.toFixed(2),
@@ -273,8 +274,8 @@ const CartScreen = () => {
       status: 'new order',
       date_time: new Date().toISOString().slice(0, -5),
       pi,
-      type: constOrderType,
-      savings: '0.00', // Lógica adicional si llevas descuentos
+      type: orderType,
+      savings: '0.00', // Adjust if you have discounts
     };
 
     try {
@@ -294,8 +295,8 @@ const CartScreen = () => {
 
       navigation.navigate('PickUpOrderFinish');
     } catch (error) {
-      console.error('Error handleOrder:', error);
-      Alert.alert('Error', 'No se pudo crear la orden en el backend');
+      console.error('Error handling order:', error);
+      Alert.alert('Error', 'Unable to create the order in the backend');
     }
   };
 
@@ -303,8 +304,13 @@ const CartScreen = () => {
   //   Render
   // ---------------------------------
   const subtotal = calculateSubtotal();
-  const taxAmt = calculateTax(subtotal);
-  const finalTotal = subtotal + taxAmt;
+  const taxAmount = calculateTax(subtotal);
+  const finalTotal = subtotal + taxAmount;
+
+  // Dynamic text for the prepare button based on the platform
+  const prepareButtonText = Platform.OS === 'ios'
+    ? 'Apple Pay'
+    : 'Google Pay';
 
   return (
     <SafeAreaView style={styles.container}>
@@ -354,7 +360,7 @@ const CartScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {/* LISTA DE ITEMS */}
+      {/* ITEM LIST */}
       <ScrollView style={styles.cartItemsContainer}>
         {shop && (
           <TouchableOpacity
@@ -376,7 +382,7 @@ const CartScreen = () => {
         ))}
       </ScrollView>
 
-      {/* RESUMEN */}
+      {/* SUMMARY */}
       <View style={styles.summaryContainer}>
         <View style={styles.summaryRow}>
           <Text style={styles.summaryLabel}>Subtotal:</Text>
@@ -384,7 +390,7 @@ const CartScreen = () => {
         </View>
         <View style={styles.summaryRow}>
           <Text style={styles.summaryLabel}>Tax (8%):</Text>
-          <Text style={styles.summaryValue}>${taxAmt.toFixed(2)}</Text>
+          <Text style={styles.summaryValue}>${taxAmount.toFixed(2)}</Text>
         </View>
         <View style={[styles.summaryRow, styles.totalRow]}>
           <Text style={styles.totalLabel}>Total:</Text>
@@ -392,9 +398,9 @@ const CartScreen = () => {
         </View>
       </View>
 
-      {/* BOTONES DE PAGO */}
+      {/* PAYMENT BUTTONS */}
       <View style={{ padding: 16 }}>
-        {/* 1. Botón PaymentSheet normal (tarjeta) */}
+        {/* 1. Card Payment Button */}
         <TouchableOpacity
           style={[styles.checkoutButton, { marginBottom: 10 }]}
           onPress={preparePaymentSheet}
@@ -403,13 +409,11 @@ const CartScreen = () => {
           {isCheckoutLoading ? (
             <ActivityIndicator size="small" color="#fff" />
           ) : (
-            <Text style={styles.checkoutButtonText}>Pagar con Tarjeta</Text>
+            <Text style={styles.checkoutButtonText}>Pay with Card</Text>
           )}
         </TouchableOpacity>
 
-        {/* 2. Botón Apple Pay / Google Pay */}
-        {/*   - Primero, inicializa con setupPlatformPay() (p.e. en un useEffect),
-              luego, si está todo listo, muestras el botón. */}
+        {/* 2. Apple Pay / Google Pay Button */}
         {isPlatformPaySupported && (
           <>
             {!readyForPlatformPay ? (
@@ -418,7 +422,7 @@ const CartScreen = () => {
                 onPress={setupPlatformPay}
               >
                 <Text style={styles.checkoutButtonText}>
-                  Preparar Apple/Google Pay
+                  {prepareButtonText}
                 </Text>
               </TouchableOpacity>
             ) : (
