@@ -132,15 +132,11 @@ const LoginScreen = () => {
           AppleAuthentication.AppleAuthenticationScope.EMAIL
         ]
       });
-      const userInfo = {
-        email: credential.email || '',
-        fullName: credential.fullName?.givenName || 'Apple User',
-        appleUserId: credential.user
-      };
-      const backendResponse = await Axios.post(`${API_URL}/api/auth/appleSignIn`, {
-        userInfo
+      // Usamos el identityToken como token para el backend
+      const backendResponse = await Axios.post(`${API_URL}/api/auth/appleLogin`, {
+        token: credential.identityToken,
       });
-
+  
       if (backendResponse.data.error === false) {
         const _clientData = backendResponse.data;
         dispatch(setUser(_clientData));
@@ -161,7 +157,7 @@ const LoginScreen = () => {
         Toast.show({
           type: 'error',
           text1: 'Error',
-          text2: 'Something went wrong with Apple Sign-In.'
+          text2: 'Something went wrong with Apple Login.'
         });
       }
     }
