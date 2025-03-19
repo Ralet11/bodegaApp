@@ -14,7 +14,7 @@ import {
   Modal,
   Platform,
   Dimensions,
-  AppState, // Importar AppState
+  AppState,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
@@ -25,7 +25,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import {
   setAuxShops,
   setShopsDiscounts,
-  setUserDiscounts
+  setUserDiscounts,
 } from '../redux/slices/setUp.slice';
 import PromoSlider from '../components/PromotionSlider';
 import AccountDrawer from '../components/AccountDrawer';
@@ -70,7 +70,7 @@ const DashboardDiscount = () => {
     dispatch(clearCart());
   }, [auxCart, dispatch]);
 
-  // Control del botón atrás en Android (y 'beforeRemove' en iOS)
+  // Control del botón atrás en Android y bloqueo de navegación en iOS
   useFocusEffect(
     useCallback(() => {
       const onBackPress = () => true;
@@ -79,6 +79,10 @@ const DashboardDiscount = () => {
       let removeBeforeRemove;
       if (Platform.OS === 'ios') {
         removeBeforeRemove = navigation.addListener('beforeRemove', (e) => {
+          // Permitir acciones de reseteo (por ejemplo, logout) y bloquear otras navegaciones
+          if (e.data.action.type === 'RESET') {
+            return;
+          }
           e.preventDefault();
         });
       }
@@ -135,7 +139,7 @@ const DashboardDiscount = () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert('Permission Required', 'Location permission is needed.', [{ text: 'OK' }]);
-        setLoading(false); // Aseguramos que loading se detenga
+        setLoading(false);
         return;
       }
       const locationEnabled = await Location.hasServicesEnabledAsync();

@@ -9,6 +9,8 @@ import { useFonts } from 'expo-font';
 import useSocket from './config/useSocket';
 import { StatusBar } from "react-native";
 
+import { SPK, MERCH_ID } from '@env';
+
 function RootWrapper() {
 
   useSocket();
@@ -30,8 +32,8 @@ export default function App() {
       <Provider store={store}>
         <PersistGate loading={null} persistor={persistor}>
           <StripeProvider
-            publishableKey="pk_test_51OJV6vCtqRjqS5ch2BT38s88U8qgkJeqWLZ8ODgOfB95sfshzLQw8gvkcmu4yplXKbuL8nnO85We2r1Ie7nYQkue00FX8swMRF"
-            merchantIdentifier="merchant.com.bodegaplusllc.app"
+            publishableKey={SPK}
+            merchantIdentifier={MERCH_ID}
           >
             <RootWrapper />
             <Toast />
