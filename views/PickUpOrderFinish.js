@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -6,22 +6,20 @@ import {
   FlatList,
   ScrollView,
   TouchableOpacity,
-  Linking,
-  Modal,
   StyleSheet,
-  BackHandler,
-  Platform,
+  Linking,
   Alert,
   SafeAreaView,
+  BackHandler,
+  Platform,
 } from 'react-native';
 import { FontAwesome5, Ionicons, FontAwesome } from '@expo/vector-icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
-import Axios from 'react-native-axios';
+import { Clock, CheckCircle, XCircle, Package } from 'lucide-react-native';
 import { API_URL } from '@env';
 import { updateOrderIn, setCurrentOrder } from '../redux/slices/orders.slice';
-import { Clock, CheckCircle, XCircle, Package } from 'lucide-react-native';
 
 const OrderSummary = () => {
   const order = useSelector((state) => state.orders.currentOrder);
@@ -31,9 +29,9 @@ const OrderSummary = () => {
   const dispatch = useDispatch();
   const styles = lightStyles;
 
-  console.log(order.order_details)
+  console.log(order, "order");
 
-  // Cargar info de la tienda
+  // Load shop data
   useEffect(() => {
     const fetchShopData = async () => {
       if (!order?.local_id) return;
@@ -48,7 +46,7 @@ const OrderSummary = () => {
     fetchShopData();
   }, [order]);
 
-  // Bloquear back
+  // Disable back button
   useEffect(() => {
     const backAction = () => {
       navigation.navigate('Main');
@@ -186,16 +184,27 @@ const OrderSummary = () => {
               <Text style={styles.status}>{order.status}</Text>
             </View>
 
-            <View style={styles.yellowBackground}>
-              <Text style={styles.instruction}>Show this code to receive your order</Text>
-              <View style={styles.codeContainer}>
-                {order.code.split('').map((digit, index) => (
-                  <View key={index} style={styles.codeDigit}>
-                    <Text style={styles.codeText}>{digit}</Text>
-                  </View>
-                ))}
+            {order.type === 'Order-in' ? (
+              <View style={styles.yellowBackground}>
+                <Text style={styles.instruction}>Show this code to receive your order</Text>
+                <View style={styles.codeContainer}>
+                  {order.code.split('').map((digit, index) => (
+                    <View key={index} style={styles.codeDigit}>
+                      <Text style={styles.codeText}>{digit}</Text>
+                    </View>
+                  ))}
+                </View>
               </View>
-            </View>
+            ) : (
+              <View style={styles.yellowBackground}>
+                <Text style={styles.instruction}>
+                  Please present your name and order number to receive your order
+                </Text>
+                <View style={styles.codeContainer}>
+                  <Text style={styles.codeText}>Order Number: {order.id}</Text>
+                </View>
+              </View>
+            )}
 
             <TouchableOpacity
               style={styles.storeInfo}
@@ -273,7 +282,7 @@ const OrderSummary = () => {
           </View>
         </ScrollView>
       </LinearGradient>
-      {/* Sin rating ni socket aquí */}
+      {/* No rating or socket here */}
     </SafeAreaView>
   );
 };

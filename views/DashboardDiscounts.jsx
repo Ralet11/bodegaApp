@@ -48,6 +48,8 @@ const DashboardDiscount = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [deliveryMode, setDeliveryMode] = useState('Dine-in');
 
+  console.log(filteredShopsByTags, "filtere")
+
   // Redux
   const address = useSelector((state) => state?.user?.address?.formatted_address);
   const location = useSelector((state) => state?.user?.location);

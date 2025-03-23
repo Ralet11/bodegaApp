@@ -153,9 +153,10 @@ const HypermodernImageSlider = ({
 const styles = StyleSheet.create({
   container: {
     height: 200,
-    width: '100%',
+    width: '95.5%',
     borderRadius: 20,
     overflow: 'hidden',
+    marginHorizontal: 10
   },
   slide: {
     width,

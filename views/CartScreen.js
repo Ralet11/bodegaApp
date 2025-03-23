@@ -135,7 +135,7 @@ const CartScreen = () => {
       const total = calculateTotal();
       // Create PaymentIntent on the backend
       const response = await Axios.post(`${API_URL}/api/payment/intent`, {
-        finalPrice: Math.round(total * 100), // in cents
+        finalPrice: Math.round(total * 100), activeShop: currentShop// in cents
       });
 
       const { clientSecret } = response.data;
@@ -206,7 +206,7 @@ const CartScreen = () => {
       }
 
       const response = await Axios.post(`${API_URL}/api/payment/intent`, {
-        finalPrice: Math.round(total * 100),
+        finalPrice: Math.round(total * 100), activeShop
       });
 
       setClientSecretPlatform(response.data.clientSecret);
