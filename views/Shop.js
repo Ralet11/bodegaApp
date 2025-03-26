@@ -614,7 +614,9 @@ const ShopScreen = () => {
             {totalItems} Product{totalItems > 1 ? 's' : ''}
           </Text>
           <Text style={styles.cartText}>$ {totalAmount}</Text>
-          <Text style={styles.cartText}>{orderType}</Text>
+          <Text style={styles.cartText}>
+  {orderType === "Order-in" ? "Dine-in" : orderType}
+</Text>
           <TouchableOpacity
             style={styles.cartButton}
             onPress={() => navigation.navigate('CartScreen', { orderType, shop })}

@@ -1,3 +1,4 @@
+// CartScreen.js
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -31,6 +32,9 @@ import { setCurrentOrder, setOrderIn } from '../redux/slices/orders.slice';
 import { setUser } from '../redux/slices/user.slice';
 import Toast from 'react-native-toast-message';
 
+// Importar el nuevo modal
+import CheckoutConfirmationModal from '../components/modals/CheckoutConfirmationModal';
+
 const TAX_RATE = 0.08;
 
 const CartItem = ({ item }) => {
@@ -49,7 +53,7 @@ const CartItem = ({ item }) => {
         <Text style={styles.itemName}>{item.name}</Text>
         <View style={styles.priceRow}>
           <Text style={styles.itemPrice}>${totalPrice}</Text>
-          {/* If there is a discount or promotion */}
+          {/* Si existe un descuento o promoción */}
           {item.discount && (
             <View style={styles.discountBadge}>
               <Text style={styles.discountText}>Discount</Text>
@@ -96,13 +100,17 @@ const CartScreen = () => {
 
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
 
-  // For Apple/Google Pay
+  // Para Apple/Google Pay
   const [clientSecretPlatform, setClientSecretPlatform] = useState('');
   const [readyForPlatformPay, setReadyForPlatformPay] = useState(false);
 
-  // ---------------------------
-  //   Cart Calculations
-  // ---------------------------
+  // Estado para el modal de confirmación
+  const [confirmationVisible, setConfirmationVisible] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
+
+  // ------------------------------------------------------------------
+  //  Cálculos de Carrito
+  // ------------------------------------------------------------------
   const calculateSubtotal = () => {
     return cart.reduce((sum, item) => {
       const finalPrice = Number(item.finalPrice) || 0;
@@ -118,24 +126,58 @@ const CartScreen = () => {
     return subtotal + taxAmount;
   };
 
-  // If no items, go back
+  // Cálculo de savings (similares a CheckoutConfirmationModal)
+  const calculateSavings = () => {
+    return cart.reduce((totalSavings, item) => {
+      const original = Number(item.price) || 0;
+      const final = Number(item.finalPrice) || 0;
+      const diff = original - final; // diferencia entre precio original y final
+      return totalSavings + (diff > 0 ? diff * item.quantity : 0);
+    }, 0);
+  };
+
+  // Si no hay items, volvemos atrás
   useEffect(() => {
     if (isFocused && cart.length === 0) {
       navigation.goBack();
     }
   }, [isFocused, cart, navigation]);
 
-  // ---------------------------------
-  //   Create PaymentIntent and PaymentSheet
-  // ---------------------------------
+  // ------------------------------------------------------------------
+  //  Lógica de mostrar modal antes de hacer el pago
+  // ------------------------------------------------------------------
+  const openConfirmationModal = (method) => {
+    setSelectedPaymentMethod(method);
+    setConfirmationVisible(true);
+  };
+
+  const handleConfirm = () => {
+    // Cerramos el modal
+    setConfirmationVisible(false);
+    // Decidimos la forma de pago en base al método seleccionado
+    if (selectedPaymentMethod === 'card') {
+      preparePaymentSheet();
+    } else if (selectedPaymentMethod === 'appleGoogle') {
+      setupPlatformPay();
+    }
+  };
+
+  const handleCancel = () => {
+    setConfirmationVisible(false);
+  };
+
+  // ------------------------------------------------------------------
+  //  Pago con Tarjeta (PaymentSheet)
+  // ------------------------------------------------------------------
   const preparePaymentSheet = async () => {
     try {
       setIsCheckoutLoading(true);
 
       const total = calculateTotal();
-      // Create PaymentIntent on the backend
+      // Creamos PaymentIntent en backend
       const response = await Axios.post(`${API_URL}/api/payment/intent`, {
-        finalPrice: Math.round(total * 100), activeShop: currentShop// in cents
+        finalPrice: Math.round(total * 100),
+        activeShop: currentShop,
       });
 
       const { clientSecret } = response.data;
@@ -160,16 +202,15 @@ const CartScreen = () => {
         return;
       }
 
-      // Present the PaymentSheet
+      // Presentamos el PaymentSheet
       openPaymentSheet(clientSecret);
     } catch (error) {
-      console.error('Error preparing PaymentSheet:', error);
-      Alert.alert('Error', 'Unable to initialize PaymentSheet.');
+      console.error('Error preparando PaymentSheet:', error);
+      Alert.alert('Error', 'No se pudo inicializar el PaymentSheet.');
       setIsCheckoutLoading(false);
     }
   };
 
-  // Present PaymentSheet
   const openPaymentSheet = async (clientSecret) => {
     try {
       const { error } = await presentPaymentSheet();
@@ -177,47 +218,53 @@ const CartScreen = () => {
       if (error) {
         Alert.alert(`Error code: ${error.code}`, error.message);
       } else {
-        // Payment completed, save the order
+        // Pago completado
         handleOrder(clientSecret.split('_secret')[0]);
       }
     } catch (error) {
-      console.error('Error presenting PaymentSheet:', error);
-      Alert.alert('Error', 'Unable to present PaymentSheet.');
+      console.error('Error presentando PaymentSheet:', error);
+      Alert.alert('Error', 'No se pudo presentar el PaymentSheet.');
     } finally {
       setIsCheckoutLoading(false);
     }
   };
 
-  // ---------------------------------
-  //   Native ApplePay/GooglePay Handling
-  // ---------------------------------
+  // ------------------------------------------------------------------
+  //  Pago con Apple Pay / Google Pay
+  // ------------------------------------------------------------------
   const setupPlatformPay = async () => {
     try {
       const supported = await isPlatformPaySupported();
       if (!supported) {
-        Alert.alert('Not Supported', 'Your device does not support Apple/Google Pay');
+        Alert.alert(
+          'No soportado',
+          'Tu dispositivo no soporta Apple Pay o Google Pay'
+        );
         return;
       }
 
       const total = calculateTotal();
       if (total === 0) {
-        Alert.alert('Nothing to Pay', 'The cart is empty');
+        Alert.alert('Carrito vacío', 'No hay nada para pagar');
         return;
       }
 
       const response = await Axios.post(`${API_URL}/api/payment/intent`, {
-        finalPrice: Math.round(total * 100), activeShop
+        finalPrice: Math.round(total * 100),
+        activeShop: currentShop,
       });
 
       setClientSecretPlatform(response.data.clientSecret);
       setReadyForPlatformPay(true);
     } catch (error) {
-      console.error('Error setting up PlatformPay:', error);
-      Alert.alert('Error', 'Unable to create PaymentIntent for Apple/Google Pay');
+      console.error('Error configurando Apple/Google Pay:', error);
+      Alert.alert(
+        'Error',
+        'No fue posible crear el PaymentIntent para Apple/Google Pay'
+      );
     }
   };
 
-  // Confirm ApplePay/GooglePay Payment
   const payWithPlatformPay = async () => {
     try {
       setReadyForPlatformPay(false);
@@ -248,19 +295,22 @@ const CartScreen = () => {
         Alert.alert(`Error code: ${error.code}`, error.message);
         setReadyForPlatformPay(true);
       } else {
-        // Success! Payment completed
+        // Éxito, pago completado
         handleOrder(clientSecretPlatform.split('_secret')[0]);
       }
     } catch (err) {
-      console.error('Error with PlatformPay:', err);
-      Alert.alert('Error', 'There was a problem with Apple/Google Pay');
+      console.error('Error en Apple/Google Pay:', err);
+      Alert.alert(
+        'Error',
+        'Ocurrió un problema con Apple Pay / Google Pay'
+      );
       setReadyForPlatformPay(true);
     }
   };
 
-  // ---------------------------------
-  //   Final Order Handling
-  // ---------------------------------
+  // ------------------------------------------------------------------
+  //  Crear Orden en backend
+  // ------------------------------------------------------------------
   const handleOrder = async (pi) => {
     const subtotal = calculateSubtotal();
     const taxAmount = calculateTax(subtotal);
@@ -275,7 +325,7 @@ const CartScreen = () => {
       date_time: new Date().toISOString().slice(0, -5),
       pi,
       type: orderType,
-      savings: '0.00', // Adjust if you have discounts
+      savings: '0.00', // Ajustar si hay descuentos
     };
 
     try {
@@ -288,29 +338,35 @@ const CartScreen = () => {
         headers,
       });
 
+      // Guardamos la orden en Redux
       dispatch(setOrderIn(response.data.newOrder));
-      dispatch(setUser({ data: { client: response.data.userUpdate, token } }));
+      // Actualizamos el usuario en Redux (si cambian puntos o algo similar)
+      dispatch(
+        setUser({ data: { client: response.data.userUpdate, token } })
+      );
+      // Limpiamos el carrito
       dispatch(clearCart());
+      // Seteamos la orden actual
       dispatch(setCurrentOrder(response.data.newOrder));
 
+      // Navegamos a la pantalla final
       navigation.navigate('PickUpOrderFinish');
     } catch (error) {
-      console.error('Error handling order:', error);
-      Alert.alert('Error', 'Unable to create the order in the backend');
+      console.error('Error guardando la orden:', error);
+      Alert.alert('Error', 'No se pudo crear la orden en el backend');
     }
   };
 
-  // ---------------------------------
-  //   Render
-  // ---------------------------------
+  // ------------------------------------------------------------------
+  //  Render
+  // ------------------------------------------------------------------
   const subtotal = calculateSubtotal();
   const taxAmount = calculateTax(subtotal);
   const finalTotal = subtotal + taxAmount;
+  const savings = calculateSavings();
 
-  // Dynamic text for the prepare button based on the platform
-  const prepareButtonText = Platform.OS === 'ios'
-    ? 'Apple Pay'
-    : 'Google Pay';
+  // Texto dinámico para Apple Pay o Google Pay
+  const prepareButtonText = Platform.OS === 'ios' ? 'Apple Pay' : 'Google Pay';
 
   return (
     <SafeAreaView style={styles.container}>
@@ -320,38 +376,11 @@ const CartScreen = () => {
           <Icon name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
         <View style={styles.orderTypeSelector}>
-          <TouchableOpacity
-            style={[
-              styles.orderTypeButton,
-              newOrderType === 'Pick-up' && styles.orderTypeButtonActive,
-            ]}
-            onPress={() => setNewOrderType('Pick-up')}
-          >
-            <Text
-              style={[
-                styles.orderTypeButtonText,
-                newOrderType === 'Pick-up' && styles.orderTypeButtonTextActive,
-              ]}
-            >
-              Pickup
+          <View style={[styles.orderTypeButton, styles.orderTypeButtonActive]}>
+            <Text style={[styles.orderTypeButtonText, styles.orderTypeButtonTextActive]}>
+              {newOrderType}
             </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.orderTypeButton,
-              newOrderType === 'Dine-in' && styles.orderTypeButtonActive,
-            ]}
-            onPress={() => setNewOrderType('Dine-in')}
-          >
-            <Text
-              style={[
-                styles.orderTypeButtonText,
-                newOrderType === 'Dine-in' && styles.orderTypeButtonTextActive,
-              ]}
-            >
-              Dine-in
-            </Text>
-          </TouchableOpacity>
+          </View>
         </View>
         <TouchableOpacity onPress={() => dispatch(clearCart())}>
           <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#FFA500' }}>
@@ -360,7 +389,7 @@ const CartScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {/* ITEM LIST */}
+      {/* LISTA DE PRODUCTOS EN CARRITO */}
       <ScrollView style={styles.cartItemsContainer}>
         {shop && (
           <TouchableOpacity
@@ -382,7 +411,7 @@ const CartScreen = () => {
         ))}
       </ScrollView>
 
-      {/* SUMMARY */}
+      {/* RESUMEN DE COMPRA */}
       <View style={styles.summaryContainer}>
         <View style={styles.summaryRow}>
           <Text style={styles.summaryLabel}>Subtotal:</Text>
@@ -392,18 +421,29 @@ const CartScreen = () => {
           <Text style={styles.summaryLabel}>Tax (8%):</Text>
           <Text style={styles.summaryValue}>${taxAmount.toFixed(2)}</Text>
         </View>
+
+        {/* Mostrar savings si es mayor a 0 */}
+        {savings > 0 && (
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>Savings:</Text>
+            <Text style={[styles.summaryValue, { color: '#4CAF50' }]}>
+              -${savings.toFixed(2)}
+            </Text>
+          </View>
+        )}
+
         <View style={[styles.summaryRow, styles.totalRow]}>
           <Text style={styles.totalLabel}>Total:</Text>
           <Text style={styles.totalValue}>${finalTotal.toFixed(2)}</Text>
         </View>
       </View>
 
-      {/* PAYMENT BUTTONS */}
+      {/* BOTONES DE PAGO */}
       <View style={{ padding: 16 }}>
-        {/* 1. Card Payment Button */}
+        {/* Pago con Tarjeta */}
         <TouchableOpacity
           style={[styles.checkoutButton, { marginBottom: 10 }]}
-          onPress={preparePaymentSheet}
+          onPress={() => openConfirmationModal('card')}
           disabled={isCheckoutLoading}
         >
           {isCheckoutLoading ? (
@@ -413,13 +453,13 @@ const CartScreen = () => {
           )}
         </TouchableOpacity>
 
-        {/* 2. Apple Pay / Google Pay Button */}
+        {/* Pago con Apple Pay / Google Pay */}
         {isPlatformPaySupported && (
           <>
             {!readyForPlatformPay ? (
               <TouchableOpacity
                 style={[styles.checkoutButton, { backgroundColor: '#666' }]}
-                onPress={setupPlatformPay}
+                onPress={() => openConfirmationModal('appleGoogle')}
               >
                 <Text style={styles.checkoutButtonText}>
                   {prepareButtonText}
@@ -435,6 +475,18 @@ const CartScreen = () => {
           </>
         )}
       </View>
+
+      {/* MODAL DE CONFIRMACIÓN (CheckoutConfirmationModal) */}
+      <CheckoutConfirmationModal
+        visible={confirmationVisible}
+        onClose={handleCancel}
+        onConfirm={handleConfirm}
+        orderType={orderType}
+        cart={cart}
+        calculateSubtotal={calculateSubtotal}
+        calculateTax={calculateTax}
+        calculateTotal={calculateTotal}
+      />
 
       <Toast />
     </SafeAreaView>

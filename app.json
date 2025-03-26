@@ -55,7 +55,7 @@
       [
         "@stripe/stripe-react-native",
         {
-          "merchantIdentifier": "merchant.com.khtech.bodega",
+          "merchantIdentifier": "merchant.com.bodegaplusllc.app",
           "enableGooglePay": true
         }
       ]

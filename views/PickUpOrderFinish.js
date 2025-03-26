@@ -24,14 +24,15 @@ import { updateOrderIn, setCurrentOrder } from '../redux/slices/orders.slice';
 const OrderSummary = () => {
   const order = useSelector((state) => state.orders.currentOrder);
   const token = useSelector((state) => state.user.userInfo.data.token);
+  const user = useSelector((state) => state.user.userInfo.data.client);
   const [shopData, setShopData] = useState(null);
   const navigation = useNavigation();
   const dispatch = useDispatch();
   const styles = lightStyles;
 
-  console.log(order, "order");
-
-  // Load shop data
+  // --------------------------------------------
+  //   Load Shop Data
+  // --------------------------------------------
   useEffect(() => {
     const fetchShopData = async () => {
       if (!order?.local_id) return;
@@ -46,7 +47,9 @@ const OrderSummary = () => {
     fetchShopData();
   }, [order]);
 
-  // Disable back button
+  // --------------------------------------------
+  //   Disable Back Button
+  // --------------------------------------------
   useEffect(() => {
     const backAction = () => {
       navigation.navigate('Main');
@@ -56,6 +59,9 @@ const OrderSummary = () => {
     return () => backHandler.remove();
   }, [navigation]);
 
+  // --------------------------------------------
+  //   Helpers
+  // --------------------------------------------
   const formatPrice = (price) => {
     if (typeof price === 'number') return price.toFixed(2);
     if (!isNaN(parseFloat(price))) return parseFloat(price).toFixed(2);
@@ -75,13 +81,16 @@ const OrderSummary = () => {
   };
 
   const calculateTotalSavings = () => {
-    return order.order_details.reduce((acc, item) => {
-      if (item.finalPrice && item.finalPrice < item.price) {
-        const saving = (parseFloat(item.price) - parseFloat(item.finalPrice)) * item.quantity;
-        return acc + saving;
-      }
-      return acc;
-    }, 0).toFixed(2);
+    return order.order_details
+      .reduce((acc, item) => {
+        if (item.finalPrice && item.finalPrice < item.price) {
+          const saving =
+            (parseFloat(item.price) - parseFloat(item.finalPrice)) * item.quantity;
+          return acc + saving;
+        }
+        return acc;
+      }, 0)
+      .toFixed(2);
   };
 
   const openAddressInMaps = (address) => {
@@ -103,18 +112,39 @@ const OrderSummary = () => {
     }
   };
 
+  // Función para pasar de "HH:MM:SS" a formato "h:MM AM/PM"
+  const parseTimeTo12hr = (timeStr) => {
+    if (!timeStr) return '';
+    const [hourStr, minuteStr] = timeStr.split(':');
+    let hour = parseInt(hourStr, 10);
+    const minute = parseInt(minuteStr, 10);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    if (hour === 0) {
+      hour = 12;
+    } else if (hour > 12) {
+      hour -= 12;
+    }
+    return `${hour}:${minute.toString().padStart(2, '0')} ${ampm}`;
+  };
+
+  // Calcula el horario del día actual en formato am/pm
   const getTodayOpeningHours = () => {
     if (!shopData || !shopData.openingHours) return 'Closed today';
     const daysOfWeek = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-    const today = new Date().getDay();
-    const todayString = daysOfWeek[today];
+    const todayIndex = new Date().getDay();
+    const todayString = daysOfWeek[todayIndex];
     const todayHours = shopData.openingHours.find((h) => h.day === todayString);
     if (todayHours) {
-      return `Open from ${todayHours.open_hour.slice(0, 5)} to ${todayHours.close_hour.slice(0, 5)}`;
+      return `Come today from ${parseTimeTo12hr(todayHours.open_hour)} to ${parseTimeTo12hr(
+        todayHours.close_hour
+      )}`;
     }
     return 'Closed today';
   };
 
+  // --------------------------------------------
+  //   Render Items
+  // --------------------------------------------
   const renderOrderDetails = ({ item }) => (
     <View style={styles.itemContainer}>
       <View style={styles.itemLeft}>
@@ -127,8 +157,11 @@ const OrderSummary = () => {
     </View>
   );
 
-  const getOrderStatusInfo = (order) => {
-    const { status } = order;
+  // --------------------------------------------
+  //   Status Info
+  // --------------------------------------------
+  const getOrderStatusInfo = (theOrder) => {
+    const { status } = theOrder;
     let mainText = '';
     let icon = null;
     let color = '';
@@ -167,6 +200,9 @@ const OrderSummary = () => {
     return { mainText, icon, color };
   };
 
+  // --------------------------------------------
+  //   Render
+  // --------------------------------------------
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient
@@ -177,35 +213,75 @@ const OrderSummary = () => {
       >
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           <View style={styles.container}>
+            {/* HEADER */}
             <View style={styles.header}>
               <TouchableOpacity onPress={() => navigation.navigate('Main')}>
                 <Ionicons name="arrow-back" size={24} color={styles.iconColor.color} />
               </TouchableOpacity>
-              <Text style={styles.status}>{order.status}</Text>
+              {/* Estado en la parte superior (ícono + texto) */}
+              <View style={styles.statusHeader}>
+                {getOrderStatusInfo(order).icon}
+                <Text
+                  style={[
+                    styles.statusText,
+                    { color: getOrderStatusInfo(order).color },
+                  ]}
+                >
+                  {getOrderStatusInfo(order).mainText}
+                </Text>
+              </View>
             </View>
 
+            {/* SECCIÓN AMARILLA: Lógica para Order-in, Dine in, Pick-up */}
             {order.type === 'Order-in' ? (
               <View style={styles.yellowBackground}>
-                <Text style={styles.instruction}>Show this code to receive your order</Text>
-                <View style={styles.codeContainer}>
+                <Text style={styles.instruction}>
+                  Please present your name, order number, and code to receive your order
+                </Text>
+                {/* Nombre y Order Number - IMPROVED STYLES */}
+                <View style={styles.nameOrderContainer}>
+                  <View style={styles.infoCard}>
+                    <Text style={styles.infoLabel}>Name</Text>
+                    <Text style={styles.infoValue}>{user.name}</Text>
+                  </View>
+                  <View style={styles.infoCard}>
+                    <Text style={styles.infoLabel}>Order Number</Text>
+                    <Text style={styles.infoValue}>#{order.id}</Text>
+                  </View>
+                </View>
+                {/* Código en horizontal */}
+                <View style={[styles.codeContainer, { marginTop: 15 }]}>
                   {order.code.split('').map((digit, index) => (
                     <View key={index} style={styles.codeDigit}>
                       <Text style={styles.codeText}>{digit}</Text>
                     </View>
                   ))}
                 </View>
+                {/* Mostrar horario de hoy si hay datos */}
+                
               </View>
             ) : (
+              // Pick-up
               <View style={styles.yellowBackground}>
                 <Text style={styles.instruction}>
                   Please present your name and order number to receive your order
                 </Text>
-                <View style={styles.codeContainer}>
-                  <Text style={styles.codeText}>Order Number: {order.id}</Text>
+                {/* Nombre y Order Number - IMPROVED STYLES */}
+                <View style={styles.nameOrderContainer}>
+                  <View style={styles.infoCard}>
+                    <Text style={styles.infoLabel}>Name</Text>
+                    <Text style={styles.infoValue}>{user.name}</Text>
+                  </View>
+                  <View style={styles.infoCard}>
+                    <Text style={styles.infoLabel}>Order Number</Text>
+                    <Text style={styles.infoValue}>#{order.id}</Text>
+                  </View>
                 </View>
+                {/* Mostrar horario de hoy si hay datos */}
               </View>
             )}
 
+            {/* TIENDA */}
             <TouchableOpacity
               style={styles.storeInfo}
               onPress={() => openAddressInMaps(shopData?.address)}
@@ -221,35 +297,23 @@ const OrderSummary = () => {
               <View style={styles.storeDetails}>
                 <Text style={styles.storeName}>{shopData?.name}</Text>
                 <Text style={styles.storeAddress}>{shopData?.address}</Text>
+                {/* Distancia dummy */}
                 <Text style={styles.storeDistance}>2.5 KM</Text>
               </View>
               <FontAwesome name="arrow-right" size={20} color={styles.iconColor.color} />
             </TouchableOpacity>
 
-            {order.type === 'Order-in' && (
+            {/* SI ES ORDER-IN MOSTRAMOS HORARIO DETALLADO (opcional) */}
+       
               <View style={styles.deliveryInfo}>
                 <Text style={styles.deliveryTitle}>{getTodayOpeningHours()}</Text>
                 <Text style={styles.deliverySubtitle}>
                   Only the account holder can receive the order during this time slot.
                 </Text>
               </View>
-            )}
-            {order.type === 'Pick-up' && (
-              <View style={styles.statusInfo}>
-                <View style={styles.statusHeader}>
-                  {getOrderStatusInfo(order).icon}
-                  <Text
-                    style={[
-                      styles.statusText,
-                      { color: getOrderStatusInfo(order).color },
-                    ]}
-                  >
-                    {getOrderStatusInfo(order).mainText}
-                  </Text>
-                </View>
-              </View>
-            )}
+   
 
+            {/* RESUMEN DE COMPRA */}
             <View style={styles.summary}>
               <Text style={styles.summaryTitle}>Order Summary</Text>
               <FlatList
@@ -259,16 +323,17 @@ const OrderSummary = () => {
                 style={styles.orderDetailsList}
                 scrollEnabled
               />
+              {/* Costo adicional (fees, taxes) */}
               <View style={styles.totalContainer}>
                 <Text style={styles.totalLabel}>Additional Charges</Text>
                 <Text style={styles.totalPrice}>${calculateDifference()}</Text>
               </View>
+              {/* Total */}
               <View style={styles.totalContainer}>
                 <Text style={styles.totalLabel}>Total</Text>
-                <Text style={styles.totalPrice}>
-                  ${formatPrice(order.total_price)}
-                </Text>
+                <Text style={styles.totalPrice}>${formatPrice(order.total_price)}</Text>
               </View>
+              {/* Savings */}
               <View style={styles.discountContainer}>
                 <FontAwesome5 name="tags" size={16} color="#FFD700" style={{ marginRight: 8 }} />
                 <Text style={styles.discountText}>You saved with Bodega+</Text>
@@ -276,13 +341,13 @@ const OrderSummary = () => {
               </View>
             </View>
 
-            <View style={Platform.OS === 'ios' ? { marginTop: 20 } : {}}>
+            {/* TRANSACTION ID */}
+            <View style={{ marginTop: 10 }}>
               <Text style={styles.transactionId}>Transaction ID: {order.pi}</Text>
             </View>
           </View>
         </ScrollView>
       </LinearGradient>
-      {/* No rating or socket here */}
     </SafeAreaView>
   );
 };
@@ -310,28 +375,64 @@ const commonStyles = {
     justifyContent: 'space-between',
     marginBottom: 10,
   },
-  status: {
+  statusHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statusText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333333',
+    marginLeft: 8,
   },
   yellowBackground: {
     paddingVertical: 20,
-    paddingHorizontal: 10,
-    borderRadius: 20,
+    paddingHorizontal: 20,
+    borderRadius: 12,
     marginBottom: 20,
-    backgroundColor: '#FFEFCF',
+    backgroundColor: '#FFF8D6',
   },
   instruction: {
     fontSize: 14,
     textAlign: 'center',
-    marginVertical: 10,
+    marginVertical: 5,
+    color: '#666666',
+  },
+  // IMPROVED STYLES FOR NAME AND ORDER NUMBER
+  nameOrderContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 15,
+    paddingHorizontal: 5,
+  },
+  infoCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    padding: 12,
+    width: '48%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+    borderLeftWidth: 3,
+    borderLeftColor: '#ff9900',
+  },
+  infoLabel: {
+    fontSize: 12,
     color: '#888888',
+    marginBottom: 4,
+  },
+  infoValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333333',
   },
   codeContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginBottom: 20,
+    alignItems: 'center',
+    marginTop: 10,
   },
   codeDigit: {
     borderColor: '#ffcc00',
@@ -343,11 +444,28 @@ const commonStyles = {
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
+    shadowColor: '#ffcc00',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
   },
   codeText: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333333',
+  },
+  todayHoursContainer: {
+    backgroundColor: '#FFFCE5',
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+    marginBottom: 15,
+  },
+  todayHoursText: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
   },
   storeInfo: {
     flexDirection: 'row',
@@ -395,22 +513,6 @@ const commonStyles = {
   deliverySubtitle: {
     fontSize: 12,
     color: '#888888',
-  },
-  statusInfo: {
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 20,
-    backgroundColor: '#FFF8E1',
-    alignItems: 'center',
-  },
-  statusHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  statusText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginLeft: 10,
   },
   summary: {
     marginBottom: 20,
@@ -491,7 +593,6 @@ const commonStyles = {
   transactionId: {
     fontSize: 12,
     textAlign: 'center',
-    marginTop: 20,
     color: '#888888',
   },
   iconColor: {
