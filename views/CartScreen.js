@@ -184,7 +184,7 @@ const CartScreen = () => {
 
       const initResponse = await initPaymentSheet({
         paymentIntentClientSecret: clientSecret,
-        merchantDisplayName: 'MyApp',
+        merchantDisplayName: 'Bodega Plus LLC',
         applePay: {
           merchantCountryCode: 'US',
         },

@@ -19,6 +19,7 @@
     "@react-navigation/native-stack": "^6.9.26",
     "@reduxjs/toolkit": "^2.2.5",
     "@stripe/stripe-react-native": "0.38.6",
+    "axios": "^1.8.4",
     "dayjs": "^1.11.13",
     "dotenv": "^16.4.5",
     "expo": "^52.0.0",
