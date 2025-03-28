@@ -131,7 +131,7 @@ const CartScreen = () => {
     return cart.reduce((totalSavings, item) => {
       const original = Number(item.price) || 0;
       const final = Number(item.finalPrice) || 0;
-      const diff = original - final; // diferencia entre precio original y final
+      const diff = original - final;
       return totalSavings + (diff > 0 ? diff * item.quantity : 0);
     }, 0);
   };
@@ -184,6 +184,7 @@ const CartScreen = () => {
 
       const initResponse = await initPaymentSheet({
         paymentIntentClientSecret: clientSecret,
+        // IMPORTANTE: Asegúrate de usar el nombre de tu negocio aquí
         merchantDisplayName: 'Bodega Plus LLC',
         applePay: {
           merchantCountryCode: 'US',
@@ -270,6 +271,8 @@ const CartScreen = () => {
       setReadyForPlatformPay(false);
 
       const total = calculateTotal();
+
+      // Ajuste: el último ítem debe reflejar el nombre de tu negocio y usar paymentType: 'Final'
       const cartItems = [
         {
           label: 'Products',
@@ -277,9 +280,9 @@ const CartScreen = () => {
           paymentType: 'Immediate',
         },
         {
-          label: 'Total',
+          label: 'Bodega Plus LLC', // Nombre del negocio
           amount: total.toFixed(2),
-          paymentType: 'Immediate',
+          paymentType: 'Final',     // Indica que es el total final
         },
       ];
 
@@ -300,10 +303,7 @@ const CartScreen = () => {
       }
     } catch (err) {
       console.error('Error en Apple/Google Pay:', err);
-      Alert.alert(
-        'Error',
-        'Ocurrió un problema con Apple Pay / Google Pay'
-      );
+      Alert.alert('Error', 'Ocurrió un problema con Apple Pay / Google Pay');
       setReadyForPlatformPay(true);
     }
   };
