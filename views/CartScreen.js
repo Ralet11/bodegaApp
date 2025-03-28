@@ -282,7 +282,7 @@ const CartScreen = () => {
         {
           label: 'Bodega Plus LLC', // Nombre del negocio
           amount: total.toFixed(2),
-          paymentType: 'Final',     // Indica que es el total final
+          paymentType: 'Immediate',     // Indica que es el total final
         },
       ];
 
