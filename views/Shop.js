@@ -12,7 +12,8 @@ import {
   Linking,
   Alert,
   Easing,
-  StyleSheet
+  StyleSheet,
+  Dimensions, // Se importa Dimensions para obtener el ancho de la pantalla
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -28,6 +29,8 @@ import { stylesDark, stylesLight } from '../components/themeShop';
 import PromoCard from '../components/PromoMealCard';
 import ProductDetail from '../components/ProductDetail';
 import Toast from 'react-native-toast-message';
+
+const windowWidth = Dimensions.get('window').width; // Se obtiene el ancho de la pantalla
 
 const ShopScreen = () => {
   const route = useRoute();
@@ -412,7 +415,8 @@ const ShopScreen = () => {
             <View style={styles.headerImageContainer}>
               <Image
                 source={{ uri: shop?.deliveryImage }}
-                style={styles.headerImage}
+                style={[styles.headerImage, { width: windowWidth, alignSelf: 'center' }]}
+                resizeMode="cover"
               />
               <TouchableOpacity
                 onPress={() => {
@@ -615,8 +619,8 @@ const ShopScreen = () => {
           </Text>
           <Text style={styles.cartText}>$ {totalAmount}</Text>
           <Text style={styles.cartText}>
-  {orderType === "Order-in" ? "Dine-in" : orderType}
-</Text>
+            {orderType === "Order-in" ? "Dine-in" : orderType}
+          </Text>
           <TouchableOpacity
             style={styles.cartButton}
             onPress={() => navigation.navigate('CartScreen', { orderType, shop })}
