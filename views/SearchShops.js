@@ -21,7 +21,6 @@ const SearchShops = () => {
     useEffect(() => {
         if (shopsByCategory && categoryId && !initialFilteredShops) {
             const shops = shopsByCategory[categoryId] || [];
-            console.log('Original Shops:', shops);
 
             // Check for unique IDs
             const shopIds = shops.map(shop => shop.id);

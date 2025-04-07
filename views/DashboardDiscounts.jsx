@@ -48,8 +48,6 @@ const DashboardDiscount = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [deliveryMode, setDeliveryMode] = useState('Dine-in');
 
-  console.log(filteredShopsByTags, "filtere")
-
   // Redux
   const address = useSelector((state) => state?.user?.address?.formatted_address);
   const location = useSelector((state) => state?.user?.location);
@@ -66,6 +64,8 @@ const DashboardDiscount = () => {
 
   // Mapeo: 'Dine-in' -> 0, 'Pickup' -> 1
   const orderTypeParam = deliveryMode === 'Dine-in' ? 0 : deliveryMode === 'Pickup' ? 1 : null;
+
+
 
   // Limpiar carrito cuando cambia auxCart
   useEffect(() => {
@@ -134,6 +134,8 @@ const DashboardDiscount = () => {
       setLoading(false);
     }
   };
+
+  console.log(filteredShopsByTags, "shop")
 
   // Obtener ubicación actual
   const getCurrentLocation = async () => {

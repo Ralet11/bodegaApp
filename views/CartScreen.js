@@ -157,8 +157,6 @@ const CartScreen = () => {
     // Decidimos la forma de pago en base al método seleccionado
     if (selectedPaymentMethod === 'card') {
       preparePaymentSheet();
-    } else if (selectedPaymentMethod === 'appleGoogle') {
-      setupPlatformPay();
     }
   };
 
@@ -231,7 +229,7 @@ const CartScreen = () => {
   };
 
   // ------------------------------------------------------------------
-  //  Pago con Apple Pay / Google Pay
+  //  Pago con Apple Pay / Google Pay (sin modal de confirmación)
   // ------------------------------------------------------------------
   const setupPlatformPay = async () => {
     try {
@@ -282,7 +280,7 @@ const CartScreen = () => {
         {
           label: 'Bodega Plus LLC', // Nombre del negocio
           amount: total.toFixed(2),
-          paymentType: 'Immediate',     // Indica que es el total final
+          paymentType: 'Immediate',
         },
       ];
 
@@ -440,7 +438,7 @@ const CartScreen = () => {
 
       {/* BOTONES DE PAGO */}
       <View style={{ padding: 16 }}>
-        {/* Pago con Tarjeta */}
+        {/* Pago con Tarjeta: se abre modal de confirmación */}
         <TouchableOpacity
           style={[styles.checkoutButton, { marginBottom: 10 }]}
           onPress={() => openConfirmationModal('card')}
@@ -453,13 +451,13 @@ const CartScreen = () => {
           )}
         </TouchableOpacity>
 
-        {/* Pago con Apple Pay / Google Pay */}
+        {/* Pago con Apple Pay / Google Pay: va directo al flujo de pago */}
         {isPlatformPaySupported && (
           <>
             {!readyForPlatformPay ? (
               <TouchableOpacity
                 style={[styles.checkoutButton, { backgroundColor: '#666' }]}
-                onPress={() => openConfirmationModal('appleGoogle')}
+                onPress={setupPlatformPay}
               >
                 <Text style={styles.checkoutButtonText}>
                   {prepareButtonText}

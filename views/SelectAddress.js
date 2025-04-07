@@ -185,7 +185,7 @@ const SetAddressScreen = () => {
       );
 
       if (response.status === 200) {
-        console.log(response.data, "chequeando address")
+
         dispatch(setAddress(response.data));
         dispatch(addAddress(response.data));
         setModalVisible(false);

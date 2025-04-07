@@ -23,8 +23,6 @@ const CheckoutConfirmationModal = ({
   const subtotal = calculateSubtotal();
   const taxAmt = calculateTax(subtotal);
   const total = calculateTotal();
-
-  console.log(cart)
   // Calcular los savings usando originalPrice y finalPrice
   const savings = cart.reduce((totalSavings, item) => {
     const original = Number(item.price) || 0;

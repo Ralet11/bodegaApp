@@ -74,7 +74,7 @@ const CartScreen = () => {
 
   const GOOGLE_API_KEY = 'AIzaSyAvritMA-llcdIPnOpudxQ4aZ1b5WsHHUc'; // Replace with your actual Google API key
 
-  console.log(cart, "cart en cart")
+
 
   const shop = Object.values(shops)
     .flat()

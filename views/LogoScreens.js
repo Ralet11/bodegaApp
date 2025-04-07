@@ -19,8 +19,6 @@ useEffect(() => {
     try {
       const userData = await AsyncStorage.getItem('persist:user');
       const themeData = await AsyncStorage.getItem('persist:theme');
-      console.log('User Data:', userData);
-      console.log('Theme Data:', themeData);
     } catch (error) {
       console.error('Error reading AsyncStorage:', error);
     }
@@ -30,7 +28,6 @@ useEffect(() => {
 },[])
 
   useEffect(() => {
-    console.log(token, "token")
     const redirectTimeout = setTimeout(() => {
       if (token) {
         navigation.navigate('Main');
