@@ -32,6 +32,7 @@ import AccountDrawer from '../components/AccountDrawer';
 import { setAddress, setLocation } from '../redux/slices/user.slice';
 import SkeletonLoader from '../components/SkeletonLoader';
 import DiscountShopScroll from '../components/DiscountShopScroll';
+import DiscountProductsScroll from '../components/DiscountProductScroll';
 import { clearCart } from '../redux/slices/cart.slice';
 import * as Location from 'expo-location';
 import DeliveryModeToggle from '../components/DeliveryModeToggle';
@@ -47,6 +48,7 @@ const DashboardDiscount = () => {
   const [addressModalVisible, setAddressModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [deliveryMode, setDeliveryMode] = useState('Dine-in');
+  const [TemporalProducts, setTemporalProducts] = useState([]);
 
   // Redux
   const address = useSelector((state) => state?.user?.address?.formatted_address);
@@ -64,8 +66,6 @@ const DashboardDiscount = () => {
 
   // Mapeo: 'Dine-in' -> 0, 'Pickup' -> 1
   const orderTypeParam = deliveryMode === 'Dine-in' ? 0 : deliveryMode === 'Pickup' ? 1 : null;
-
-
 
   // Limpiar carrito cuando cambia auxCart
   useEffect(() => {
@@ -135,7 +135,22 @@ const DashboardDiscount = () => {
     }
   };
 
-  console.log(filteredShopsByTags, "shop")
+  const fetchTemporalProducts = async () => {
+    if (!token) return;
+    try {
+      const response = await Axios.get(`${API_URL}/api/local/app/getTemporalProducts`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setTemporalProducts(response.data);
+      console.log(response.data, "response data")
+    } catch (error) {
+      console.error('Error fetching temporal products:', error);
+      setLoading(false);
+    }
+  };
+
+  console.log(TemporalProducts, "temporalProd");
+  console.log(TemporalProducts[0]?.discountSchedule, "temporalProd");
 
   // Obtener ubicación actual
   const getCurrentLocation = async () => {
@@ -209,10 +224,11 @@ const DashboardDiscount = () => {
     }
   }, [user?.id, token, dispatch]);
 
-  // Llamar a fetchShops + getCurrentLocation cuando tengamos token
+  // Llamar a fetchShops + fetchTemporalProducts + getCurrentLocation cuando tengamos token
   useEffect(() => {
     if (token) {
       fetchShops();
+      fetchTemporalProducts();
       if (!address) {
         getCurrentLocation();
       }
@@ -362,6 +378,8 @@ const DashboardDiscount = () => {
         {/* Slider de promociones */}
         <PromoSlider />
 
+        {/* Sección de temporal products con descuento activo */}
+        
         <View style={{ paddingHorizontal: 15, paddingVertical: 10 }}>
           <Text style={{ fontSize: 14, fontWeight: '900', color: '#333' }}>
             What are you looking for today?
@@ -388,6 +406,12 @@ const DashboardDiscount = () => {
             </TouchableOpacity>
           ))}
         </ScrollView>
+
+        <View style={{ paddingHorizontal: 15, paddingVertical: 10 }}>
+        
+          <DiscountProductsScroll products={TemporalProducts} />
+        </View>
+
 
         {/* Lista de shops o mensaje de no disponible */}
         {noShopsAvailable ? (
@@ -670,6 +694,12 @@ const styles = StyleSheet.create({
     color: '#000',
     fontWeight: '600',
     fontSize: 14,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 10,
   },
 });
 
