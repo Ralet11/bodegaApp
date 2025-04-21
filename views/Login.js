@@ -42,8 +42,8 @@ const LoginScreen = () => {
   const formAnim = useRef(new Animated.Value(0)).current;
 
   const [clientData, setClientData] = useState({
-    email: 'ramiro.alet@gmail.com',
-    password: '123123'
+    email: '',
+    password: ''
   });
 
   const [errors, setErrors] = useState({
