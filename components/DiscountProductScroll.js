@@ -17,6 +17,7 @@ import {
   Dimensions,
 } from "react-native"
 import LottieView from "lottie-react-native"
+import { useNavigation } from "@react-navigation/native"
 
 const { width } = Dimensions.get("window")
 const CARD_WIDTH = width * 0.48 // Ancho de la tarjeta
@@ -248,8 +249,7 @@ const clockAnimation = {
 const DiscountProductsScroll = ({ products = [], onProductPress }) => {
   const [currentTime, setCurrentTime] = useState(() => new Date())
   const animationRefs = useRef({})
-
-  
+  const navigation = useNavigation()
 
   // Actualizar hora cada segundo
   useEffect(() => {
@@ -282,7 +282,6 @@ const DiscountProductsScroll = ({ products = [], onProductPress }) => {
         eH,
         eM,
       )
-
       if (end <= start) end.setDate(end.getDate() + 1) // cruza medianoche
 
       return now >= start && now <= end
@@ -320,9 +319,13 @@ const DiscountProductsScroll = ({ products = [], onProductPress }) => {
     [currentTime],
   )
 
-  const handleGoShop = (product) => {
-console.log(product, "prod")
-  }
+  // Navegar al stack screen "Shop"
+  const handleGoShop = useCallback(
+    (product) => {
+      navigation.navigate("Shop", { shop: product.local })
+    },
+    [navigation],
+  )
 
   // Render tarjeta
   const renderProductCard = ({ item, index }) => {
@@ -383,7 +386,10 @@ console.log(product, "prod")
                 </Text>
               </View>
 
-              <TouchableOpacity onPress={() => handleGoShop(product)} style={styles.buyButton}>
+              <TouchableOpacity
+                onPress={() => handleGoShop(item)}
+                style={styles.buyButton}
+              >
                 <Text style={styles.buyButtonText}>View in Shop</Text>
               </TouchableOpacity>
             </View>
@@ -399,9 +405,7 @@ console.log(product, "prod")
     <View style={styles.container}>
       <View style={styles.headerContainer}>
         <Text style={styles.headerTitle}>Flash Deals</Text>
-        <TouchableOpacity>
-          <Text style={styles.seeAllText}>See All</Text>
-        </TouchableOpacity>
+        
       </View>
 
       <FlatList
@@ -459,7 +463,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 3,
     borderRadius: 12,
-    shadowColor: "#000",
+    shadowColor: "#000", 
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.5,
     shadowRadius: 3,
@@ -476,7 +480,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 3,
     borderRadius: 12,
-    shadowColor: "#000",
+    shadowColor: "#000", 
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.5,
     shadowRadius: 3,
@@ -498,7 +502,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 4,
     alignItems: "center",
-    shadowColor: "#000",
+    shadowColor: "#000", 
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.3,
     shadowRadius: 2,

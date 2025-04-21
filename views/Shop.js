@@ -7,13 +7,11 @@ import {
   SafeAreaView,
   ScrollView,
   BackHandler,
-  useColorScheme,
   Animated,
   Linking,
-  Alert,
   Easing,
   StyleSheet,
-  Dimensions, // Se importa Dimensions para obtener el ancho de la pantalla
+  Dimensions,
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -25,607 +23,313 @@ import { setCurrentShop } from '../redux/slices/currentShop.slice';
 import { setAuxCart } from '../redux/slices/setUp.slice';
 import CartSkeletonLoader from '../components/SkeletonLoaderCart';
 import ShopContentOrderIn from '../components/ShopContentOrderIn';
-import { stylesDark, stylesLight } from '../components/themeShop';
+import { stylesLight } from '../components/themeShop';
 import PromoCard from '../components/PromoMealCard';
 import ProductDetail from '../components/ProductDetail';
 import Toast from 'react-native-toast-message';
 
-const windowWidth = Dimensions.get('window').width; // Se obtiene el ancho de la pantalla
+const windowWidth = Dimensions.get('window').width;
+const HEADER_RATIO = 9 / 16; // 16:9
 
 const ShopScreen = () => {
   const route = useRoute();
   const navigation = useNavigation();
   const dispatch = useDispatch();
 
-  // ====================
-  // Global States (Redux)
-  // ====================
-  const cart = useSelector(state => state.cart.items);
-  const user = useSelector(state => state?.user?.userInfo?.data?.client);
-  const token = useSelector(state => state?.user?.userInfo.data.token);
+  // Redux state
+  const cart   = useSelector(s => s.cart.items);
+  const user   = useSelector(s => s?.user?.userInfo?.data?.client);
+  const token  = useSelector(s => s?.user?.userInfo?.data?.token);
 
-  // ====================
-  // Local States
-  // ====================
-  const [categories, setCategories] = useState([]);            // Todas las categorías
-  const [filteredCategories, setFilteredCategories] = useState([]); // En este caso, serán las mismas
-  const [selectedProduct, setSelectedProduct] = useState(null);
-  const [selectedOptions, setSelectedOptions] = useState({});
-  const [loading, setLoading] = useState(true);                // Para mostrar el skeleton mientras carga
-  const [orderType, setOrderType] = useState('Pick-up');
-  const [promotion, setPromotion] = useState(null);
+  // Params
+  const { shop = null, orderTypeParam, orderDetails = null } = route.params || {};
+
+  // Local state
+  const [categories, setCategories]             = useState([]);
+  const [filteredCategories, setFiltered]       = useState([]);
+  const [selectedProduct, setSelectedProduct]   = useState(null);
+  const [selectedOptions, setSelectedOptions]   = useState({});
+  const [loading, setLoading]                   = useState(true);
+  const [orderType, setOrderType]               = useState('Pick-up');
+  const [promotion, setPromotion]               = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
-  const [reviews, setReviews] = useState([]);
+  const [reviews, setReviews]                   = useState([]);
 
-  const colorScheme = useColorScheme();
+  // Sticky categories
+  const [showSticky, setShowSticky]         = useState(false);
+  const [categoryY, setCategoryY]           = useState(0);
+  const categoryPositions                   = useRef([]);
+  const positionsReady                      = useRef(false);
+  const isReady                             = useRef(false);
+  const stickyAnim                          = useRef(new Animated.Value(0)).current;
 
-  // Navigation parameters
-  const params = route.params || {};
-  const shop = params.shop || null;
-  const orderTypeParam = params.orderTypeParam;
-  const orderDetails = params.orderDetails || null;
+  // Back‑press guard
+  const navigatingBack = useRef(false);
 
-  // Control para evitar doble retroceso
-  const isNavigatingBack = useRef(false);
+  const scrollRef = useRef(null);
 
-  // Para el sticky category bar
-  const [showStickyCategoryScroll, setShowStickyCategoryScroll] = useState(false);
-  const [categoryListY, setCategoryListY] = useState(0);
-  const categoryRefs = useRef([]);
-  const categoryPositions = useRef([]);
-  const [positionsReady, setPositionsReady] = useState(false);
-  const [isComponentReady, setIsComponentReady] = useState(false);
+  // ------------------------------------------------------------------------------------
+  //   E F F E C T S
+  // ------------------------------------------------------------------------------------
+  useEffect(() => { isReady.current = true }, []);
 
-  // Animación para el sticky bar
-  const stickyAnimValue = useRef(new Animated.Value(0)).current;
-
-  // Styles: se usa stylesLight (o stylesDark si se desea forzar el modo oscuro)
-  const styles = stylesLight;
-
-  // ====================
-  // Effects
-  // ====================
-
-  // Marcar componente como listo al montar
   useEffect(() => {
-    setIsComponentReady(true);
-  }, []);
-
-  // Cargar productos de pedidos anteriores (si se pasan en orderDetails)
-  useEffect(() => {
-    if (orderDetails && Array.isArray(orderDetails) && orderDetails.length > 0) {
-      orderDetails.forEach(product => {
-        dispatch(
-          addToCart({
-            ...product,
-            quantity: product.quantity || 1,
-            selectedExtras: product.selectedExtras || {},
-            price: product.currentPrice || product.price,
-          })
-        );
+    if (arrayIsFilled(orderDetails)) {
+      orderDetails.forEach(p => {
+        dispatch(addToCart({
+          ...p,
+          quantity: p.quantity || 1,
+          selectedExtras: p.selectedExtras || {},
+          price: p.currentPrice || p.price,
+        }));
       });
     }
   }, [orderDetails, dispatch]);
 
-  // Cargar reviews
   useEffect(() => {
-    const fetchReviews = async () => {
+    if (!shop?.id) return;
+    (async () => {
       try {
-        if (shop?.id) {
-          const response = await Axios.get(`${API_URL}/api/reviews/getByLocal/${shop.id}`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
-          setReviews(response.data || []);
-        }
-      } catch (error) {
-        console.error(error);
-      }
-    };
-    fetchReviews();
+        const { data } = await Axios.get(`${API_URL}/api/reviews/getByLocal/${shop.id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setReviews(data || []);
+      } catch (e) { console.error(e) }
+    })();
   }, [shop?.id, token]);
 
-  // Ajustar orderType según orderTypeParam
   useEffect(() => {
-    if (orderTypeParam !== undefined) {
-      switch (orderTypeParam) {
-        case 0:
-          setOrderType('Order-in');
-          break;
-        case 1:
-          setOrderType('Pick-up');
-          break;
-        default:
-          setOrderType('Pick-up');
-          break;
-      }
-    }
+    setOrderType(orderTypeParam === 0 ? 'Order-in' : 'Pick-up');
   }, [orderTypeParam]);
 
-  // <-- Se eliminó la lógica de filtrado por "availableFor":
-  // Ahora se obtienen y se muestran todas las categorías y productos.
   useEffect(() => {
-    const fetchCategories = async () => {
-      if (!shop?.id) return;
+    if (!shop?.id) return;
+    (async () => {
+      setLoading(true);
       try {
-        setLoading(true);
-        const response = await Axios.get(`${API_URL}/api/local/${shop.id}/categories`);
-        const allCats = response.data.categories || [];
-        setCategories(allCats);
-        setFilteredCategories(allCats);
-      } catch (error) {
-        console.log(error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchCategories();
+        const { data } = await Axios.get(`${API_URL}/api/local/${shop.id}/categories`);
+        const cats = data.categories || [];
+        setCategories(cats);
+        setFiltered(cats);
+      } catch (e) { console.error(e) }
+      finally { setLoading(false); }
+    })();
   }, [shop?.id]);
 
-  // Al cambiar las categorías (o el orderType, aunque ya no afecta), se actualiza filteredCategories
   useEffect(() => {
-    setFilteredCategories(categories);
-  }, [categories]);
-
-  // Obtener promoción para el local
-  useEffect(() => {
-    const getPromotionByShop = async () => {
-      if (!shop?.id) return;
+    if (!shop?.id) return;
+    (async () => {
       try {
-        const response = await Axios.get(`${API_URL}/api/promotions/getByLocal/${shop.id}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+        const { data } = await Axios.get(`${API_URL}/api/promotions/getByLocal/${shop.id}`, {
+          headers: { Authorization: `Bearer ${token}` }
         });
-        setPromotion(response.data || null);
-      } catch (error) {
-        console.log(error);
-      }
-    };
-    getPromotionByShop();
+        setPromotion(data || null);
+      } catch (e) { console.error(e) }
+    })();
   }, [shop?.id, token]);
 
-  // Establecer el local actual en Redux
-  useEffect(() => {
-    if (shop?.id) {
-      dispatch(setCurrentShop(shop.id));
-    }
-  }, [dispatch, shop?.id]);
+  useEffect(() => { shop?.id && dispatch(setCurrentShop(shop.id)) }, [dispatch, shop?.id]);
 
-  // Animar el sticky bar en el scroll
   useEffect(() => {
-    Animated.timing(stickyAnimValue, {
-      toValue: showStickyCategoryScroll ? 1 : 0,
+    Animated.timing(stickyAnim, {
+      toValue: showSticky ? 1 : 0,
       duration: 200,
       easing: Easing.inOut(Easing.ease),
       useNativeDriver: true,
     }).start();
-  }, [showStickyCategoryScroll, stickyAnimValue]);
+  }, [showSticky, stickyAnim]);
 
-  // ====================
-  // Back Button Handling
-  // ====================
+  // ------------------------------------------------------------------------------------
+  //   B A C K   H A N D L I N G
+  // ------------------------------------------------------------------------------------
   useFocusEffect(
     React.useCallback(() => {
-      const onBackPress = () => {
-        if (isNavigatingBack.current) return true;
-        isNavigatingBack.current = true;
-
+      const onBack = () => {
+        if (navigatingBack.current) return true;
+        navigatingBack.current = true;
         if (!selectedProduct) {
-          if (cart.length > 0) {
-            dispatch(clearCart());
-            dispatch(setAuxCart());
-            navigation.navigate('Main');
-            return true;
-          } else {
-            dispatch(setAuxCart());
-            navigation.navigate('Main');
-            return true;
-          }
-        } else {
-          setSelectedProduct(null);
-          isNavigatingBack.current = false;
-          return true;
+          dispatch(clearCart()); dispatch(setAuxCart());
+          navigation.navigate('Main'); return true;
         }
+        setSelectedProduct(null); navigatingBack.current = false; return true;
       };
-
-      BackHandler.addEventListener('hardwareBackPress', onBackPress);
-
+      BackHandler.addEventListener('hardwareBackPress', onBack);
       return () => {
-        BackHandler.removeEventListener('hardwareBackPress', onBackPress);
-        isNavigatingBack.current = false;
+        BackHandler.removeEventListener('hardwareBackPress', onBack);
+        navigatingBack.current = false;
       };
-    }, [cart, selectedProduct, navigation, dispatch])
+    }, [dispatch, navigation, selectedProduct])
   );
 
-  // Manejo de "before leaving" (iOS swipe/back)
   useEffect(() => {
-    const beforeRemoveListener = navigation.addListener('beforeRemove', e => {
-      if (cart.length > 0) {
-        e.preventDefault();
-        dispatch(clearCart());
-        dispatch(setAuxCart());
-        Toast.show({
-          type: 'info',
-          text1: 'Cart Emptied',
-          text2: 'Your cart has been successfully emptied.',
-          position: 'bottom',
-          visibilityTime: 2000,
-          autoHide: true,
-        });
-        navigation.dispatch(e.data.action);
-      } else {
-        dispatch(setAuxCart());
-        navigation.dispatch(e.data.action);
-      }
+    const unsub = navigation.addListener('beforeRemove', e => {
+      dispatch(clearCart()); dispatch(setAuxCart());
+      navigation.dispatch(e.data.action);
     });
+    return () => navigation.removeListener('beforeRemove', unsub);
+  }, [navigation, dispatch]);
 
-    return () => {
-      navigation.removeListener('beforeRemove', beforeRemoveListener);
-    };
-  }, [navigation, cart, dispatch]);
-
-  // ====================
-  // Funciones
-  // ====================
-
-  const scrollViewRef = useRef(null);
-
-  const handleScroll = event => {
-    const scrollY = event.nativeEvent.contentOffset.y;
-    if (scrollY >= categoryListY) {
-      setShowStickyCategoryScroll(true);
-    } else {
-      setShowStickyCategoryScroll(false);
-    }
-
-    categoryPositions.current.forEach((position, index) => {
-      if (
-        position <= scrollY + categoryListY + 10 &&
-        (categoryPositions.current[index + 1] === undefined ||
-          categoryPositions.current[index + 1] > scrollY + categoryListY + 10)
-      ) {
-        setSelectedCategory(index);
+  // ------------------------------------------------------------------------------------
+  //   H A N D L E R S
+  // ------------------------------------------------------------------------------------
+  const handleScroll = e => {
+    const y = e.nativeEvent.contentOffset.y;
+    setShowSticky(y >= categoryY);
+    categoryPositions.current.forEach((pos, i) => {
+      if (pos <= y + categoryY + 10 &&
+         (categoryPositions.current[i+1] === undefined ||
+          categoryPositions.current[i+1] > y + categoryY + 10)) {
+        setSelectedCategory(i);
       }
     });
   };
 
-  const scrollToCategory = index => {
-    if (!positionsReady || !isComponentReady) {
-      console.log('Component not ready to scroll yet');
-      return;
-    }
-    if (scrollViewRef.current && categoryPositions.current[index] !== undefined) {
-      setSelectedCategory(index);
-      const positionY = categoryPositions.current[index];
-      scrollViewRef.current.scrollTo({ y: positionY - categoryListY, animated: true });
-    } else {
-      console.log('Could not scroll (refs not available yet).');
-    }
+  const scrollToCategory = i => {
+    if (!positionsReady.current || !isReady.current) return;
+    const y = categoryPositions.current[i];
+    y !== undefined && scrollRef.current?.scrollTo({ y: y - categoryY, animated: true });
   };
 
-  const handleOrderTypeChange = type => {
-    setOrderType(type);
-    // Aunque se cambia el orderType, ya no se filtra la lista de productos.
+  const openMaps = addr => {
+    const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`;
+    Linking.openURL(url).catch(() => {});
   };
 
-  const handleAddToCart = (product, quantity) => {
-    dispatch(
-      addToCart({
-        ...product,
-        quantity,
-        price: product.finalPrice ?? product.price,
-      })
-    );
-    closeProductDetail();
-  };
+  const totalItems  = cart.reduce((t,i)=>t+i.quantity,0);
+  const totalAmount = cart.reduce((s,i)=>s+(i.finalPrice??0)*i.quantity,0).toFixed(2);
 
-  const closeProductDetail = () => {
-    setSelectedProduct(null);
-    setSelectedOptions({});
-  };
-
-  const goReviewScreen = () => {
-    navigation.navigate('ReviewSceen', { shop, reviews });
-  };
-
-  const openAddressInGoogleMaps = address => {
-    const encodedAddress = encodeURIComponent(address);
-    const url = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
-    Linking.canOpenURL(url)
-      .then(supported => {
-        if (supported) {
-          Linking.openURL(url);
-        } else {
-          console.log('Cannot open the URL:', url);
-        }
-      })
-      .catch(err => console.error('Error trying to open the URL:', err));
-  };
-
-  // Botones de orderType (se mantienen en la UI, aunque ya no filtran productos)
-  const renderOrderTypeButtons = () => {
-    return (
-      <>
-        {shop?.orderIn && (
-          <TouchableOpacity
-            style={[
-              styles.orderTypeButton,
-              orderType === 'Order-in' && styles.selectedOrderTypeButton
-            ]}
-            onPress={() => handleOrderTypeChange('Order-in')}
-          >
-            <FontAwesome
-              name="cutlery"
-              size={15}
-              color={orderType === 'Order-in' ? '#8C6D00' : '#333'}
-            />
-            <Text style={styles.orderTypeText}>Dine-in</Text>
-          </TouchableOpacity>
-        )}
-        {shop?.pickUp && (
-          <TouchableOpacity
-            style={[
-              styles.orderTypeButton,
-              orderType === 'Pick-up' && styles.selectedOrderTypeButton
-            ]}
-            onPress={() => handleOrderTypeChange('Pick-up')}
-          >
-            <FontAwesome
-              name="shopping-basket"
-              size={15}
-              color={orderType === 'Pick-up' ? '#8C6D00' : '#333'}
-            />
-            <Text style={styles.orderTypeText}>Pick-up</Text>
-          </TouchableOpacity>
-        )}
-      </>
-    );
-  };
-
-  // Totales del carrito
-  const totalItems = cart.reduce((total, item) => total + item.quantity, 0);
-  const totalAmount = cart
-    .reduce((sum, item) => sum + (item.finalPrice ?? 0) * item.quantity, 0)
-    .toFixed(2);
-
-  // ====================
-  // Render Principal
-  // ====================
-
+  // ------------------------------------------------------------------------------------
+  //   R E N D E R
+  // ------------------------------------------------------------------------------------
   return (
     <SafeAreaView style={styles.safeArea}>
       {selectedProduct ? (
         <ProductDetail
           product={selectedProduct}
-          onAddToCart={handleAddToCart}
-          onBack={closeProductDetail}
+          onAddToCart={(p,q)=>{ dispatch(addToCart({ ...p, quantity:q, price:p.finalPrice??p.price })); setSelectedProduct(null); }}
+          onBack={()=>setSelectedProduct(null)}
         />
       ) : (
         <>
           <ScrollView
-            ref={scrollViewRef}
-            nestedScrollEnabled={true}
-            style={{ flex: 1, backgroundColor: styles.container.backgroundColor }}
+            ref={scrollRef}
+            nestedScrollEnabled
+            style={{ flex:1, backgroundColor:styles.container.backgroundColor }}
             scrollEventThrottle={16}
             onScroll={handleScroll}
           >
-            {/* Header con imagen */}
-            <View style={styles.headerImageContainer}>
+            {/* ---------- Header image ---------- */}
+            <View style={[styles.headerImageContainer, { width: windowWidth, aspectRatio: HEADER_RATIO }]}>
               <Image
                 source={{ uri: shop?.deliveryImage }}
-                style={[styles.headerImage, { width: windowWidth, alignSelf: 'center' }]}
+                style={StyleSheet.absoluteFill}
                 resizeMode="cover"
               />
               <TouchableOpacity
-                onPress={() => {
-                  if (!selectedProduct) {
-                    if (cart.length > 0) {
-                      dispatch(clearCart());
-                      dispatch(setAuxCart());
-                      navigation.navigate('Main');
-                    } else {
-                      dispatch(setAuxCart());
-                      navigation.navigate('Main');
-                    }
-                  } else {
-                    setSelectedProduct(null);
-                  }
-                }}
                 style={styles.backButton}
+                onPress={()=>{ dispatch(clearCart()); dispatch(setAuxCart()); navigation.navigate('Main'); }}
               >
                 <FontAwesome name="arrow-left" size={28} color="#fff" />
               </TouchableOpacity>
             </View>
 
-            {/* Información del local */}
+            {/* ---------- Shop info ---------- */}
             <View style={styles.shopInfoContainer}>
               <Text style={styles.shopName}>{shop?.name}</Text>
-              <TouchableOpacity
-                style={styles.shopAddressContainer}
-                onPress={() => openAddressInGoogleMaps(shop?.address)}
-              >
+              <TouchableOpacity style={styles.shopAddressContainer} onPress={()=>openMaps(shop?.address)}>
                 <FontAwesome name="map-marker" size={18} color="#000" />
                 <Text style={styles.shopAddress}>{shop?.address}</Text>
               </TouchableOpacity>
-
-              {/* Rating y botones de orderType */}
               <View style={styles.ratingAndOrderTypeContainer}>
-                <TouchableOpacity
-                  onPress={goReviewScreen}
-                  style={styles.shopRatingContainer}
-                >
+                <TouchableOpacity style={styles.shopRatingContainer} onPress={()=>navigation.navigate('ReviewSceen',{ shop, reviews })}>
                   <FontAwesome name="star" size={14} color="#ffcc00" />
-                  <Text style={styles.shopRating}>
-                    {shop?.rating?.toFixed(1)}
-                  </Text>
-                  <Text style={styles.shopRatingOpinions}>
-                    ({reviews.length || 0})
-                  </Text>
+                  <Text style={styles.shopRating}>{shop?.rating?.toFixed(1)}</Text>
+                  <Text style={styles.shopRatingOpinions}>({reviews.length})</Text>
                   <FontAwesome name="chevron-right" style={styles.shopRatingArrow} />
                 </TouchableOpacity>
                 <View style={styles.orderTypeButtonsContainer}>
-                  {renderOrderTypeButtons()}
+                  {shop?.orderIn && (
+                    <OrderTypeBtn title="Dine‑in" active={orderType==='Order-in'} onPress={()=>setOrderType('Order-in')} />
+                  )}
+                  {shop?.pickUp && (
+                    <OrderTypeBtn title="Pick‑up" active={orderType==='Pick-up'} onPress={()=>setOrderType('Pick-up')} />
+                  )}
                 </View>
               </View>
             </View>
 
-            {/* Barra de categorías */}
-            <View
-              style={styles.categoryListContainer}
-              onLayout={event => {
-                const layout = event.nativeEvent.layout;
-                setCategoryListY(layout.y);
-              }}
-            >
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={styles.contentContainer}
-              >
-                {filteredCategories.map((item, index) => (
-                  <TouchableOpacity
-                    key={item.id}
-                    onPress={() =>
-                      positionsReady && isComponentReady && scrollToCategory(index)
-                    }
-                    disabled={!positionsReady || !isComponentReady}
-                    style={[
-                      styles.categoryButton,
-                      selectedCategory === index && styles.activeCategoryButton,
-                      (!positionsReady || !isComponentReady) && { opacity: 0.5 },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.categoryButtonText1,
-                        selectedCategory === index && styles.activeCategoryButtonText,
-                      ]}
-                    >
-                      {item.name}
-                    </Text>
-                  </TouchableOpacity>
+            {/* ---------- Categories bar ---------- */}
+            <View style={styles.categoryListContainer} onLayout={e=>setCategoryY(e.nativeEvent.layout.y)}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.contentContainer}>
+                {filteredCategories.map((c,i)=>(
+                  <CatButton
+                    key={c.id}
+                    label={c.name}
+                    active={selectedCategory===i}
+                    disabled={!positionsReady.current}
+                    onPress={()=>scrollToCategory(i)}
+                  />
                 ))}
               </ScrollView>
               <View style={styles.categorySeparator} />
             </View>
 
-            {/* PromoCard (si hay promoción) */}
-            {promotion && Object.keys(promotion).length > 0 && (
-              <PromoCard user={user} shop={shop} token={token} promotion={promotion} />
-            )}
+            {promotion && <PromoCard user={user} shop={shop} token={token} promotion={promotion} />}
 
-            {/* Si está cargando => Skeleton; si no, renderiza las categorías */}
             {loading ? (
               <CartSkeletonLoader />
-            ) : filteredCategories.length > 0 ? (
+            ) : filteredCategories.length ? (
               <ShopContentOrderIn
                 selectedProduct={selectedProduct}
                 setSelectedProduct={setSelectedProduct}
                 cart={cart}
-                handleAddToCart={handleAddToCart}
+                handleAddToCart={(p,q)=>{ dispatch(addToCart({ ...p, quantity:q, price:p.finalPrice??p.price })); }}
                 selectedOptions={selectedOptions}
                 setSelectedOptions={setSelectedOptions}
-                closeProductDetail={closeProductDetail}
+                closeProductDetail={()=>setSelectedProduct(null)}
                 categories={filteredCategories}
-                categoryRefs={categoryRefs}
+                categoryRefs={{}}
                 categoryPositions={categoryPositions}
-                setPositionsReady={setPositionsReady}
+                setPositionsReady={v=>{ positionsReady.current = v }}
                 promotion={promotion}
                 shop={shop}
               />
             ) : (
-              <View style={extraStyles.noProductsContainer}>
-                <FontAwesome name="frown-o" style={extraStyles.noProductsIcon} />
-                <Text style={extraStyles.noProductsTitle}>No Dishes Available</Text>
-                <Text style={extraStyles.noProductsText}>
-                  We're currently updating our menu. Please check back soon for exciting new dishes!
-                </Text>
-              </View>
+              <NoProducts />
             )}
           </ScrollView>
 
-          {/* Sticky Category Scroll */}
-          <Animated.View
-            style={[
-              styles.stickyCategoryList,
-              {
-                opacity: stickyAnimValue,
-                transform: [
-                  {
-                    translateY: stickyAnimValue.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [-50, 0],
-                    }),
-                  },
-                ],
-              },
-            ]}
-          >
+          {/* ---------- Sticky categories ---------- */}
+          <Animated.View style={[
+            styles.stickyCategoryList,
+            {
+              opacity: stickyAnim,
+              transform:[{ translateY: stickyAnim.interpolate({ inputRange:[0,1], outputRange:[-50,0] }) }]
+            }
+          ]}>
             <View style={styles.stickyHeader}>
-              <TouchableOpacity
-                onPress={() => {
-                  dispatch(setAuxCart());
-                  navigation.navigate('Main');
-                }}
-                style={styles.stickyBackButton}
-              >
+              <TouchableOpacity style={styles.stickyBackButton} onPress={()=>navigation.navigate('Main')}>
                 <FontAwesome name="arrow-left" size={20} color="#fff" />
               </TouchableOpacity>
-              <View style={{ flex: 1, alignItems: 'center' }}>
-                <Text style={styles.stickyHeaderText}>{shop?.name ?? ''}</Text>
-              </View>
+              <View style={{ flex:1, alignItems:'center' }}><Text style={styles.stickyHeaderText}>{shop?.name}</Text></View>
             </View>
-
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.categoryScrollContainer}
-            >
-              {filteredCategories.map((item, index) => (
-                <TouchableOpacity
-                  key={item.id}
-                  onPress={() =>
-                    positionsReady && isComponentReady && scrollToCategory(index)
-                  }
-                  disabled={!positionsReady || !isComponentReady}
-                  style={[
-                    styles.categoryButton,
-                    selectedCategory === index && styles.activeCategoryButton,
-                    (!positionsReady || !isComponentReady) && { opacity: 0.5 },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.categoryButtonText,
-                      selectedCategory === index && styles.activeCategoryButtonText,
-                    ]}
-                  >
-                    {item.name}
-                  </Text>
-                </TouchableOpacity>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryScrollContainer}>
+              {filteredCategories.map((c,i)=>(
+                <CatButton key={c.id} label={c.name} active={selectedCategory===i} disabled={!positionsReady.current} onPress={()=>scrollToCategory(i)} />
               ))}
             </ScrollView>
           </Animated.View>
         </>
       )}
 
-      {/* Barra inferior del carrito */}
-      {cart.length > 0 && !selectedProduct && (
+      {/* ---------- Cart bar ---------- */}
+      {cart.length>0 && !selectedProduct && (
         <View style={styles.cartContainer}>
-          <Text style={styles.cartText}>
-            {totalItems} Product{totalItems > 1 ? 's' : ''}
-          </Text>
+          <Text style={styles.cartText}>{totalItems} Product{totalItems>1?'s':''}</Text>
           <Text style={styles.cartText}>$ {totalAmount}</Text>
-          <Text style={styles.cartText}>
-            {orderType === "Order-in" ? "Dine-in" : orderType}
-          </Text>
-          <TouchableOpacity
-            style={styles.cartButton}
-            onPress={() => navigation.navigate('CartScreen', { orderType, shop })}
-          >
-            <Text style={styles.cartButtonText}>Go to cart</Text>
+          <Text style={styles.cartText}>{orderType==='Order-in'?'Dine‑in':'Pick‑up'}</Text>
+          <TouchableOpacity style={styles.cartButton} onPress={()=>navigation.navigate('CartScreen',{ orderType, shop })}>
+            <Text style={styles.cartButtonText}>Go to cart</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -635,38 +339,59 @@ const ShopScreen = () => {
 
 export default ShopScreen;
 
-// Estilos complementarios
+/* ───────────────────────── helper components & styles ───────────────────────── */
+
+const OrderTypeBtn = ({ title, active, onPress }) => (
+  <TouchableOpacity
+    style={[stylesLight.orderTypeButton, active && stylesLight.selectedOrderTypeButton]}
+    onPress={onPress}
+  >
+    <FontAwesome name={title==='Dine‑in'?'cutlery':'shopping-basket'}
+                 size={15}
+                 color={active?'#8C6D00':'#333'} />
+    <Text style={stylesLight.orderTypeText}>{title}</Text>
+  </TouchableOpacity>
+);
+
+const CatButton = ({ label, active, disabled, onPress }) => (
+  <TouchableOpacity
+    onPress={onPress}
+    disabled={disabled}
+    style={[
+      stylesLight.categoryButton,
+      active && stylesLight.activeCategoryButton,
+      disabled && { opacity:0.5 }
+    ]}
+  >
+    <Text style={[
+      stylesLight.categoryButtonText1,
+      active && stylesLight.activeCategoryButtonText
+    ]}>{label}</Text>
+  </TouchableOpacity>
+);
+
+const NoProducts = () => (
+  <View style={extraStyles.noProductsContainer}>
+    <FontAwesome name="frown-o" style={extraStyles.noProductsIcon} />
+    <Text style={extraStyles.noProductsTitle}>No Dishes Available</Text>
+    <Text style={extraStyles.noProductsText}>
+      We're updating our menu. Please check back soon!
+    </Text>
+  </View>
+);
+
+function arrayIsFilled(arr){ return Array.isArray(arr) && arr.length > 0 }
+
+/* extraStyles igual que antes (no se modifica) */
 const extraStyles = StyleSheet.create({
-  noProductsContainer: {
-    marginHorizontal: 16,
-    marginVertical: 20,
-    padding: 20,
-    backgroundColor: 'rgba(255,255,255,0.7)',
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+  noProductsContainer:{
+    marginHorizontal:16,marginVertical:20,padding:20,
+    backgroundColor:'rgba(255,255,255,0.7)',borderRadius:12,
+    alignItems:'center',justifyContent:'center',
+    shadowColor:'#000',shadowOffset:{width:0,height:2},
+    shadowOpacity:0.1,shadowRadius:4,elevation:2,
   },
-  noProductsIcon: {
-    fontSize: 32,
-    color: '#999',
-    marginBottom: 8,
-  },
-  noProductsTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  noProductsText: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-    lineHeight: 20,
-  },
+  noProductsIcon:{ fontSize:32, color:'#999', marginBottom:8 },
+  noProductsTitle:{ fontSize:18, fontWeight:'bold', color:'#333', marginBottom:8 },
+  noProductsText:{ fontSize:14, color:'#666', textAlign:'center', lineHeight:20 },
 });

@@ -208,21 +208,7 @@ const DashboardDiscount = () => {
   }, [token, address]);
 
   // Obtener descuentos del usuario
-  useEffect(() => {
-    if (user?.id && token) {
-      const fetchUserDiscounts = async () => {
-        try {
-          const resp = await Axios.get(`${API_URL}/api/discounts/userDiscount/${user.id}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          dispatch(setUserDiscounts(resp.data));
-        } catch (error) {
-          console.error('Error fetching user discounts:', error);
-        }
-      };
-      fetchUserDiscounts();
-    }
-  }, [user?.id, token, dispatch]);
+
 
   // Llamar a fetchShops + fetchTemporalProducts + getCurrentLocation cuando tengamos token
   useEffect(() => {
