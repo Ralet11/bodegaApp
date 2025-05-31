@@ -8,7 +8,11 @@
         "distribution": "internal"
       },
       "preview": {
-        "distribution": "internal"
+        "distribution": "internal",
+        "env": {
+          "API_URL": "https://3.137.165.92",
+          "GOOGLE_API_KEY": "AIzaSyAvritMA-llcdIPnOpudxQ4aZ1b5WsHHUc"
+        }
       },
       "production": {
         "env": {

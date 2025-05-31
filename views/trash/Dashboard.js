@@ -108,15 +108,22 @@ const Dashboard = () => {
   }, [dispatch, token, auxShops]);
 
   // Bloqueo del botón back (para deshabilitar retrocesos)
-  useFocusEffect(
-    useCallback(() => {
-      const onBackPress = () => true;
-      BackHandler.addEventListener('hardwareBackPress', onBackPress);
-      return () => {
-        BackHandler.removeEventListener('hardwareBackPress', onBackPress);
-      };
-    }, [])
-  );
+useFocusEffect(
+  useCallback(() => {
+    const onBackPress = () => true;
+
+    // 1) Capturamos la suscripción
+    const backHandlerSubscription = BackHandler.addEventListener(
+      'hardwareBackPress',
+      onBackPress
+    );
+
+    return () => {
+      // 2) Quitamos el listener con remove()
+      backHandlerSubscription.remove();
+    };
+  }, [])
+);
 
   // Mostrar modal si no hay dirección (tras 2 segundos)
   useFocusEffect(

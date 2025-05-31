@@ -51,18 +51,25 @@ const AcceptedOrder = () => {
   const GOOGLE_MAPS_API_KEY = 'AIzaSyAvritMA-llcdIPnOpudxQ4aZ1b5WsHHUc';
   const progressAnim = useRef(new Animated.Value(0)).current;
 
-  useFocusEffect(
-    React.useCallback(() => {
-      const onBackPress = () => {
-        navigation.navigate('Home');
-        return true;
-      };
-      BackHandler.addEventListener('hardwareBackPress', onBackPress);
-      return () => {
-        BackHandler.removeEventListener('hardwareBackPress', onBackPress);
-      };
-    }, [navigation])
-  );
+useFocusEffect(
+  React.useCallback(() => {
+    const onBackPress = () => {
+      navigation.navigate('Home');
+      return true;
+    };
+
+    // 1) Guardamos la suscripción
+    const backHandlerSubscription = BackHandler.addEventListener(
+      'hardwareBackPress',
+      onBackPress
+    );
+
+    // 2) En el cleanup llamamos a remove()
+    return () => {
+      backHandlerSubscription.remove();
+    };
+  }, [navigation])
+);
 
   // Animación de la barra
   useEffect(() => {

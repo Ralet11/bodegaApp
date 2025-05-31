@@ -73,29 +73,33 @@ const DashboardDiscount = () => {
   }, [auxCart, dispatch]);
 
   // Control del botón atrás en Android y bloqueo de navegación en iOS
-  useFocusEffect(
-    useCallback(() => {
-      const onBackPress = () => true;
-      BackHandler.addEventListener('hardwareBackPress', onBackPress);
+useFocusEffect(
+  useCallback(() => {
+    const onBackPress = () => true;
 
-      let removeBeforeRemove;
-      if (Platform.OS === 'ios') {
-        removeBeforeRemove = navigation.addListener('beforeRemove', (e) => {
-          // Permitir acciones de reseteo (por ejemplo, logout) y bloquear otras navegaciones
-          if (e.data.action.type === 'RESET') {
-            return;
-          }
-          e.preventDefault();
-        });
-      }
+    // 1) Guardamos la suscripción
+    const backHandlerSubscription = BackHandler.addEventListener(
+      'hardwareBackPress',
+      onBackPress
+    );
 
-      return () => {
-        BackHandler.removeEventListener('hardwareBackPress', onBackPress);
-        if (removeBeforeRemove) removeBeforeRemove();
-      };
-    }, [navigation])
-  );
+    let removeBeforeRemove;
+    if (Platform.OS === 'ios') {
+      removeBeforeRemove = navigation.addListener('beforeRemove', (e) => {
+        if (e.data.action.type === 'RESET') {
+          return;
+        }
+        e.preventDefault();
+      });
+    }
 
+    return () => {
+      // 2) Ahora invocamos remove() en lugar de removeEventListener
+      backHandlerSubscription.remove();
+      if (removeBeforeRemove) removeBeforeRemove();
+    };
+  }, [navigation])
+);
   // Limpiar el searchQuery cuando entramos a la pantalla
   useFocusEffect(
     useCallback(() => {

@@ -148,29 +148,35 @@ const ShopScreen = () => {
   }, [showSticky, stickyAnim]);
 
   /* ───── Back handling ───── */
-  useFocusEffect(
-    React.useCallback(() => {
-      const onBack = () => {
-        if (navigatingBack.current) return true;
-        navigatingBack.current = true;
-        if (!selectedProduct) {
-          dispatch(clearCart());
-          dispatch(setAuxCart());
-          navigation.navigate("Main");
-          return true;
-        }
-        setSelectedProduct(null);
-        navigatingBack.current = false;
+useFocusEffect(
+  React.useCallback(() => {
+    const onBack = () => {
+      if (navigatingBack.current) return true;
+      navigatingBack.current = true;
+      if (!selectedProduct) {
+        dispatch(clearCart());
+        dispatch(setAuxCart());
+        navigation.navigate("Main");
         return true;
-      };
-      BackHandler.addEventListener("hardwareBackPress", onBack);
-      return () => {
-        BackHandler.removeEventListener("hardwareBackPress", onBack);
-        navigatingBack.current = false;
-      };
-    }, [dispatch, navigation, selectedProduct])
-  );
+      }
+      setSelectedProduct(null);
+      navigatingBack.current = false;
+      return true;
+    };
 
+    // 1) Guardamos la suscripción devuelta por addEventListener
+    const backHandlerSubscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      onBack
+    );
+
+    return () => {
+      // 2) Invocamos remove() en esa suscripción
+      backHandlerSubscription.remove();
+      navigatingBack.current = false;
+    };
+  }, [dispatch, navigation, selectedProduct])
+);
   useEffect(() => {
     const unsub = navigation.addListener("beforeRemove", (e) => {
       dispatch(clearCart());
